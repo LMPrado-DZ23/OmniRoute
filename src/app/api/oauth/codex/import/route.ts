@@ -12,6 +12,7 @@ import {
   refreshCodexToken,
   isUnrecoverableRefreshError,
 } from "@omniroute/open-sse/services/tokenRefresh.ts";
+import { isOkFailure } from "@/shared/utils/resultGuards";
 
 /**
  * Message returned when the imported record's refresh_token is already dead
@@ -85,8 +86,8 @@ async function validateCodexRefreshToken(payload: {
  */
 
 const bodySchema = z.object({
-  accounts: z.union([z.record(z.unknown()), z.array(z.unknown())], {
-    errorMap: () => ({ message: "accounts must be an object or an array of objects" }),
+  accounts: z.union([z.record(z.string(), z.unknown()), z.array(z.unknown())], {
+    error: "accounts must be an object or an array of objects",
   }),
 });
 
@@ -110,13 +111,13 @@ export async function POST(request: Request) {
   const parsed = bodySchema.safeParse(rawBody);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: parsed.error.errors[0]?.message ?? "Invalid request body" },
+      { error: parsed.error.issues[0]?.message ?? "Invalid request body" },
       { status: 400 }
     );
   }
 
   const flat = flattenCodexImportPayload(parsed.data.accounts);
-  if (!flat.ok) {
+  if (isOkFailure(flat)) {
     return NextResponse.json({ error: flat.error }, { status: 400 });
   }
   if (flat.records.length === 0) {
@@ -132,7 +133,7 @@ export async function POST(request: Request) {
 
   for (let i = 0; i < flat.records.length; i++) {
     const norm = normalizeCodexImportRecord(flat.records[i]);
-    if (!norm.ok) {
+    if (isOkFailure(norm)) {
       failed += 1;
       results.push({ index: i, ok: false, error: norm.error });
       continue;

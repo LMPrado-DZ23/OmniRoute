@@ -101,14 +101,6 @@
   "src/app/api/monitoring/health/route.ts": {
     "TS2322": 1
   },
-  "src/app/api/oauth/codex/import-token/route.ts": {
-    "TS2339": 3
-  },
-  "src/app/api/oauth/codex/import/route.ts": {
-    "TS2554": 1,
-    "TS2353": 1,
-    "TS2339": 3
-  },
   "src/app/api/oauth/cursor/login/poll/route.ts": {
     "TS2554": 1
   },

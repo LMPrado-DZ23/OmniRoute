@@ -5,6 +5,7 @@ import { parseCodexSessionJson } from "@/lib/oauth/utils/codexSessionImport";
 import { createProviderConnection } from "@/models";
 import { requireManagementAuth } from "@/lib/api/requireManagementAuth";
 import { buildErrorBody, sanitizeErrorMessage } from "@omniroute/open-sse/utils/error.ts";
+import { isOkFailure } from "@/shared/utils/resultGuards";
 
 /**
  * POST /api/oauth/codex/import-token
@@ -47,7 +48,7 @@ function resolveAccessToken(
     return { ok: true, resolved: { accessToken: parsed.accessToken, name: parsed.name } };
   }
   const result = parseCodexSessionJson(parsed.session);
-  if (!result.ok) return { ok: false, error: result.error };
+  if (isOkFailure(result)) return { ok: false, error: result.error };
   return { ok: true, resolved: { accessToken: result.session.accessToken, name: parsed.name } };
 }
 
@@ -84,7 +85,7 @@ async function parseRequestBody(
   }
 
   const resolved = resolveAccessToken(parsed.data);
-  if (!resolved.ok) {
+  if (isOkFailure(resolved)) {
     return {
       ok: false,
       response: NextResponse.json(buildErrorBody(400, resolved.error), { status: 400 }),
@@ -105,7 +106,7 @@ export async function POST(request: Request) {
   if (authResponse) return authResponse;
 
   const body = await parseRequestBody(request);
-  if (!body.ok) return body.response;
+  if (isOkFailure(body)) return body.response;
 
   const { accessToken, name } = body.resolved;
   const info = extractCodexAccountInfo(accessToken);
