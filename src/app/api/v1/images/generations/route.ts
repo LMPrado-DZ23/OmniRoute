@@ -10,9 +10,14 @@ import {
   getImageModelEntry,
   modalitiesRequireImageInput,
 } from "@omniroute/open-sse/config/imageRegistry.ts";
-import { errorResponse, unavailableResponse } from "@omniroute/open-sse/utils/error.ts";
+import { errorResponse } from "@omniroute/open-sse/utils/error.ts";
 import { HTTP_STATUS } from "@omniroute/open-sse/config/constants.ts";
-import { isAllRateLimitedCredentials } from "@/app/api/v1/_shared/rateLimit";
+import {
+  expiredProviderResponse,
+  isAllExpiredCredentials,
+  isAllRateLimitedCredentials,
+  rateLimitedProviderResponse,
+} from "@/app/api/v1/_shared/rateLimit";
 import * as log from "@/sse/utils/logger";
 import { toJsonErrorPayload } from "@/shared/utils/upstreamError";
 import { enforceApiKeyPolicy } from "@/shared/utils/apiKeyPolicy";
@@ -268,13 +273,11 @@ async function postHandler(request, context) {
         `No credentials for image provider: ${provider}`
       );
     }
-    if (credentials.allRateLimited) {
-      return unavailableResponse(
-        HTTP_STATUS.RATE_LIMITED,
-        `[${provider}] All accounts rate limited`,
-        credentials.retryAfter,
-        credentials.retryAfterHuman
-      );
+    if (isAllRateLimitedCredentials(credentials)) {
+      return rateLimitedProviderResponse(provider, credentials);
+    }
+    if (isAllExpiredCredentials(credentials)) {
+      return expiredProviderResponse(provider, credentials);
     }
   } else if (isCustomModel) {
     credentials = await getProviderCredentialsWithQuotaPreflight(
@@ -289,13 +292,11 @@ async function postHandler(request, context) {
         `No credentials for custom image provider: ${provider}`
       );
     }
-    if (credentials.allRateLimited) {
-      return unavailableResponse(
-        HTTP_STATUS.RATE_LIMITED,
-        `[${provider}] All accounts rate limited`,
-        credentials.retryAfter,
-        credentials.retryAfterHuman
-      );
+    if (isAllRateLimitedCredentials(credentials)) {
+      return rateLimitedProviderResponse(provider, credentials);
+    }
+    if (isAllExpiredCredentials(credentials)) {
+      return expiredProviderResponse(provider, credentials);
     }
   } else if (providerConfig && providerConfig.authType === "none") {
     // #6928: best-effort per-connection base-URL override lookup for local
@@ -307,7 +308,11 @@ async function postHandler(request, context) {
       null,
       requestedModel
     );
-    if (localCredentials && !isAllRateLimitedCredentials(localCredentials)) {
+    if (
+      localCredentials &&
+      !isAllRateLimitedCredentials(localCredentials) &&
+      !isAllExpiredCredentials(localCredentials)
+    ) {
       credentials = localCredentials;
     }
   }
