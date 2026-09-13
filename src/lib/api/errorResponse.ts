@@ -1,6 +1,12 @@
 import { randomUUID } from "crypto";
 
-export type ApiErrorType = "invalid_request" | "not_found" | "conflict" | "server_error";
+/**
+ * `error.type` in API error bodies. `upstream_error` and `timeout` are sent by the proxy
+ * deploy routes (settings/proxy/{cloudflare,deno,vercel}-deploy) when the hosting
+ * provider fails or does not finish in time; they are part of the response contract.
+ */
+export type ApiErrorType =
+  "invalid_request" | "not_found" | "conflict" | "server_error" | "upstream_error" | "timeout";
 
 interface ApiErrorPayload {
   status: number;

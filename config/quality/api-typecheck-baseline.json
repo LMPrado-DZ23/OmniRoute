@@ -167,14 +167,7 @@
     "TS2345": 1
   },
   "src/app/api/settings/proxy/cloudflare-deploy/route.ts": {
-    "TS2769": 1,
-    "TS2322": 2
-  },
-  "src/app/api/settings/proxy/deno-deploy/route.ts": {
-    "TS2322": 4
-  },
-  "src/app/api/settings/proxy/vercel-deploy/route.ts": {
-    "TS2322": 3
+    "TS2769": 1
   },
   "src/app/api/settings/reasoning-routing-rules/simulate/route.ts": {
     "TS2322": 1
