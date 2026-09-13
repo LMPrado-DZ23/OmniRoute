@@ -51,7 +51,10 @@ import {
   getQuotaScopeLabelForProvider,
   isAntigravityQuotaProvider,
 } from "@omniroute/open-sse/services/antigravityQuotaFamily.ts";
-import { rehydrateAntigravityFamilyLocksForConnections, persistAntigravityFamilyCooldownIfQuota } from "@omniroute/open-sse/services/antigravityFamilyCooldown.ts";
+import {
+  rehydrateAntigravityFamilyLocksForConnections,
+  persistAntigravityFamilyCooldownIfQuota,
+} from "@omniroute/open-sse/services/antigravityFamilyCooldown.ts";
 import { markQuotaPreflightAccountUnavailable } from "./quotaPreflightUnavailable.ts";
 import { getCreditsMode } from "@omniroute/open-sse/services/antigravityCredits.ts";
 import { preferAntigravityConnectionsWithStoredProject } from "@omniroute/open-sse/services/antigravityProjectPersistence.ts";
@@ -795,7 +798,7 @@ function buildPeakHourProtectionRateLimitedResult(
   log.info("AUTH", `${provider} | peak-hour protection filtered account(s): ${blockedSummary}`);
 
   return {
-    allRateLimited: true,
+    allRateLimited: true as const,
     retryAfter,
     retryAfterHuman: formatRetryAfter(retryAfter),
     lastError: `All ${provider} accounts blocked by peak-hour protection`,
@@ -826,7 +829,7 @@ function buildQuotaPreflightRateLimitedResult(
   log.info("AUTH", `${provider} | quota preflight filtered account(s): ${blockedSummary}`);
 
   return {
-    allRateLimited: true,
+    allRateLimited: true as const,
     retryAfter,
     retryAfterHuman: formatRetryAfter(retryAfter),
     lastError: `All ${provider} accounts blocked by quota preflight`,
@@ -1352,7 +1355,7 @@ export async function getProviderCredentials(
           );
           invalidateManagedLease(options, "HEALTH_OR_COOLDOWN");
           return {
-            allRateLimited: true,
+            allRateLimited: true as const,
             retryAfter: earliest,
             retryAfterHuman: formatRetryAfter(earliest),
           };
@@ -1626,7 +1629,7 @@ export async function getProviderCredentials(
           allBlockedByModelCooldown ? "MODEL_INELIGIBLE" : "HEALTH_OR_COOLDOWN"
         );
         return {
-          allRateLimited: true,
+          allRateLimited: true as const,
           retryAfter: earliest,
           retryAfterHuman: formatRetryAfter(earliest),
           lastError: earliestConn?.lastError || null,
@@ -1743,7 +1746,7 @@ export async function getProviderCredentials(
           ) || new Date(Date.now() + 3000).toISOString();
         invalidateManagedLease(options, "HEALTH_OR_COOLDOWN");
         return {
-          allRateLimited: true,
+          allRateLimited: true as const,
           retryAfter,
           retryAfterHuman: formatRetryAfter(retryAfter),
           lastError: mixed.lastError,
@@ -1760,7 +1763,7 @@ export async function getProviderCredentials(
 
       invalidateManagedLease(options, "QUOTA_UNAVAILABLE");
       return {
-        allRateLimited: true,
+        allRateLimited: true as const,
         retryAfter,
         retryAfterHuman: formatRetryAfter(retryAfter),
         lastError: `All ${provider} accounts reached configured quota threshold`,
@@ -1804,7 +1807,7 @@ export async function getProviderCredentials(
 
       invalidateManagedLease(options, "QUOTA_UNAVAILABLE");
       return {
-        allRateLimited: true,
+        allRateLimited: true as const,
         retryAfter,
         retryAfterHuman: formatRetryAfter(retryAfter),
         lastError: `All ${provider} accounts have exhausted their quota`,
@@ -2405,7 +2408,7 @@ export function isAgentrouterConnectionQuotaScope(
 }
 
 async function resolveDailyResetForProvider(
-  provider: string | null,
+  provider: string | null
 ): Promise<{ timezone?: unknown; hour?: unknown } | null> {
   if (!provider) return null;
   try {
@@ -2643,7 +2646,7 @@ export async function markAccountUnavailable(
       effectiveProviderProfile,
       null,
       null,
-      await resolveDailyResetForProvider(provider),
+      await resolveDailyResetForProvider(provider)
     );
 
     // T-PROBE: probe-origin failures (model test-all) must never remove the
@@ -2897,7 +2900,13 @@ export async function markAccountUnavailable(
         "AUTH",
         `Model-only lockout for ${provider}:${model} — ${status} ${reason} ${Math.ceil(lockout.cooldownMs / 1000)}s (failureCount=${lockout.failureCount}, connection stays active)`
       );
-      persistAntigravityFamilyCooldownIfQuota({ provider, connectionId, model, cooldownMs: lockout.cooldownMs, reason });
+      persistAntigravityFamilyCooldownIfQuota({
+        provider,
+        connectionId,
+        model,
+        cooldownMs: lockout.cooldownMs,
+        reason,
+      });
       return { shouldFallback: true, cooldownMs: lockout.cooldownMs };
     }
     const result = fallbackResult;

@@ -192,11 +192,10 @@
     "TS2345": 1
   },
   "src/app/api/v1/providers/[provider]/embeddings/route.ts": {
-    "TS2339": 3,
     "TS2322": 1
   },
   "src/app/api/v1/providers/[provider]/images/generations/route.ts": {
-    "TS2339": 5
+    "TS2339": 2
   },
   "src/app/api/v1/rerank/route.ts": {
     "TS2339": 2
