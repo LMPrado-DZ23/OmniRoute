@@ -173,7 +173,6 @@
     "TS2322": 1
   },
   "src/app/api/system/env/repair/route.ts": {
-    "TS2578": 1,
     "TS2353": 3
   },
   "src/app/api/system/version/route.ts": {
@@ -185,9 +184,6 @@
   "src/app/api/tools/traffic-inspector/internal/ingest/route.ts": {
     "TS1117": 2,
     "TS2345": 1
-  },
-  "src/app/api/tools/traffic-inspector/ws/route.ts": {
-    "TS2578": 1
   },
   "src/app/api/translator/send/route.ts": {
     "TS2345": 1,
