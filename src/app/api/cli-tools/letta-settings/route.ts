@@ -10,6 +10,8 @@ import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import { cliAuthOnlyConfigSchema } from "@/shared/validation/schemas/cli";
 import { requireCliToolsAuth } from "@/lib/api/requireCliToolsAuth";
 import { sanitizeErrorMessage } from "@omniroute/open-sse/utils/error";
+import { readJsoncObjectForMerge } from "../_lib/jsoncConfig";
+import { isOkFailure } from "@/shared/utils/resultGuards";
 
 const execAsync = promisify(exec);
 
@@ -122,16 +124,46 @@ export async function GET(request: Request) {
       backendMode: settings.preferredBackendMode || "api",
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: { message: sanitizeErrorMessage(error) } },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: { message: sanitizeErrorMessage(error) } }, { status: 500 });
   }
 }
 
+// ── Read auth.json for a merge ──────────────────────────────────────────
+type LettaAuthFile = Record<string, unknown> & {
+  providers: Record<string, Record<string, unknown>>;
+};
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isProviderMap = (value: unknown): value is Record<string, Record<string, unknown>> =>
+  isPlainObject(value) && Object.values(value).every(isPlainObject);
+
+/**
+ * auth.json as an object that can be merged and written back. A missing or empty file is a new
+ * `{ version: 1, providers: {} }`. A file that is unreadable, invalid, not an object, or whose
+ * `providers` is not a map of provider objects is refused, so it is never replaced (F-14).
+ */
+const readLettaAuthForMerge = async (
+  authPath: string
+): Promise<{ ok: true; value: LettaAuthFile } | { ok: false; error: string }> => {
+  const read = await readJsoncObjectForMerge(authPath, "auth.json");
+  if (isOkFailure(read)) return read;
+  const providers = read.value.providers ?? {};
+  if (!isProviderMap(providers)) {
+    return {
+      ok: false,
+      error:
+        "existing auth.json has a providers entry that is not a map of provider objects; fix it before applying OmniRoute settings",
+    };
+  }
+  return { ok: true, value: { version: 1, ...read.value, providers } };
+};
+
 // ── POST - Apply OmniRoute as LM Studio provider + switch to local mode ──
 /**
- * Steps 1-2 of POST: read the existing Letta auth.json, refuse to clobber a real
+ * Steps 1-2 of POST: read settings.json and the existing Letta auth.json, refusing (409)
+ * either one that cannot be merged before anything is written. Refuse to clobber a real
  * LM Studio configuration unless `overwrite` is set (409 with conflict info), and back
  * up a non-OmniRoute provider before it is overwritten. Extracted to keep POST under
  * the complexity gate.
@@ -140,19 +172,30 @@ async function prepareLettaAuthFile(
   overwrite: boolean | undefined
 ): Promise<
   | { conflictResponse: NextResponse }
-  | { authFile: { version: number; providers: Record<string, any> }; authPath: string }
+  | { authFile: LettaAuthFile; authPath: string; settings: Record<string, unknown> }
 > {
   const localBackendDir = getLocalBackendDir();
   const authPath = getProviderAuthPath();
-  await fs.mkdir(path.join(localBackendDir, "providers"), { recursive: true });
 
-  let authFile = { version: 1, providers: {} as Record<string, any> };
-  try {
-    const existing = await fs.readFile(authPath, "utf-8");
-    authFile = JSON.parse(existing);
-  } catch {
-    /* No existing file */
+  // A file that cannot be merged is left untouched, instead of being replaced or letting a
+  // real LM Studio provider slip past the conflict check below (F-14).
+  const settingsRead = await readJsoncObjectForMerge(getSettingsPath(), "settings.json");
+  if (isOkFailure(settingsRead)) {
+    return {
+      conflictResponse: NextResponse.json(
+        { error: { message: settingsRead.error } },
+        { status: 409 }
+      ),
+    };
   }
+  const authRead = await readLettaAuthForMerge(authPath);
+  if (isOkFailure(authRead)) {
+    return {
+      conflictResponse: NextResponse.json({ error: { message: authRead.error } }, { status: 409 }),
+    };
+  }
+  const authFile = authRead.value;
+  await fs.mkdir(path.join(localBackendDir, "providers"), { recursive: true });
 
   const existingProvider = authFile.providers?.[PROVIDER_NAME];
   if (existingProvider && !isOmniRouteUrl(existingProvider.base_url) && !overwrite) {
@@ -175,7 +218,7 @@ async function prepareLettaAuthFile(
     await fs.writeFile(backupPath, JSON.stringify(existingProvider, null, 2));
   }
 
-  return { authFile, authPath };
+  return { authFile, authPath, settings: settingsRead.value };
 }
 
 export async function POST(request: Request) {
@@ -197,25 +240,17 @@ export async function POST(request: Request) {
 
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
 
-    // ── 1-2. Read auth.json, guard non-OmniRoute conflicts, back up before overwrite ──
+    // ── 1-2. Read both files, guard non-OmniRoute conflicts, back up before overwrite ──
     const prepared = await prepareLettaAuthFile(overwrite);
     if ("conflictResponse" in prepared) {
       return prepared.conflictResponse;
     }
-    const { authFile, authPath } = prepared;
+    const { authFile, authPath, settings } = prepared;
 
     // ── 3. Switch to local mode in settings.json ──
     const settingsPath = getSettingsPath();
     const lettaDir = getLettaDir();
     await fs.mkdir(lettaDir, { recursive: true });
-
-    let settings = {};
-    try {
-      const existing = await fs.readFile(settingsPath, "utf-8");
-      settings = JSON.parse(existing);
-    } catch {
-      /* No existing settings */
-    }
 
     settings.preferredBackendMode = "local";
     await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2));
@@ -246,10 +281,7 @@ export async function POST(request: Request) {
       needsRestart: true,
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: { message: sanitizeErrorMessage(error) } },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: { message: sanitizeErrorMessage(error) } }, { status: 500 });
   }
 }
 
@@ -261,13 +293,11 @@ export async function DELETE(request: Request) {
     // ── 1. Remove lmstudio provider from auth.json, restore backup if exists ──
     const authPath = getProviderAuthPath();
     const backupPath = getBackupPath();
-    let authFile = { version: 1, providers: {} };
-    try {
-      const existing = await fs.readFile(authPath, "utf-8");
-      authFile = JSON.parse(existing);
-    } catch (error) {
-      if (error.code !== "ENOENT") throw error;
+    const authRead = await readLettaAuthForMerge(authPath);
+    if (isOkFailure(authRead)) {
+      return NextResponse.json({ error: { message: authRead.error } }, { status: 409 });
     }
+    const authFile = authRead.value;
 
     let changed = false;
     let restored = false;
@@ -300,15 +330,14 @@ export async function DELETE(request: Request) {
 
     // ── 2. Reset backend mode to api in settings.json ──
     const settingsPath = getSettingsPath();
-    try {
-      const existing = await fs.readFile(settingsPath, "utf-8");
-      const settings = JSON.parse(existing);
-      if (settings.preferredBackendMode === "local") {
-        settings.preferredBackendMode = "api";
-        await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2));
+    const settingsRead = await readJsoncObjectForMerge(settingsPath, "settings.json");
+    if (!isOkFailure(settingsRead) && settingsRead.value.preferredBackendMode === "local") {
+      settingsRead.value.preferredBackendMode = "api";
+      try {
+        await fs.writeFile(settingsPath, JSON.stringify(settingsRead.value, null, 2));
+      } catch {
+        /* Best-effort, as before */
       }
-    } catch {
-      /* No settings file */
     }
 
     const message = restored
@@ -321,9 +350,6 @@ export async function DELETE(request: Request) {
       needsRestart: true,
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: { message: sanitizeErrorMessage(error) } },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: { message: sanitizeErrorMessage(error) } }, { status: 500 });
   }
 }
