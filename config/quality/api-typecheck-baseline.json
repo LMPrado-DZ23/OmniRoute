@@ -264,10 +264,6 @@
   "src/lib/monitoring/providerHealthAutopilot.ts": {
     "TS2352": 4
   },
-  "src/lib/omnirouteStatus.ts": {
-    "TS2322": 1,
-    "TS2558": 1
-  },
   "src/lib/providerModels/managedModelImport.ts": {
     "TS2352": 4
   },
@@ -289,12 +285,6 @@
   "src/lib/usage/comboScoringInspector.ts": {
     "TS2352": 1,
     "TS2741": 1
-  },
-  "src/lib/usage/providerWindowCosts.ts": {
-    "TS2322": 2,
-    "TS2558": 5,
-    "TS2339": 12,
-    "TS2345": 1
   },
   "src/lib/vscode/modelPresentation.ts": {
     "TS2554": 1

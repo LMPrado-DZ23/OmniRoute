@@ -3,10 +3,16 @@ export interface RunResult {
   lastInsertRowid: number | bigint;
 }
 
-export interface PreparedStatement {
+/**
+ * A prepared statement. `Row` is the shape the caller declares for the selected columns,
+ * for example db.prepare<{ id: string }>(sql). It defaults to `unknown`, so callers that pass
+ * no type argument keep reading untyped rows. Drivers return plain objects; each adapter's
+ * `prepare` is the single place where those rows take the declared shape.
+ */
+export interface PreparedStatement<Row = unknown> {
   run(...params: unknown[]): RunResult;
-  get(...params: unknown[]): unknown;
-  all(...params: unknown[]): unknown[];
+  get(...params: unknown[]): Row | undefined;
+  all(...params: unknown[]): Row[];
 }
 
 export interface SqliteAdapter {
@@ -16,7 +22,7 @@ export interface SqliteAdapter {
   /** Driver transaction state when exposed by the underlying SQLite implementation. */
   readonly inTransaction?: boolean;
 
-  prepare(sql: string): PreparedStatement;
+  prepare<Row = unknown>(sql: string): PreparedStatement<Row>;
   exec(sql: string): void;
   pragma(pragmaStr: string, options?: { simple?: boolean }): unknown;
 
