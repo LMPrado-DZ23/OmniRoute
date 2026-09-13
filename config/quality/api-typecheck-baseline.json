@@ -173,9 +173,6 @@
     "TS2345": 1,
     "TS2322": 1
   },
-  "src/app/api/usage/analytics/route.ts": {
-    "TS2352": 15
-  },
   "src/app/api/usage/combo-health-autopilot/route.ts": {
     "TS2769": 2
   },
