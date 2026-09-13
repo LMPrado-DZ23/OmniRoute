@@ -29,6 +29,7 @@ const { GET, POST, DELETE } = await import("../../src/app/api/cli-tools/omp-sett
 
 let tmpHome: string;
 let origHome: string | undefined;
+let origUserProfile: string | undefined;
 
 function getOmpDir() {
   return path.join(tmpHome, ".omp", "agent");
@@ -73,11 +74,17 @@ test.beforeEach(async () => {
   await resetStorage();
   tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "omp-settings-home-"));
   origHome = process.env.HOME;
+  origUserProfile = process.env.USERPROFILE;
+  // os.homedir() reads HOME on POSIX but USERPROFILE on Windows; without both the route
+  // would read and write the real ~/.omp/agent on a Windows machine.
   process.env.HOME = tmpHome;
+  process.env.USERPROFILE = tmpHome;
+  assert.equal(os.homedir(), tmpHome, "the route must see the temporary home");
 });
 
 test.afterEach(() => {
   process.env.HOME = origHome;
+  process.env.USERPROFILE = origUserProfile;
   fs.rmSync(tmpHome, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 });
 
