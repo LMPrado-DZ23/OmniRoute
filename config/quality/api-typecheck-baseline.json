@@ -35,9 +35,6 @@
   "src/app/api/cli-tools/letta-settings/route.ts": {
     "TS2339": 1
   },
-  "src/app/api/cli-tools/omp-settings/route.ts": {
-    "TS2339": 8
-  },
   "src/app/api/cli-tools/qwen-settings/route.ts": {
     "TS2322": 1
   },
