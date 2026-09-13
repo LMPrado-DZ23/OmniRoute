@@ -12,6 +12,8 @@ import { v1RerankSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import { getCachedProviderNodes } from "@/lib/db/readCache";
 import {
+  expiredProviderResponse,
+  isAllExpiredCredentials,
   isAllRateLimitedCredentials,
   rateLimitedProviderResponse,
 } from "@/app/api/v1/_shared/rateLimit";
@@ -162,6 +164,9 @@ async function postHandler(request, _context) {
     if (isAllRateLimitedCredentials(credentials)) {
       return rateLimitedProviderResponse(effectiveProviderId, credentials);
     }
+    if (isAllExpiredCredentials(credentials)) {
+      return expiredProviderResponse(effectiveProviderId, credentials);
+    }
 
     const response = await handleRerank({
       model: body.model,
@@ -198,6 +203,9 @@ async function postHandler(request, _context) {
       }
       if (isAllRateLimitedCredentials(credentials)) {
         return rateLimitedProviderResponse(prefix, credentials);
+      }
+      if (isAllExpiredCredentials(credentials)) {
+        return expiredProviderResponse(prefix, credentials);
       }
 
       const token = credentials?.apiKey || credentials?.accessToken;

@@ -10,6 +10,8 @@ import { enforceApiKeyPolicy } from "@/shared/utils/apiKeyPolicy";
 import { v1SegmentSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import {
+  expiredProviderResponse,
+  isAllExpiredCredentials,
   isAllRateLimitedCredentials,
   rateLimitedProviderResponse,
 } from "@/app/api/v1/_shared/rateLimit";
@@ -60,6 +62,9 @@ async function postHandler(request: Request) {
   }
   if (isAllRateLimitedCredentials(credentials)) {
     return rateLimitedProviderResponse(JINA_FOUNDATION_PROVIDER_ID, credentials);
+  }
+  if (isAllExpiredCredentials(credentials)) {
+    return expiredProviderResponse(JINA_FOUNDATION_PROVIDER_ID, credentials);
   }
 
   const response = await handleJinaFoundationProxy({
