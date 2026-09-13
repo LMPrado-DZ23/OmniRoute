@@ -21,8 +21,57 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const { parseJsoncOrNull, readJsoncConfig } =
+const { parseJsoncOrNull, readJsoncConfig, readJsoncObjectForMerge } =
   await import("../../src/app/api/cli-tools/_lib/jsoncConfig.ts");
+
+// ── F-14: reads that feed a merge-and-write must never turn a bad file into {} ──
+
+async function withTempFile(content: string | null, run: (file: string) => Promise<void>) {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "cli-tools-merge-read-"));
+  const file = path.join(dir, "config.json");
+  if (content !== null) await fs.writeFile(file, content, "utf-8");
+  try {
+    await run(file);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  }
+}
+
+test("readJsoncObjectForMerge treats a missing file as an empty object", async () => {
+  await withTempFile(null, async (file) => {
+    assert.deepEqual(await readJsoncObjectForMerge(file, "config.json"), { ok: true, value: {} });
+  });
+});
+
+test("readJsoncObjectForMerge treats an empty file as an empty object", async () => {
+  await withTempFile("  \n", async (file) => {
+    assert.deepEqual(await readJsoncObjectForMerge(file, "config.json"), { ok: true, value: {} });
+  });
+});
+
+test("readJsoncObjectForMerge returns the object from JSON and JSONC with trailing commas", async () => {
+  await withTempFile('{ "keep": "me", "nested": { "a": 1, }, }', async (file) => {
+    assert.deepEqual(await readJsoncObjectForMerge(file, "config.json"), {
+      ok: true,
+      value: { keep: "me", nested: { a: 1 } },
+    });
+  });
+});
+
+for (const [label, content] of [
+  ["is not valid JSON", "{ this is not json"],
+  ["is an array", "[1, 2, 3]"],
+  ["is a scalar", '"just a string"'],
+  ["is null", "null"],
+] as const) {
+  test(`readJsoncObjectForMerge refuses a file that ${label} and names it`, async () => {
+    await withTempFile(content, async (file) => {
+      const result = await readJsoncObjectForMerge(file, "globalState.json");
+      assert.equal(result.ok, false);
+      assert.match(String(result.ok ? "" : result.error), /globalState\.json/);
+    });
+  });
+}
 
 test("parseJsoncOrNull tolerates trailing commas in objects", () => {
   const jsonc = `{
