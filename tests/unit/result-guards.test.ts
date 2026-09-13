@@ -1,7 +1,43 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { isOkFailure, isSuccessFailure } from "../../src/shared/utils/resultGuards.ts";
+import {
+  isIpcFailure,
+  isOkFailure,
+  isSuccessFailure,
+} from "../../src/shared/utils/resultGuards.ts";
+
+type DataDirResult = string | { success: false; error: string };
+
+test("isIpcFailure recognises the Electron IPC denial and no plain value", () => {
+  const denial = { success: false, error: "get-data-dir is not available from a remote context" };
+  assert.equal(isIpcFailure(denial), true);
+  for (const value of [
+    "C:\\Users\\me\\.omniroute",
+    "",
+    true,
+    false,
+    0,
+    null,
+    undefined,
+    {
+      success: true,
+    },
+  ]) {
+    assert.equal(isIpcFailure(value), false, JSON.stringify(value));
+  }
+});
+
+test("isIpcFailure narrows to the failure so its error is readable", () => {
+  const results: DataDirResult[] = [
+    "/home/me/.omniroute",
+    { success: false, error: "get-data-dir is not available from a remote context" },
+  ];
+  assert.deepEqual(
+    results.filter(isIpcFailure).map((r) => r.error),
+    ["get-data-dir is not available from a remote context"]
+  );
+});
 
 type Parsed = { ok: true; value: number } | { ok: false; error: string };
 

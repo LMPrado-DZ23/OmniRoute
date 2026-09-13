@@ -71,13 +71,8 @@ describe("ElectronAPI declares exactly what preload.js exposes", () => {
 });
 
 describe("privileged invoke members declare the withPrivilegedSender denial", () => {
-  // Declared before the denial shape was typed; their callers still assume the success value.
-  // Finding F-8 (audit/AUTONOMOUS_MISSION_STATE.md) fixes those callers and empties this set.
-  const DENIAL_NOT_YET_DECLARED = new Set(["openExternal", "getDataDir", "restartServer"]);
-
   for (const [member, channel] of invokeChannelByMember) {
     const privileged = (PRIVILEGED_IPC_CHANNELS as readonly string[]).includes(channel);
-    if (privileged && DENIAL_NOT_YET_DECLARED.has(member)) continue;
     it(`${member} (${channel}) ${privileged ? "can" : "cannot"} resolve to IpcFailure`, () => {
       const signature = declaredSignatures.get(member) ?? "";
       if (privileged) assert.match(signature, /\bIpcFailure\b/, signature);
@@ -85,13 +80,10 @@ describe("privileged invoke members declare the withPrivilegedSender denial", ()
     });
   }
 
-  it("the not-yet-declared set only names privileged invoke members", () => {
-    for (const member of DENIAL_NOT_YET_DECLARED) {
-      const channel = invokeChannelByMember.get(member);
-      assert.ok(
-        channel && (PRIVILEGED_IPC_CHANNELS as readonly string[]).includes(channel),
-        member
-      );
+  it("every privileged channel is reached through a bridge member checked above", () => {
+    const bridged = new Set(invokeChannelByMember.values());
+    for (const channel of PRIVILEGED_IPC_CHANNELS as readonly string[]) {
+      assert.ok(bridged.has(channel), `${channel} has no invoke member in preload.js`);
     }
   });
 });

@@ -74,9 +74,9 @@ export interface StartLoginResult {
 export interface ElectronAPI {
   // ── Invoke (async) ─────────────────────────────────────
   getAppInfo(): Promise<AppInfo>;
-  openExternal(url: string): Promise<void>;
-  getDataDir(): Promise<string>;
-  restartServer(): Promise<{ success: boolean }>;
+  openExternal(url: string): Promise<void | IpcFailure>;
+  getDataDir(): Promise<string | IpcFailure>;
+  restartServer(): Promise<{ success: true } | IpcFailure>;
   getAppVersion(): Promise<string>;
 
   // ── Auto-update ────────────────────────────────────────
