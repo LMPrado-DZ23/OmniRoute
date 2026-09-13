@@ -91,10 +91,6 @@
     "TS2339": 2
   },
   "src/app/api/providers/[id]/models/route.ts": {
-    "TS2367": 1,
-    "TS2339": 2,
-    "TS2322": 2,
-    "TS2554": 2,
     "TS2345": 3
   },
   "src/app/api/providers/[id]/refresh-cursor/route.ts": {
