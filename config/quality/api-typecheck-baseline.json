@@ -11,9 +11,6 @@
   "open-sse/utils/stream.ts": {
     "TS2353": 1
   },
-  "src/app/api/assess/route.ts": {
-    "TS2339": 1
-  },
   "src/app/api/cache/route.ts": {
     "TS2339": 1
   },
@@ -85,9 +82,6 @@
   "src/app/api/logs/[id]/route.ts": {
     "TS2322": 1
   },
-  "src/app/api/model-combo-mappings/route.ts": {
-    "TS2339": 1
-  },
   "src/app/api/oauth/cursor/login/poll/route.ts": {
     "TS2554": 1
   },
@@ -131,9 +125,6 @@
   "src/app/api/providers/free-onboarding/route.ts": {
     "TS2345": 1
   },
-  "src/app/api/providers/health-autopilot/actions/route.ts": {
-    "TS2339": 1
-  },
   "src/app/api/providers/route.ts": {
     "TS2352": 1,
     "TS2322": 2,
@@ -163,9 +154,6 @@
   "src/app/api/providers/volcengine-plan/connect/route.ts": {
     "TS2739": 1
   },
-  "src/app/api/resilience/model-cooldowns/route.ts": {
-    "TS2339": 1
-  },
   "src/app/api/settings/cache-config/route.ts": {
     "TS2339": 1,
     "TS2322": 1
@@ -174,9 +162,6 @@
     "TS2345": 1
   },
   "src/app/api/settings/models-dev/route.ts": {
-    "TS2339": 1
-  },
-  "src/app/api/settings/obsidian/webdav/route.ts": {
     "TS2339": 1
   },
   "src/app/api/settings/proxies/bulk-import/route.ts": {
@@ -192,15 +177,8 @@
   "src/app/api/settings/proxy/vercel-deploy/route.ts": {
     "TS2322": 3
   },
-  "src/app/api/settings/reasoning-routing-rules/[id]/route.ts": {
-    "TS2339": 1
-  },
-  "src/app/api/settings/reasoning-routing-rules/route.ts": {
-    "TS2339": 1
-  },
   "src/app/api/settings/reasoning-routing-rules/simulate/route.ts": {
-    "TS2322": 1,
-    "TS2339": 1
+    "TS2322": 1
   },
   "src/app/api/system/env/repair/route.ts": {
     "TS2578": 1,

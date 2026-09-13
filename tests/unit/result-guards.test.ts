@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { isOkFailure } from "../../src/shared/utils/resultGuards.ts";
+import { isOkFailure, isSuccessFailure } from "../../src/shared/utils/resultGuards.ts";
 
 type Parsed = { ok: true; value: number } | { ok: false; error: string };
 
@@ -20,4 +20,19 @@ test("isOkFailure narrows to the failure branch so its fields are readable", () 
   ];
   const errors = results.filter(isOkFailure).map((r) => r.error);
   assert.deepEqual(errors, ["first", "second"]);
+});
+
+type BodyResult = { success: true; data: string } | { success: false; response: string };
+
+test("isSuccessFailure is true only for the success:false branch and narrows to it", () => {
+  const results: BodyResult[] = [
+    { success: true, data: "ok" },
+    { success: false, response: "400 invalid body" },
+  ];
+  assert.equal(isSuccessFailure(results[0]), false);
+  assert.equal(isSuccessFailure(results[1]), true);
+  assert.deepEqual(
+    results.filter(isSuccessFailure).map((r) => r.response),
+    ["400 invalid body"]
+  );
 });

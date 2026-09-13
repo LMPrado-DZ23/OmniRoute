@@ -11,6 +11,7 @@ import { createModelComboMapping, getModelComboMappings } from "@/lib/db/modelCo
 import { paginationSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import { validatedJsonBody } from "@/shared/validation/helpers";
+import { isSuccessFailure } from "@/shared/utils/resultGuards";
 
 const createMappingSchema = z.object({
   pattern: z.string().min(1, "Pattern is required").max(500),
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
 
   try {
     const parsed = await validatedJsonBody(request, createMappingSchema);
-    if (!parsed.success) {
+    if (isSuccessFailure(parsed)) {
       return parsed.response;
     }
 

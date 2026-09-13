@@ -13,3 +13,14 @@ export function isOkFailure<T extends { ok: boolean }>(
 ): result is Extract<T, { ok: false }> {
   return result.ok === false;
 }
+
+/**
+ * Same guard for `{ success: true, ... } | { success: false, ... }` unions, such as
+ * `ValidatedJsonBodyResult` from `@/shared/validation/helpers` or
+ * `ObsidianSyncEnableResult`. `ValidationResult` keeps its own `isValidationFailure`.
+ */
+export function isSuccessFailure<T extends { success: boolean }>(
+  result: T
+): result is Extract<T, { success: false }> {
+  return result.success === false;
+}

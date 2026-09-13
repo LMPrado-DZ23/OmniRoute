@@ -13,6 +13,7 @@ import { validatedJsonBody } from "@/shared/validation/helpers";
 import { validateApiKeyRoutingTarget } from "@/shared/utils/apiKeyPolicy";
 import { getModelInfo } from "@/sse/services/model";
 import { resolveCodexWsModelInfo } from "@/app/api/internal/codex-responses-ws/modelResolution";
+import { isSuccessFailure } from "@/shared/utils/resultGuards";
 
 async function resolveSimulationSourceModels(model: string, transport: string, combo: unknown) {
   if (combo) return { normalized: model, aliases: [] };
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
   const authError = await requireManagementAuth(request);
   if (authError) return authError;
   const parsed = await validatedJsonBody(request, simulateReasoningRoutingSchema);
-  if (!parsed.success) return parsed.response;
+  if (isSuccessFailure(parsed)) return parsed.response;
   const { model, effort, thinkingBudgetTokens, apiKeyId, requestTags, transport } = parsed.data;
   const apiKey = apiKeyId ? await getApiKeyById(apiKeyId) : null;
   if (apiKeyId && !apiKey) {

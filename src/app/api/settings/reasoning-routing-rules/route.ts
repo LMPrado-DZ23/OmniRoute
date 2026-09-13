@@ -8,6 +8,7 @@ import { reasoningRuleDataToInput } from "@/lib/reasoningRouting/input";
 import { createReasoningRoutingRuleSchema } from "@/shared/validation/schemas";
 import { validatedJsonBody } from "@/shared/validation/helpers";
 import { buildErrorBody, sanitizeErrorMessage } from "@omniroute/open-sse/utils/error.ts";
+import { isSuccessFailure } from "@/shared/utils/resultGuards";
 
 export async function GET(request: Request) {
   const authError = await requireManagementAuth(request);
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
   const authError = await requireManagementAuth(request);
   if (authError) return authError;
   const parsed = await validatedJsonBody(request, createReasoningRoutingRuleSchema);
-  if (!parsed.success) return parsed.response;
+  if (isSuccessFailure(parsed)) return parsed.response;
   try {
     const rule = await createReasoningRoutingRule(reasoningRuleDataToInput(parsed.data));
     return NextResponse.json({ rule }, { status: 201 });
