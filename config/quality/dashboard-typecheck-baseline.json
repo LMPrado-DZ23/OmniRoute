@@ -68,9 +68,6 @@
   "src/app/(dashboard)/dashboard/providers/[id]/components/ProviderParamFilterSection.tsx": {
     "TS2339": 6
   },
-  "src/app/(dashboard)/dashboard/providers/[id]/hooks/useModelVisibilityHandlers.ts": {
-    "TS2339": 15
-  },
   "src/app/(dashboard)/dashboard/providers/[id]/ProviderDetailPageClient.tsx": {
     "TS2322": 4
   },

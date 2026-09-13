@@ -26,7 +26,7 @@ interface Notification {
   onClick?: () => void;
 }
 
-interface NotificationStore {
+export interface NotificationStore {
   notifications: Notification[];
   addNotification: (notification: {
     type?: NotificationType;
@@ -43,6 +43,13 @@ interface NotificationStore {
   warning: (message: string, title?: string) => number;
   info: (message: string, title?: string) => number;
 }
+
+/**
+ * The toast helpers a component passes down to hooks. Use this instead of
+ * `ReturnType<typeof useNotificationStore>`: the zustand hook's last call signature is the
+ * selector overload, so that ReturnType resolves to `unknown`.
+ */
+export type NotificationActions = Pick<NotificationStore, "success" | "error" | "warning" | "info">;
 
 export const useNotificationStore = create<NotificationStore>((set, get) => ({
   notifications: [],
