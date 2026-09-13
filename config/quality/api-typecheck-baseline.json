@@ -98,9 +98,6 @@
     "TS2345": 3,
     "TS2538": 1
   },
-  "src/app/api/monitoring/health/route.ts": {
-    "TS2322": 1
-  },
   "src/app/api/oauth/cursor/login/poll/route.ts": {
     "TS2554": 1
   },
