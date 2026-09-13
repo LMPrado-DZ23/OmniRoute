@@ -731,6 +731,61 @@ function repairEmptyExternalPackageDirs(projectRoot, bundleNodeModules) {
   return summary;
 }
 
+function* walkSymlinks(dir) {
+  let children;
+  try {
+    children = fsSync.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const child of children) {
+    const abs = path.join(dir, child.name);
+    if (child.isSymbolicLink()) yield abs;
+    else if (child.isDirectory()) yield* walkSymlinks(abs);
+  }
+}
+
+function liveSymlinkTarget(linkPath) {
+  try {
+    const real = fsSync.realpathSync(linkPath);
+    return fsSync.existsSync(real) ? real : null;
+  } catch {
+    return null;
+  }
+}
+
+function isSameOrAncestor(candidate, entryPath) {
+  const rel = path.relative(candidate, entryPath);
+  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+}
+
+/**
+ * Symlinks below the top level of a bundled node_modules (e.g. a package's own
+ * `node_modules/.bin/semver`). Next's standalone copy writes them as ABSOLUTE links into
+ * the build machine's checkout, exactly like the hashed top-level entries. On Linux/macOS
+ * they dangle on the end-user machine; on Windows the bundle restored from the Linux-built
+ * tarball carries a link to `D:\home\runner\...`, and 7-Zip aborts while packing the NSIS
+ * installer ("The system cannot find the path specified"). A live link is replaced by a real
+ * copy of its target; a dangling link, or one pointing at itself or an ancestor (copying
+ * that would recurse into itself), is dropped. `.bin` shims are never used by the packaged
+ * server, so dropping one costs nothing at runtime.
+ */
+function materializeNestedSymlinks(nodeModulesDir, summary) {
+  for (const linkPath of [...walkSymlinks(nodeModulesDir)]) {
+    const realTarget = liveSymlinkTarget(linkPath);
+    fsSync.rmSync(linkPath, { recursive: true, force: true });
+    if (realTarget && !isSameOrAncestor(realTarget, linkPath)) {
+      fsSync.cpSync(realTarget, linkPath, { recursive: true, dereference: true });
+      summary.materialized += 1;
+      continue;
+    }
+    console.warn(
+      `[assembleStandalone] Dropping nested module symlink (target missing or cyclic): ${linkPath}`
+    );
+    summary.removed += 1;
+  }
+}
+
 /**
  * Materialize Turbopack "hashed external module" symlinks inside a bundled
  * node_modules dir into real, self-contained directories.
@@ -751,7 +806,8 @@ function repairEmptyExternalPackageDirs(projectRoot, bundleNodeModules) {
  * included) and survives the machine that built it. If the link is already dangling
  * (target absent), fall back to copying a sibling real package whose name is the
  * hashed name with its trailing `-<hex>` suffix stripped; if none exists, drop the
- * dangling link so it cannot poison module resolution.
+ * dangling link so it cannot poison module resolution. Symlinks nested deeper (a
+ * package's own `node_modules/.bin`) go through `materializeNestedSymlinks` afterwards.
  *
  * @param {string} nodeModulesDir - absolute path to a bundled node_modules directory
  * @returns {{ materialized: number, relinked: number, removed: number }}
@@ -824,6 +880,7 @@ export function materializeBundledSymlinks(nodeModulesDir) {
     summary.removed += 1;
   }
 
+  materializeNestedSymlinks(nodeModulesDir, summary);
   return summary;
 }
 
