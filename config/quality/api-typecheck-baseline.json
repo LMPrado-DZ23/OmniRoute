@@ -112,8 +112,7 @@
   },
   "src/app/api/providers/[id]/refresh/route.ts": {
     "TS2345": 1,
-    "TS2698": 1,
-    "TS2339": 6
+    "TS2698": 1
   },
   "src/app/api/providers/[id]/sync-models/route.ts": {
     "TS2345": 1

@@ -9,10 +9,24 @@ import {
 } from "@/sse/services/tokenRefresh";
 import { rotationGroupFor } from "@omniroute/open-sse/services/refreshSerializer.ts";
 
+/**
+ * What the getAccessToken wrapper (src/sse/services/tokenRefresh.ts, untyped) resolves to:
+ * refreshed credentials, or an error contract such as the deprecated-provider one
+ * `{ error: "unrecoverable_refresh_error", code: "provider_deprecated", migrateTo, reason }`
+ * returned by open-sse/services/tokenRefresh.ts.
+ */
 type RefreshResult = {
   accessToken?: string;
   expiresIn?: number;
+  /** ISO timestamp, when the provider reports an absolute expiry instead of expiresIn. */
+  expiresAt?: string;
   error?: string;
+  /** Machine-readable reason for an error, e.g. "provider_deprecated". */
+  code?: string;
+  /** Human-readable explanation that accompanies `code`. */
+  reason?: string;
+  /** Provider a deprecated provider's accounts should be migrated to. */
+  migrateTo?: string;
 };
 
 /**
