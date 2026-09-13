@@ -16,8 +16,12 @@ _Patch release of the `LMPrado-DZ23/OmniRoute` fork. It ships the Windows deskto
 
 - **fix(electron):** the Windows desktop installer builds again. After the bundle-verification fix in v3.8.52 the Windows leg failed one step later: a package's own `node_modules/.bin/semver` inside the shared web bundle is an absolute symlink into the Linux build checkout, so on Windows it dangled and 7-Zip aborted while packing the NSIS installer. Symlink materialization for the Electron bundle now also covers nested links — a live link becomes a real copy of its target, a dangling or self-referencing one is dropped — so no packaged app carries a link into the build machine ([#21](https://github.com/LMPrado-DZ23/OmniRoute/pull/21))
 
----
 
+### 📝 Maintenance
+
+- **ci(release-green):** the nightly full sweep no longer dies on GitHub-hosted runners. It ran the unit, vitest, integration and package-artifact suites concurrently, which needs the dedicated build runner; on a 16 GB hosted runner the runner was shut down mid-run (exit 143) on every scheduled run. Off the dedicated runner it now passes `--serial-slow` and runs the same gates one after another. Tracking-issue steps skip when GitHub Issues are disabled instead of failing the job, and an explicit step keeps a job red whenever the validation reports HARD failures. Sweeping `main` is opt-in (`VALIDATE_MAIN_BRANCH=true`) because this fork ships from `release/v*` ([#23](https://github.com/LMPrado-DZ23/OmniRoute/pull/23))
+
+---
 
 ## [3.8.52] — 2026-09-12
 
