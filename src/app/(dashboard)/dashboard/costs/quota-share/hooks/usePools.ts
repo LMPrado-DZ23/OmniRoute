@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { QuotaPool } from "@/lib/quota/dimensions";
+import type { QuotaPool } from "@/lib/db/quotaPools";
 
 export interface UsePoolsResult {
   pools: QuotaPool[];

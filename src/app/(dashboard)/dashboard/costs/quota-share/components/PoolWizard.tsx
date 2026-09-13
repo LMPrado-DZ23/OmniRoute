@@ -50,7 +50,7 @@ interface ApiKey {
   name?: string;
 }
 
-interface PlanInfo {
+export interface PlanInfo {
   dimensions: QuotaDimension[];
   source: "auto" | "manual";
 }

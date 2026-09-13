@@ -5,7 +5,8 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/shared/components";
 import useEmailPrivacyStore from "@/store/emailPrivacyStore";
 import { maskEmailLikeValue } from "@/shared/utils/maskEmail";
-import type { QuotaPool } from "@/lib/quota/dimensions";
+import type { QuotaPool } from "@/lib/db/quotaPools";
+import type { QuotaDimension } from "@/lib/quota/dimensions";
 
 import { usePools } from "./hooks/usePools";
 import { usePoolUsage } from "./hooks/usePoolUsage";
@@ -14,7 +15,7 @@ import { usePoolsUsageAggregate } from "./hooks/usePoolsUsageAggregate";
 import QuotaConceptCard from "./components/QuotaConceptCard";
 import QuotaEndpointsCard from "./components/QuotaEndpointsCard";
 import PoolCard from "./components/PoolCard";
-import PoolWizard from "./components/PoolWizard";
+import PoolWizard, { type PlanInfo } from "./components/PoolWizard";
 import { useConfirmDialog } from "@/shared/hooks/useConfirmDialog";
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -38,17 +39,6 @@ interface Connection {
 interface ApiKey {
   id: string;
   name?: string;
-}
-
-interface PlanDimension {
-  unit: string;
-  window: string;
-  limit: number;
-}
-
-interface PlanInfo {
-  dimensions: PlanDimension[];
-  source: "auto" | "manual";
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -178,7 +168,7 @@ export default function QuotaSharePageClient() {
           const planMap: Record<string, PlanInfo> = {};
           for (const p of plansData as Array<{
             connectionId: string;
-            dimensions: PlanDimension[];
+            dimensions: QuotaDimension[];
             source: "auto" | "manual";
           }>) {
             if (p.connectionId)
