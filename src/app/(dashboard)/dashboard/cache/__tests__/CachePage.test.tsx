@@ -32,7 +32,6 @@ vi.mock("next-intl", () => ({
         "cache.cacheCreationTokens": "Cache Write Tokens",
         "cache.cacheRate": "Cache Rate",
         "cache.requests": "Requests",
-        "cache.inputTokens": "Input Tokens",
         "cache.tokensSaved": "Tokens Saved",
         "cache.trend24h": "Cache Trend (24h)",
         "cache.cached": "Cached",

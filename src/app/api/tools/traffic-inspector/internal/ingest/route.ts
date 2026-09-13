@@ -110,8 +110,6 @@ export async function POST(request: Request): Promise<Response> {
     // stores bearer tokens / API keys (Hard Rule #12).
     const data = parsed.data;
     const req = {
-      requestBody: null,
-      responseBody: null,
       ...data,
       requestHeaders: sanitizeHeaders(data.requestHeaders || {}),
       responseHeaders: sanitizeHeaders(data.responseHeaders || {}),

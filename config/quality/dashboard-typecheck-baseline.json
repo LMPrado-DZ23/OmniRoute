@@ -1,8 +1,5 @@
 {
   "_relax_velocity_2026_08_30": "per-file TS diagnostic counts raised by 20% (229 → 324); velocity phase, see quality-baseline.json _policy.",
-  "src/app/(dashboard)/dashboard/cache/__tests__/CachePage.test.tsx": {
-    "TS1117": 1
-  },
   "src/app/(dashboard)/dashboard/cache/__tests__/CachePerformance.test.tsx": {
     "TS2322": 2
   },
@@ -32,9 +29,6 @@
   },
   "src/app/(dashboard)/dashboard/compression/studio/EncoderComparisonTable.tsx": {
     "TS2322": 1
-  },
-  "src/app/(dashboard)/dashboard/costs/quota-share/components/UsageLogCard.tsx": {
-    "TS2869": 2
   },
   "src/app/(dashboard)/dashboard/HomePageClient.tsx": {
     "TS2339": 3

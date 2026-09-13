@@ -144,7 +144,6 @@
     "TS2769": 1
   },
   "src/app/api/tools/traffic-inspector/internal/ingest/route.ts": {
-    "TS1117": 2,
     "TS2345": 1
   },
   "src/app/api/translator/send/route.ts": {
