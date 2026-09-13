@@ -214,8 +214,7 @@
     "TS2345": 1
   },
   "src/app/api/v1/images/edits/route.ts": {
-    "TS2322": 4,
-    "TS2339": 3
+    "TS2322": 4
   },
   "src/app/api/v1/messages/count_tokens/route.ts": {
     "TS2339": 2,

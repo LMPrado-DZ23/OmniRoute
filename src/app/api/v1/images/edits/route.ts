@@ -48,6 +48,7 @@ import {
   isAllRateLimitedCredentials,
   rateLimitedProviderResponse,
 } from "@/app/api/v1/_shared/rateLimit";
+import { isSuccessFailure } from "@/shared/utils/resultGuards";
 
 // JSON edit body (Open WebUI / OpenAI-style). All fields optional — the prompt
 // and resolvable image are enforced after extraction in POST — but the top-level
@@ -507,14 +508,14 @@ async function postHandler(request: Request, _context?: unknown) {
       log,
     });
 
-    if (result.success) {
-      await clearRecoveredProviderState(credentials);
-      return jsonResponse(result.data);
+    if (isSuccessFailure(result)) {
+      return jsonResponse(
+        toJsonErrorPayload(result.error, "Image edit provider error"),
+        result.status
+      );
     }
-    return jsonResponse(
-      toJsonErrorPayload(result.error, "Image edit provider error"),
-      result.status
-    );
+    await clearRecoveredProviderState(credentials);
+    return jsonResponse(result.data);
   }
 
   // Adobe Firefly: edit = storage upload + generate-async referenceBlobs (same as i2i generate).

@@ -2759,7 +2759,7 @@ export function saveImageSuccessResult({
   }).catch(() => {});
 
   return {
-    success: true,
+    success: true as const,
     data: {
       created: created || Math.floor(Date.now() / 1000),
       data: images,
@@ -2804,7 +2804,7 @@ export function saveImageErrorResult({
   }).catch(() => {});
 
   return {
-    success: false,
+    success: false as const,
     status,
     error,
     ...(retryable !== undefined ? { retryable } : {}),
