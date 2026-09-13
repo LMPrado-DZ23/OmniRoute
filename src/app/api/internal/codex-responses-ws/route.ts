@@ -514,11 +514,17 @@ async function resolveCodexUpstreamContext(
   };
 }
 
-async function resolveCodexProxy(provider: string): Promise<string | undefined> {
+export async function resolveCodexProxy(
+  provider: string,
+  resolve: typeof resolveProxy = resolveProxy
+): Promise<string | undefined> {
   try {
-    return proxyConfigToUrl(await resolveProxy(provider)) || undefined;
+    return proxyConfigToUrl(await resolve(provider)) || undefined;
   } catch (err) {
-    logger.warn(`[codex-responses-ws] proxy resolution failed: ${sanitizeErrorMessage(err)}`);
+    // `logger` is the tag factory; the module's tagged logger is `log` (F-12).
+    log.warn("proxy.resolution.failed", {
+      error: sanitizeErrorMessage(err instanceof Error ? err.message : String(err)),
+    });
     return undefined;
   }
 }
