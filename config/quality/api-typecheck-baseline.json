@@ -168,9 +168,6 @@
   "src/app/api/v1/batches/route.ts": {
     "TS2339": 1
   },
-  "src/app/api/v1/classify/route.ts": {
-    "TS2322": 1
-  },
   "src/app/api/v1/files/[id]/content/route.ts": {
     "TS2345": 1
   },
