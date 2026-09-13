@@ -97,9 +97,6 @@
   "src/app/api/provider-nodes/validate/route.ts": {
     "TS2339": 2
   },
-  "src/app/api/providers/[id]/login/route.ts": {
-    "TS2739": 1
-  },
   "src/app/api/providers/[id]/models/route.ts": {
     "TS2367": 1,
     "TS2339": 2,
@@ -134,24 +131,6 @@
   },
   "src/app/api/providers/validate/route.ts": {
     "TS2322": 1
-  },
-  "src/app/api/providers/volcengine-plan/connect/[sessionId]/cancel/route.ts": {
-    "TS2739": 1
-  },
-  "src/app/api/providers/volcengine-plan/connect/[sessionId]/code/route.ts": {
-    "TS2739": 1
-  },
-  "src/app/api/providers/volcengine-plan/connect/[sessionId]/identity/route.ts": {
-    "TS2739": 1
-  },
-  "src/app/api/providers/volcengine-plan/connect/[sessionId]/resend/route.ts": {
-    "TS2739": 1
-  },
-  "src/app/api/providers/volcengine-plan/connect/[sessionId]/status/route.ts": {
-    "TS2739": 1
-  },
-  "src/app/api/providers/volcengine-plan/connect/route.ts": {
-    "TS2739": 1
   },
   "src/app/api/settings/cache-config/route.ts": {
     "TS2339": 1,
