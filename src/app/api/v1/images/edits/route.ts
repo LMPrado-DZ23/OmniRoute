@@ -45,6 +45,8 @@ import {
 } from "@/shared/constants/chatgptWebRetirement";
 import { z } from "zod";
 import {
+  expiredProviderResponse,
+  isAllExpiredCredentials,
   isAllRateLimitedCredentials,
   rateLimitedProviderResponse,
 } from "@/app/api/v1/_shared/rateLimit";
@@ -259,6 +261,9 @@ async function handleAdobeFireflyEditRequest(params: {
   if (isAllRateLimitedCredentials(credentials)) {
     return rateLimitedProviderResponse(parsed.provider, credentials);
   }
+  if (isAllExpiredCredentials(credentials)) {
+    return expiredProviderResponse(parsed.provider, credentials);
+  }
 
   // Prefer multi-image list when present; fall back to the primary imageBytes.
   const dataUrls = buildAdobeFireflyEditDataUrls(images, imageBytes, imageMime);
@@ -420,6 +425,9 @@ async function postHandler(request: Request, _context?: unknown) {
     if (isAllRateLimitedCredentials(credentials)) {
       return rateLimitedProviderResponse(parsed.provider, credentials);
     }
+    if (isAllExpiredCredentials(credentials)) {
+      return expiredProviderResponse(parsed.provider, credentials);
+    }
     const credentialDetails = credentials as {
       connectionId?: unknown;
       providerSpecificData?: unknown;
@@ -492,6 +500,9 @@ async function postHandler(request: Request, _context?: unknown) {
     if (isAllRateLimitedCredentials(credentials)) {
       return rateLimitedProviderResponse(parsed.provider, credentials);
     }
+    if (isAllExpiredCredentials(credentials)) {
+      return expiredProviderResponse(parsed.provider, credentials);
+    }
 
     const result = await handleFalAIImageEdit({
       provider: parsed.provider,
@@ -554,6 +565,9 @@ async function postHandler(request: Request, _context?: unknown) {
     if (isAllRateLimitedCredentials(credentials)) {
       return rateLimitedProviderResponse(parsed.provider, credentials);
     }
+    if (isAllExpiredCredentials(credentials)) {
+      return expiredProviderResponse(parsed.provider, credentials);
+    }
 
     const result = await handleOpenRouterImageEdit({
       provider: parsed.provider,
@@ -613,6 +627,9 @@ async function postHandler(request: Request, _context?: unknown) {
   }
   if (isAllRateLimitedCredentials(credentials)) {
     return rateLimitedProviderResponse(customProviderId, credentials);
+  }
+  if (isAllExpiredCredentials(credentials)) {
+    return expiredProviderResponse(customProviderId, credentials);
   }
 
   const result = await handleOpenAIImageEdit({
