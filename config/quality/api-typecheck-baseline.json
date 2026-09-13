@@ -94,10 +94,6 @@
   "src/app/api/models/alias/route.ts": {
     "TS2339": 5
   },
-  "src/app/api/models/route.ts": {
-    "TS2345": 3,
-    "TS2538": 1
-  },
   "src/app/api/oauth/cursor/login/poll/route.ts": {
     "TS2554": 1
   },
