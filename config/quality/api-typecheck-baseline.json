@@ -85,14 +85,8 @@
   "src/app/api/logs/[id]/route.ts": {
     "TS2322": 1
   },
-  "src/app/api/model-capability-overrides/route.ts": {
-    "TS2339": 1
-  },
   "src/app/api/model-combo-mappings/route.ts": {
     "TS2339": 1
-  },
-  "src/app/api/models/alias/route.ts": {
-    "TS2339": 5
   },
   "src/app/api/oauth/cursor/login/poll/route.ts": {
     "TS2554": 1
@@ -169,13 +163,7 @@
   "src/app/api/providers/volcengine-plan/connect/route.ts": {
     "TS2739": 1
   },
-  "src/app/api/radar/local-model-state/route.ts": {
-    "TS2339": 4
-  },
   "src/app/api/resilience/model-cooldowns/route.ts": {
-    "TS2339": 1
-  },
-  "src/app/api/services/_shared/installRoute.ts": {
     "TS2339": 1
   },
   "src/app/api/settings/cache-config/route.ts": {
@@ -254,9 +242,6 @@
   },
   "src/app/api/v1/files/[id]/content/route.ts": {
     "TS2345": 1
-  },
-  "src/app/api/v1/files/route.ts": {
-    "TS2339": 1
   },
   "src/app/api/v1/images/edits/route.ts": {
     "TS2339": 18,

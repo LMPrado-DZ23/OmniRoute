@@ -15,6 +15,7 @@ import {
   setModelContextOverride,
 } from "@/lib/db/modelContextOverrides";
 import { getProviderPrefixIndex, type ProviderPrefixEntry } from "@/lib/providerNodePrefixes";
+import { isOkFailure } from "@/shared/utils/resultGuards";
 
 const overrideKeySchema = z.enum([
   "context_length",
@@ -93,7 +94,7 @@ async function listPublicOverrides(
 
 const reasoningEffortsValueSchema = z.string().transform((value, context) => {
   const parsed = parseReasoningEffortsOverride(value);
-  if (!parsed.ok) {
+  if (isOkFailure(parsed)) {
     context.addIssue({ code: "custom", message: parsed.error });
     return z.NEVER;
   }
