@@ -20,9 +20,6 @@
   "src/app/api/cli-tools/claude-settings/route.ts": {
     "TS2339": 1
   },
-  "src/app/api/cli-tools/cline-settings/route.ts": {
-    "TS2339": 5
-  },
   "src/app/api/cli-tools/codex-settings/route.ts": {
     "TS2345": 2
   },
