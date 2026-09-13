@@ -90,14 +90,13 @@
 - **feat(cli):** run `omniroute serve --tray` as a detached desktop process after server and tray readiness, with graphical login auto-start support.
 - **feat(routing):** add client-, provider-, and model-neutral exclusive managed session connection leases with API-key-bound generation fencing, durable SQLite ownership, explicit allowlist policy, and bounded 429 capacity retry semantics.
 
-## [3.8.53] — 2026-09-12
+## [3.8.53] — 2026-09-13
 
 _Patch release of the `LMPrado-DZ23/OmniRoute` fork. It ships the Windows desktop installer that v3.8.52 could not build._
 
 ### 🐛 Bug Fixes
 
 - **fix(electron):** the Windows desktop installer builds again. After the bundle-verification fix in v3.8.52 the Windows leg failed one step later: a package's own `node_modules/.bin/semver` inside the shared web bundle is an absolute symlink into the Linux build checkout, so on Windows it dangled and 7-Zip aborted while packing the NSIS installer. Symlink materialization for the Electron bundle now also covers nested links — a live link becomes a real copy of its target, a dangling or self-referencing one is dropped — so no packaged app carries a link into the build machine ([#21](https://github.com/LMPrado-DZ23/OmniRoute/pull/21))
-
 
 ### 📝 Maintenance
 
