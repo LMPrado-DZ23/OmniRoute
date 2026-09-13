@@ -1,7 +1,10 @@
 import { getAllCustomModels } from "@/lib/db/models";
 import { parseVideoModel } from "@omniroute/open-sse/config/videoRegistry.ts";
 import { getProviderCredentialsWithQuotaPreflight } from "@/sse/services/auth";
-import { isAllRateLimitedCredentials } from "@/app/api/v1/_shared/rateLimit";
+import {
+  isAllExpiredCredentials,
+  isAllRateLimitedCredentials,
+} from "@/app/api/v1/_shared/rateLimit";
 
 export type VideoModelTarget = {
   provider: string | null;
@@ -75,7 +78,9 @@ export function isVideoPromptOptional(parsed: { provider: string | null; model: 
  */
 export async function resolveLocalOverrideCredentials(provider: string) {
   const localCredentials = await getProviderCredentialsWithQuotaPreflight(provider);
-  return localCredentials && !isAllRateLimitedCredentials(localCredentials)
+  return localCredentials &&
+    !isAllRateLimitedCredentials(localCredentials) &&
+    !isAllExpiredCredentials(localCredentials)
     ? localCredentials
     : null;
 }
