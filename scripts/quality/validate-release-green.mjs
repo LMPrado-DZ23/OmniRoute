@@ -33,7 +33,7 @@
 // orchestration lives in the /green-prs + review-prs flows that call it.
 //
 // Usage:
-//   node scripts/quality/validate-release-green.mjs [--json] [--with-build] [--quick] [--full-ci] [--hermetic]
+//   node scripts/quality/validate-release-green.mjs [--json] [--with-build] [--quick] [--full-ci] [--hermetic] [--serial-slow]
 //     --json        emit machine-readable JSON to stdout (report goes to stderr)
 //     --with-build  also run check:pack-artifact (needs a dist/ build — slow)
 //     --quick       skip the slow unit + vitest + integration suites (drift + fast
@@ -43,6 +43,11 @@
 //                   read straight from ci.yml so the set never drifts. Catches the whole
 //                   "static base-red" category the curated list missed (v3.8.46: 11 of 16
 //                   leaked reds). Pair with --quick for the fast "1 command, 0 CI layers" pass.
+//     --serial-slow run the slow suites (unit / vitest / integration / pack-artifact) one
+//                   after another instead of concurrently. The concurrent wave needs the
+//                   dedicated build runner: on a 16 GB GitHub-hosted runner unit (8 GB heap,
+//                   4 workers) plus a full Next build plus integration exhausts memory and
+//                   the runner is shut down mid-run (exit 143). Same gates, longer wall time.
 //     --hermetic    scrub OMNIROUTE_API_KEY/OMNIROUTE_URL from gate env so live
 //                   tests self-skip exactly like CI (dev machines otherwise run
 //                   them against localhost and produce false-positive reds)
@@ -430,6 +435,26 @@ const execFileAsync = promisify(execFile);
 // series. Sequentially they dominate the pre-flight wall time (~2h in the
 // v3.8.45 run); they are independent processes with per-process DATA_DIR
 // isolation, so overlapping them cuts the pre-flight to ~the slowest single one.
+/**
+ * Run the slow-suite wave. Concurrent by default (wall time ~ the slowest suite); with
+ * `serial: true` each suite starts only after the previous one settled, so their memory
+ * never overlaps. Results keep the order of `gates` either way.
+ *
+ * @template G, R
+ * @param {G[]} gates
+ * @param {(gate: G) => Promise<R>} runGate
+ * @param {{ serial?: boolean }} [opts]
+ * @returns {Promise<R[]>}
+ */
+export async function runSlowWave(gates, runGate, { serial = false } = {}) {
+  if (!serial) return Promise.all(gates.map((g) => runGate(g)));
+  const results = [];
+  for (const g of gates) {
+    results.push(await runGate(g));
+  }
+  return results;
+}
+
 async function runAsync(cmd, cmdArgs, opts = {}) {
   try {
     const { stdout, stderr } = await execFileAsync(cmd, cmdArgs, {
@@ -451,6 +476,7 @@ async function main() {
   const WITH_BUILD = args.has("--with-build");
   const QUICK = args.has("--quick");
   const FULL_CI = args.has("--full-ci");
+  const SERIAL_SLOW = args.has("--serial-slow");
   hermetic = args.has("--hermetic");
 
   const results = [];
@@ -701,9 +727,12 @@ async function main() {
         timeout: 20 * 60 * 1000,
       });
     }
-    slow.forEach((g) => announce(`${g.label} [parallel]`));
-    const slowResults = await Promise.all(
-      slow.map((g) => runAsync(npmCmd, g.args, { timeout: g.timeout }))
+    const waveMode = SERIAL_SLOW ? "serial" : "parallel";
+    slow.forEach((g) => announce(`${g.label} [${waveMode}]`));
+    const slowResults = await runSlowWave(
+      slow,
+      (g) => runAsync(npmCmd, g.args, { timeout: g.timeout }),
+      { serial: SERIAL_SLOW }
     );
     slow.forEach((g, i) => {
       const { code, out } = slowResults[i];

@@ -127,6 +127,7 @@ jobs:
         id: validate
         env:
           EVENT_NAME: ${{ github.event_name }}
+          USE_VPS_RUNNER: ${{ vars.USE_VPS_RUNNER }}
         run: |
           set +e
           # --hermetic: scrub live-test trigger vars (self-hosted runner may carry
@@ -141,6 +142,13 @@ jobs:
             MODE="--quick"
           else
             MODE="--with-build --full-ci"
+          fi
+          # The concurrent slow-suite wave needs the dedicated build runner. On a 16 GB
+          # GitHub-hosted runner unit + a full build + integration exhaust memory and the
+          # runner is shut down mid-run (exit 143, every scheduled run on this fork).
+          # --serial-slow runs the same gates one after another.
+          if [ "$MODE" != "--quick" ] && [ "${USE_VPS_RUNNER:-}" != "true" ]; then
+            MODE="$MODE --serial-slow"
           fi
           echo "[release-green] mode: $MODE (event: $EVENT_NAME)"
           # MODE is an intentional flag list, so word-splitting is wanted here
@@ -162,6 +170,14 @@ jobs:
           AFTER_SHA: ${{ github.event.after }}
         run: |
           set -euo pipefail
+          # Forks can run with GitHub Issues disabled; `gh issue …` then fails and the job
+          # went red for a reason unrelated to the code. The step summary and the report
+          # artifact still carry the result, and the explicit fail step below keeps a
+          # HARD failure red either way.
+          if [ "$(gh api "repos/$GITHUB_REPOSITORY" --jq .has_issues)" != "true" ]; then
+            echo "::notice::Issues are disabled on $GITHUB_REPOSITORY; skipping the tracking issue."
+            exit 0
+          fi
           TITLE="🔴 Release branch not green: ${TARGET}"
           {
             echo "The **release-green** validation found HARD failures on \`${TARGET}\`."
@@ -207,6 +223,14 @@ jobs:
           # The open/update step above is the UPWARD half of the loop; without this
           # step a stale "not green" issue outlives the fix and every base-green check
           # (`AGENTS.md` → "Base-green check") keeps stamping new PRs as base-red inherited.
+          # Forks can run with GitHub Issues disabled; `gh issue …` then fails and the job
+          # went red for a reason unrelated to the code. The step summary and the report
+          # artifact still carry the result, and the explicit fail step below keeps a
+          # HARD failure red either way.
+          if [ "$(gh api "repos/$GITHUB_REPOSITORY" --jq .has_issues)" != "true" ]; then
+            echo "::notice::Issues are disabled on $GITHUB_REPOSITORY; skipping the tracking issue."
+            exit 0
+          fi
           TITLE="🔴 Release branch not green: ${TARGET}"
           EXISTING=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
             --search "in:title $TITLE" --json number --jq '.[0].number' 2>/dev/null || echo "")
@@ -215,6 +239,12 @@ jobs:
               --comment "✅ \`${TARGET}\` is release-green again at \`${GITHUB_SHA:0:9}\` — ${RUN_URL}. Auto-closed by Release-Green (continuous)."
             echo "Closed issue #$EXISTING"
           fi
+
+      - name: Fail on HARD failures
+        if: steps.validate.outputs.exit != '0'
+        run: |
+          echo "::error::release-green validation reported HARD failures; see the report above and the release-green-report artifact."
+          exit 1
 
       - name: Upload report artifact
         if: always()
@@ -236,7 +266,10 @@ jobs:
     name: Validate main branch
     # On a push, only run for a push to main — a push to release/* is handled by
     # release-green above. Schedule/dispatch always run (they also sweep main).
-    if: ${{ github.event_name != 'push' || github.ref_name == 'main' }}
+    # This fork ships from release/v* and never merges into main, which stays a stale
+    # upstream snapshot. Sweeping it nightly reports defects nobody here ships. Set the
+    # repository variable VALIDATE_MAIN_BRANCH=true to sweep it anyway.
+    if: ${{ (github.event_name == 'push' && github.ref_name == 'main') || (github.event_name != 'push' && vars.VALIDATE_MAIN_BRANCH == 'true') }}
     runs-on: ${{ (vars.USE_VPS_RUNNER == 'true' && fromJSON('["self-hosted","omni-build"]')) || 'ubuntu-latest' }}
     env:
       JWT_SECRET: ci-nightly-secret-with-sufficient-length-for-validation
@@ -260,6 +293,7 @@ jobs:
         id: validate
         env:
           EVENT_NAME: ${{ github.event_name }}
+          USE_VPS_RUNNER: ${{ vars.USE_VPS_RUNNER }}
         run: |
           set +e
           # push (a merge into main) → --quick fast HARD gates; schedule/dispatch → full sweep.
@@ -267,6 +301,13 @@ jobs:
             MODE="--quick"
           else
             MODE="--with-build --full-ci"
+          fi
+          # The concurrent slow-suite wave needs the dedicated build runner. On a 16 GB
+          # GitHub-hosted runner unit + a full build + integration exhaust memory and the
+          # runner is shut down mid-run (exit 143, every scheduled run on this fork).
+          # --serial-slow runs the same gates one after another.
+          if [ "$MODE" != "--quick" ] && [ "${USE_VPS_RUNNER:-}" != "true" ]; then
+            MODE="$MODE --serial-slow"
           fi
           echo "[main-green] mode: $MODE (event: $EVENT_NAME)"
           # MODE is an intentional flag list, so word-splitting is wanted here
@@ -285,6 +326,14 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
+          # Forks can run with GitHub Issues disabled; `gh issue …` then fails and the job
+          # went red for a reason unrelated to the code. The step summary and the report
+          # artifact still carry the result, and the explicit fail step below keeps a
+          # HARD failure red either way.
+          if [ "$(gh api "repos/$GITHUB_REPOSITORY" --jq .has_issues)" != "true" ]; then
+            echo "::notice::Issues are disabled on $GITHUB_REPOSITORY; skipping the tracking issue."
+            exit 0
+          fi
           TITLE="🔴 main branch not green"
           {
             echo "The **main-green** validation found HARD failures on \`main\`."
@@ -324,6 +373,14 @@ jobs:
           # The open/update step above is the UPWARD half of the loop; without this
           # step a stale "not green" issue outlives the fix and every base-green check
           # (`AGENTS.md` → "Base-green check") keeps stamping new PRs as base-red inherited.
+          # Forks can run with GitHub Issues disabled; `gh issue …` then fails and the job
+          # went red for a reason unrelated to the code. The step summary and the report
+          # artifact still carry the result, and the explicit fail step below keeps a
+          # HARD failure red either way.
+          if [ "$(gh api "repos/$GITHUB_REPOSITORY" --jq .has_issues)" != "true" ]; then
+            echo "::notice::Issues are disabled on $GITHUB_REPOSITORY; skipping the tracking issue."
+            exit 0
+          fi
           TITLE="🔴 main branch not green"
           EXISTING=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
             --search "in:title $TITLE" --json number --jq '.[0].number' 2>/dev/null || echo "")
@@ -332,6 +389,12 @@ jobs:
               --comment "✅ \`main\` is main-green again at \`${GITHUB_SHA:0:9}\` — ${RUN_URL}. Auto-closed by Release-Green (continuous)."
             echo "Closed issue #$EXISTING"
           fi
+
+      - name: Fail on HARD failures
+        if: steps.validate.outputs.exit != '0'
+        run: |
+          echo "::error::main-green validation reported HARD failures; see the report above and the main-green-report artifact."
+          exit 1
 
       - name: Upload report artifact
         if: always()
@@ -542,6 +605,11 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
+          # The table is already in the step summary and the uploaded artifact.
+          if [ "$(gh api "repos/$GITHUB_REPOSITORY" --jq .has_issues)" != "true" ]; then
+            echo "::notice::Issues are disabled on $GITHUB_REPOSITORY; the headroom report stays in the step summary and artifact."
+            exit 0
+          fi
           TITLE="📈 Baseline headroom (velocity phase)"
           BAD=$(node -e 'const r=require("./reports/quality/headroom.json").rows;console.log(r.filter(x=>x.status==="critical"||x.status==="warn").length)')
           {

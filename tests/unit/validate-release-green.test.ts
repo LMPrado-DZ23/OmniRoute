@@ -19,6 +19,7 @@ const {
   curatedEquivalentId,
   fullCiKindFor,
   ESLINT_TIMEOUT_MS,
+  runSlowWave,
 } = mod;
 
 const extract = extractCiGates as (
@@ -244,10 +245,25 @@ test("pre-flight runs the slow suites CONCURRENTLY (v3.8.45 perf — was ~1h ser
     "utf8"
   );
   // main() must be async and the slow suites (unit/vitest/integration/pack-artifact)
-  // must run via a single Promise.all over runAsync — not four sequential hardCmd calls.
+  // must run as one wave over runAsync — not four sequential hardCmd calls. The wave is
+  // concurrent unless --serial-slow asks for the hosted-runner mode.
   assert.match(src, /async function main\(\)/, "main must be async to await the parallel wave");
   assert.match(src, /const execFileAsync = promisify\(execFile\)/, "async runner must exist");
-  assert.match(src, /await Promise\.all\(\s*slow\.map\(/, "slow suites must run concurrently");
+  assert.match(
+    src,
+    /await runSlowWave\(\s*slow,\s*\(g\) => runAsync\(/,
+    "slow suites must run as one wave over runAsync"
+  );
+  assert.match(
+    src,
+    /export async function runSlowWave[\s\S]*?if \(!serial\) return Promise\.all\(gates\.map\(/,
+    "the wave must stay concurrent by default"
+  );
+  assert.match(
+    src,
+    /\{ serial: SERIAL_SLOW \}/,
+    "only --serial-slow may switch the wave to serial"
+  );
   // The four slow-gate ids must all be present in the parallel wave.
   for (const id of ["unit", "vitest", "integration", "pack-artifact"]) {
     assert.ok(src.includes(`id: "${id}"`), `slow gate ${id} must be in the parallel wave`);
@@ -262,10 +278,10 @@ test("pre-flight runs tarball boot only after the package artifact builder compl
     new URL("../../scripts/quality/validate-release-green.mjs", import.meta.url),
     "utf8"
   );
-  const parallelWave = src.indexOf("const slowResults = await Promise.all");
+  const parallelWave = src.indexOf("const slowResults = await runSlowWave");
   const packBoot = src.indexOf('id: "pack-boot"');
 
-  assert.ok(parallelWave >= 0, "the parallel slow-gate wave must exist");
+  assert.ok(parallelWave >= 0, "the slow-gate wave must exist");
   assert.ok(
     packBoot > parallelWave,
     "pack-boot must be declared after the parallel artifact build"
@@ -493,5 +509,66 @@ test("the --full-ci loop classifies from the curated results, not a hardcoded ki
     src,
     /kind:\s*fullCiKindFor\(g\.id,\s*results\)/,
     "--full-ci must classify each ci.yml gate through fullCiKindFor()"
+  );
+});
+
+// ---- Slow-suite wave: serial mode for GitHub-hosted runners ------------------------------
+//
+// The nightly full sweep ran unit + vitest + integration + pack-artifact concurrently. On a
+// 16 GB hosted runner that exhausted memory and the runner was shut down mid-run (exit 143)
+// on every scheduled run. `--serial-slow` must never let two suites overlap.
+
+function trackedRunner(delayMs: number) {
+  let active = 0;
+  let maxActive = 0;
+  const started: string[] = [];
+  const runGate = async (g: { id: string }) => {
+    active += 1;
+    maxActive = Math.max(maxActive, active);
+    started.push(g.id);
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    active -= 1;
+    return { id: g.id, code: 0 };
+  };
+  return { runGate, stats: () => ({ maxActive, started }) };
+}
+
+const WAVE = [{ id: "unit" }, { id: "vitest" }, { id: "integration" }, { id: "pack-artifact" }];
+
+test("runSlowWave serial mode never runs two suites at once and keeps gate order", async () => {
+  const { runGate, stats } = trackedRunner(5);
+  const results = await runSlowWave(WAVE, runGate, { serial: true });
+  assert.equal(stats().maxActive, 1);
+  assert.deepEqual(stats().started, ["unit", "vitest", "integration", "pack-artifact"]);
+  assert.deepEqual(
+    results.map((r: { id: string }) => r.id),
+    ["unit", "vitest", "integration", "pack-artifact"]
+  );
+});
+
+test("runSlowWave defaults to the concurrent wave", async () => {
+  const { runGate, stats } = trackedRunner(5);
+  const results = await runSlowWave(WAVE, runGate);
+  assert.equal(stats().maxActive, WAVE.length);
+  assert.deepEqual(
+    results.map((r: { id: string }) => r.id),
+    ["unit", "vitest", "integration", "pack-artifact"]
+  );
+});
+
+test("runSlowWave serial mode still runs every gate after a failing one", async () => {
+  const seen: string[] = [];
+  const results = await runSlowWave(
+    WAVE,
+    async (g: { id: string }) => {
+      seen.push(g.id);
+      return { id: g.id, code: g.id === "vitest" ? 1 : 0 };
+    },
+    { serial: true }
+  );
+  assert.deepEqual(seen, ["unit", "vitest", "integration", "pack-artifact"]);
+  assert.deepEqual(
+    results.map((r: { code: number }) => r.code),
+    [0, 1, 0, 0]
   );
 });
