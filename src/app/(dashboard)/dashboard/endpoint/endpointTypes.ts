@@ -20,4 +20,5 @@ export type EndpointModelSummary = {
   root?: string;
 };
 
-export type CopyHandler = (text: string, key?: string) => void | Promise<void>;
+// Callers ignore the result; useCopyToClipboard's `copy` resolves to whether the write succeeded.
+export type CopyHandler = (text: string, key?: string) => void | Promise<unknown>;
