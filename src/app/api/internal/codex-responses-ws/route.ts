@@ -7,7 +7,7 @@ import { authorizeWebSocketHandshake, extractWsTokenFromRequest } from "@/lib/ws
 import { getModelInfo } from "@/sse/services/model";
 import { resolveCcDiscoveryAliasStrip } from "@/lib/ccDiscoveryAliasResolve";
 import { getProviderCredentialsWithQuotaPreflight } from "@/sse/services/auth";
-import { enforceApiKeyPolicy } from "@/shared/utils/apiKeyPolicy";
+import { enforceApiKeyPolicy, type ApiKeyMetadata } from "@/shared/utils/apiKeyPolicy";
 import { checkAndRefreshToken } from "@/sse/services/tokenRefresh";
 import { resolveCodexWsModelInfo } from "./modelResolution";
 import { isFeatureFlagEnabled } from "@/shared/utils/featureFlags";
@@ -48,7 +48,6 @@ const executor = new CodexExecutor();
 const log = logger("RESPONSES_WS");
 
 type JsonRecord = Record<string, unknown>;
-type ApiKeyMetadata = Awaited<ReturnType<typeof getApiKeyMetadata>>;
 
 const bridgePayloadSchema = z
   .object({
@@ -461,7 +460,8 @@ async function resolveCodexRequestContext(body: JsonRecord) {
 async function resolveCodexUpstreamContext(
   context: Awaited<ReturnType<typeof resolveCodexRequestContext>>
 ) {
-  if ("error" in context) return context;
+  // Same as for credentialResult below: return only the error, not the whole context union.
+  if ("error" in context) return { error: context.error };
   const routedModel = context.decision?.targetModel ?? context.requestedModel;
   const modelInfo = await resolveCodexWsModelInfo(routedModel, getModelInfo);
   const provider = modelInfo.provider;
@@ -480,7 +480,9 @@ async function resolveCodexUpstreamContext(
     model,
     context.allowedConnections
   );
-  if (credentialResult.error) return credentialResult;
+  // Return only the error: passing credentialResult through would add its success shape
+  // ({ credentials, error?: undefined }) to this function's union, which `"error" in` cannot narrow.
+  if (credentialResult.error) return { error: credentialResult.error };
   let reasoningDecision = context.decision;
   if (!reasoningDecision) {
     reasoningDecision = await resolveReasoningRoutingRule({
