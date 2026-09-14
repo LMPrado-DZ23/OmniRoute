@@ -25,6 +25,11 @@ function collectRouteFiles(dir: string): { apiPath: string; file: string }[] {
         // openapi.yaml matches on any platform.
         .split(path.sep)
         .join("/")
+        // Catch-all segments first, exactly like scripts/check/lib/apiRoutes.mjs toApiUrlPath():
+        // [...path] → {path}, [[...slug]] → {{slug}}. Replacing single brackets first turned
+        // [...path] into {...path}, which never matches the spec — invisible while the floor
+        // sat far below 100.
+        .replace(/\[\.\.\.([^\]]+)\]/g, "{$1}")
         .replace(/\[([^\]]+)\]/g, "{$1}");
       routes.push({ apiPath: `/api${apiPath}`, file: fullPath });
     }
@@ -71,7 +76,9 @@ function normalizePath(p: string): string {
 // Documenting them in the public spec would be gaming the gate, same precedent as
 // the metric's release rebaselines. Measured 222/618 = 35.9% locally and in CI.
 // Raising coverage by documenting the backlog is tracked as follow-up doc debt.
-const OPENAPI_COVERAGE_FLOOR_PERCENT = 35.9;
+// 2026-09-14 (API governance, docs/architecture/API_GOVERNANCE.md): backlog cleared —
+// 709/709 routes documented (internal ones tagged x-stability: internal). Floor = 100.
+const OPENAPI_COVERAGE_FLOOR_PERCENT = 100;
 
 test("openapi.yaml does not regress documented-route coverage below the agreed floor", () => {
   const implementedPaths = collectRoutePaths(API_ROOT).map(normalizePath).sort();
@@ -122,7 +129,10 @@ test("openapi.yaml does not regress documented-route coverage below the agreed f
 // already rebaselined for this metric in v3.8.34/v3.8.39/v3.8.47/v3.8.50 — documenting
 // internal management routes in the public consumer spec would be gaming the gate
 // (#8523 precedent); measured locally and in CI run 32804035612.
-const OPENAPI_OPERATION_FLOOR_PERCENT = 34.4;
+// 2026-09-14 (API governance): every exported handler verb is documented (the 46 missing
+// ones were added as minimal stubs) and check:api-governance fails on a new undocumented
+// verb. Floor = 100.
+const OPENAPI_OPERATION_FLOOR_PERCENT = 100;
 
 test("openapi.yaml does not regress documented-operation coverage below the agreed floor", () => {
   const raw = yaml.load(fs.readFileSync(OPENAPI_PATH, "utf-8")) as {

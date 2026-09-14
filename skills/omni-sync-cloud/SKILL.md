@@ -71,6 +71,15 @@ curl -X PUT https://localhost:20128/api/cloud/models/alias \
   -d '{}'
 ```
 
+### GET /api/sync/cloud
+
+GET sync › cloud
+
+```bash
+curl https://localhost:20128/api/sync/cloud \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN"
+```
+
 ### POST /api/sync/cloud
 
 Sync with cloud
@@ -80,6 +89,15 @@ curl -X POST https://localhost:20128/api/sync/cloud \
   -H "Authorization: Bearer $OMNIROUTE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{}'
+```
+
+### GET /api/sync/initialize
+
+GET sync › initialize
+
+```bash
+curl https://localhost:20128/api/sync/initialize \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN"
 ```
 
 ### POST /api/sync/initialize
