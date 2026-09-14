@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { redirectHome } from "../helpers/tempHome.ts";
 
 // Regression guard for #3333 — Kiro Builder ID token import failed with "Bad
 // credentials" because validateImportToken only ever tried the social-auth
@@ -11,7 +12,7 @@ import path from "node:path";
 
 const { KiroService } = await import("../../src/lib/oauth/services/kiro.ts");
 
-const ORIGINAL_HOME = process.env.HOME;
+let restoreHome: (() => void) | undefined;
 const ORIGINAL_FETCH = globalThis.fetch;
 let tmpHome: string;
 
@@ -29,11 +30,11 @@ function makeFakeSsoCache(home: string, creds: { clientId: string; clientSecret:
 
 test.beforeEach(() => {
   tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-kiro-3333-"));
-  process.env.HOME = tmpHome;
+  restoreHome = redirectHome(tmpHome);
 });
 
 test.afterEach(() => {
-  process.env.HOME = ORIGINAL_HOME;
+  restoreHome?.();
   globalThis.fetch = ORIGINAL_FETCH;
   if (tmpHome) fs.rmSync(tmpHome, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 });

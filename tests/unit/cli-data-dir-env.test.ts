@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 
 import { resolveDataDir as cliResolveDataDir } from "../../bin/cli/data-dir.mjs";
 import { resolveDataDir as runtimeResolveDataDir } from "../../src/lib/dataPaths.ts";
+import { redirectHome } from "../helpers/tempHome.ts";
 
 const REPO_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const BIN = path.join(REPO_ROOT, "bin", "omniroute.mjs");
@@ -25,7 +26,7 @@ async function withTempEnv(
   delete process.env.DATA_DIR;
   delete process.env.XDG_CONFIG_HOME;
   delete process.env.APPDATA;
-  process.env.HOME = home;
+  redirectHome(home); // restored with the rest of the environment in `finally`
   process.chdir(cwd);
 
   try {
