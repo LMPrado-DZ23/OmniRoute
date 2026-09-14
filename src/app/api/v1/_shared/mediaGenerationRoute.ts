@@ -147,7 +147,7 @@ export async function successfulMediaGenerationResponse({
 }
 
 export function failedMediaGenerationResponse(
-  result: MediaGenerationResult,
+  result: MediaGenerationResultLike,
   fallbackMessage: string
 ) {
   if (!isMediaGenerationFailure(result)) {
