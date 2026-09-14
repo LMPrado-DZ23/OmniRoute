@@ -9,9 +9,6 @@
   "src/app/(dashboard)/dashboard/runtime/RuntimePageClient.tsx": {
     "TS2304": 1
   },
-  "src/app/(dashboard)/dashboard/tools/traffic-inspector/components/CustomHostsManager.tsx": {
-    "TS2339": 1
-  },
   "src/lib/combos/builderDraft.ts": {
     "TS2741": 1
   }
