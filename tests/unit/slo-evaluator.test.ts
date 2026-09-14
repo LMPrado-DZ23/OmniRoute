@@ -71,7 +71,7 @@ function byKey(report: ReturnType<typeof evaluateSlo>) {
 
 test("resolveSloSettings fills defaults and ignores invalid input", () => {
   const defaults = resolveSloSettings(undefined);
-  assert.equal(defaults.alertsEnabled, true);
+  assert.equal(defaults.alertsEnabled, false);
   assert.equal(defaults.availabilityTarget, 0.99);
   assert.equal(defaults.latencyP95Ms, 30_000);
   assert.equal(defaults.latencyP99Ms, 60_000);

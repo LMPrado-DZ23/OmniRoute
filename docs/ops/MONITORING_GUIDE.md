@@ -419,7 +419,8 @@ boot unless background services are disabled). Only **state changes** are sent:
 An objective with fewer samples than `minSamples` is `insufficient_data` and keeps its
 previous alert state (no flapping on low traffic). Payloads never contain prompts,
 responses, API keys, connection ids or account ids. Subscribe a webhook to these events
-(or `*`) in the dashboard; set `slo.alertsEnabled = false` to stop evaluation.
+(or `*`) in the dashboard. Alerts are off by default: set `slo.alertsEnabled = true` to start
+evaluation, so existing `*` subscribers do not receive new events after an upgrade.
 
 ---
 
@@ -513,7 +514,7 @@ defaults by `src/lib/monitoring/sloSettings.ts`. Evaluated by
 
 | Key                      | Default  | Range           | Objective / meaning                                                                            |
 | ------------------------ | -------- | --------------- | ---------------------------------------------------------------------------------------------- |
-| `alertsEnabled`          | `true`   | boolean         | Emit the alert webhook events above                                                            |
+| `alertsEnabled`          | `false`  | boolean         | Emit the alert webhook events above                                                            |
 | `availabilityTarget`     | `0.99`   | 0.5 – 1         | `availability` = success / (success + failed) ≥ target                                         |
 | `errorRateMax`           | `0.05`   | 0 – 1           | `error_rate` = (error + malformed + stream_interrupted) / (success + failed) ≤ max             |
 | `latencyP95Ms`           | `30000`  | 1 – 3600000     | `latency_p95` ≤ value                                                                          |

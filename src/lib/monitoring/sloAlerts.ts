@@ -9,7 +9,7 @@
  * `insufficient_data` keeps the previous state, so low traffic never flaps.
  * Payloads carry only objective names, numbers and sanitized provider labels —
  * never prompts, responses, API keys, connection ids or account ids.
- * Disabled with settings `slo.alertsEnabled = false`.
+ * Off by default; enabled with settings `slo.alertsEnabled = true`.
  */
 
 import { routingMetrics } from "@omniroute/open-sse/services/routing/metricsSink.ts";

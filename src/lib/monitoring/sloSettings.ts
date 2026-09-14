@@ -19,7 +19,7 @@ export interface SloSettings {
  * values documented in docs/ops/MONITORING_GUIDE.md "SLO settings".
  */
 const DEFAULT_SLO_SETTINGS: Readonly<SloSettings> = {
-  alertsEnabled: true,
+  alertsEnabled: false,
   availabilityTarget: 0.99,
   latencyP95Ms: 30_000,
   latencyP99Ms: 60_000,
