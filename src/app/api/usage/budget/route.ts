@@ -3,6 +3,7 @@ import { getCostSummary, setBudget, checkBudget } from "@/domain/costRules";
 import { setBudgetSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import { requireManagementAuth } from "@/lib/api/requireManagementAuth";
+import { logAdminAuditEvent } from "@/lib/compliance/adminAuditActor";
 
 export async function GET(request) {
   const authError = await requireManagementAuth(request);
@@ -81,6 +82,19 @@ export async function POST(request) {
       warningThreshold,
       resetInterval,
       resetTime,
+    });
+    logAdminAuditEvent(request, {
+      action: "budget.set",
+      target: apiKeyId,
+      resourceType: "internal_budget",
+      metadata: {
+        dailyLimitUsd: budget.dailyLimitUsd,
+        weeklyLimitUsd: budget.weeklyLimitUsd,
+        monthlyLimitUsd: budget.monthlyLimitUsd,
+        warningThreshold: budget.warningThreshold,
+        resetInterval: budget.resetInterval,
+        resetTime: budget.resetTime,
+      },
     });
     return NextResponse.json({ success: true, apiKeyId, budget });
   } catch (error) {

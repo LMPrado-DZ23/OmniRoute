@@ -11,6 +11,7 @@ import { syncToCloud } from "@/lib/cloudSync";
 import { updateKeyPermissionsSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import { requireManagementAuth } from "@/lib/api/requireManagementAuth";
+import { logAdminAuditEvent } from "@/lib/compliance/adminAuditActor";
 import * as log from "@/sse/utils/logger";
 import { buildErrorBody } from "@omniroute/open-sse/utils/error.ts";
 
@@ -132,6 +133,14 @@ export async function PATCH(request, { params }) {
     if (!updated) {
       return NextResponse.json({ error: "Key not found" }, { status: 404 });
     }
+    // Field names only — scope grants/revokes and ban/activate keep their dedicated events
+    // emitted by updateApiKeyPermissions (src/lib/db/apiKeys.ts).
+    logAdminAuditEvent(request, {
+      action: "apiKey.permissions.update",
+      target: id,
+      resourceType: "api_key",
+      metadata: { changedFields: Object.keys(payload).sort() },
+    });
 
     // Auto sync to Cloud if enabled
     await syncKeysToCloudIfEnabled();
@@ -196,6 +205,7 @@ export async function DELETE(request, { params }) {
     if (!deleted) {
       return NextResponse.json({ error: "Key not found" }, { status: 404 });
     }
+    logAdminAuditEvent(request, { action: "apiKey.delete", target: id, resourceType: "api_key" });
 
     // Auto sync to Cloud if enabled
     await syncKeysToCloudIfEnabled();
