@@ -12,7 +12,8 @@ describe("webhook catalogue", () => {
     assert.equal(keys.includes("provider.error"), false);
     assert.equal(keys.includes("provider.recovered"), false);
     assert.equal(keys.includes("combo.switched"), false);
-    assert.equal(keys.length, 4); // completed, failed, quota.exceeded, test.ping
+    // completed, failed, quota.exceeded, budget.threshold_reached (phase 8 internal budget), test.ping
+    assert.equal(keys.length, 5);
   });
 
   it("rejected legacy events via zod (400)", () => {
@@ -23,6 +24,7 @@ describe("webhook catalogue", () => {
     assert.equal(schema.safeParse("request.completed").success, true);
     assert.equal(schema.safeParse("request.failed").success, true);
     assert.equal(schema.safeParse("quota.exceeded").success, true);
+    assert.equal(schema.safeParse("budget.threshold_reached").success, true);
     assert.equal(schema.safeParse("test.ping").success, true);
   });
 
