@@ -204,6 +204,13 @@ npm run coverage:report
 npm run lint
 npm run check
 
+# Live integration tests (real traffic through a running OmniRoute to real providers).
+# They skip unless RUN_LIVE_TESTS=1 is set, even when OMNIROUTE_API_KEY is exported.
+RUN_LIVE_TESTS=1 npm run test:integration
+
+# Live boundary tests (RUN_BOUNDARY_LIVE=1 is set by the script; needs OMNIROUTE_API_KEY and OMNIROUTE_URL)
+npm run test:boundary:live
+
 # Gated real-upstream combo smoke (requires VPS access + real provider credits)
 # Hits REAL providers — costs a little. NEVER runs in CI. Skips cleanly without the gate.
 # Needs: ssh root@192.168.0.15 access (sources a read-only DB snapshot from the VPS).
@@ -216,6 +223,33 @@ RUN_COMBO_LIVE=1 npm run test:combo:live
 npm run test:combo:live:vps              # 7 HTTP scenarios (priority/round-robin/weighted/cost/fusion/auto + health)
 npm run test:combo:live:vps:failover     # adds a real cross-provider failover scenario (8 total)
 ```
+
+### Test layers
+
+`npm test` and `npm run check` run the full unit suite, including the serialized suite in
+`tests/unit/serial`, the same way CI does. Durations below are CI job time limits unless marked as
+measured; secrets are listed by name only.
+
+| Layer                              | Command                                                | Time (CI limit or measured)                                            | Network                               | Secrets                                                         | PR to `release/**` | PR to `main` |
+| ---------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------- | ------------------------------------- | --------------------------------------------------------------- | ------------------ | ------------ |
+| Unit, impacted only                | `npm run test:scoped`                                  | depends on the change                                                  | No                                    | No                                                              | TIA step           | No           |
+| Unit, full (parallel + serialized) | `npm test`, `npm run test:unit`                        | 30 min per shard × 4 (`fast-unit`); 25 min per shard × 8 (`test-unit`) | No                                    | No                                                              | Yes                | Yes          |
+| Serialized unit                    | `npm run test:unit:serial`                             | inside each unit shard                                                 | No                                    | No                                                              | Yes                | Yes          |
+| Integration                        | `npm run test:integration`                             | 15 min per shard × 2                                                   | Localhost only                        | No                                                              | No                 | Yes          |
+| MCP / services (Vitest)            | `npm run test:vitest`                                  | 15 min                                                                 | No                                    | No                                                              | Yes                | Yes          |
+| Dashboard UI (Vitest, jsdom)       | `npm run test:vitest:ui`                               | 15 min                                                                 | No                                    | No                                                              | No                 | Yes          |
+| E2E (Playwright)                   | `npm run test:e2e`                                     | 45 min per shard × 9                                                   | Localhost only                        | No                                                              | No                 | Yes          |
+| Protocol clients / ecosystem       | `npm run test:protocols:e2e`, `npm run test:ecosystem` | 20 min each                                                            | Localhost only                        | No                                                              | No                 | Yes          |
+| Coverage                           | `npm run test:coverage`                                | 30 min                                                                 | No                                    | `CODECOV_TOKEN` (CI upload only)                                | No                 | Yes          |
+| Compatibility                      | `npm run test:compat`, `npm run test:compat:ollama`    | not measured                                                           | Localhost; local Ollama for `:ollama` | No                                                              | No                 | No           |
+| Chaos / heap                       | `npm run test:chaos`, `npm run test:heap`              | not measured                                                           | Localhost only                        | No                                                              | Nightly            | Nightly      |
+| Live integration                   | `RUN_LIVE_TESTS=1 npm run test:integration`            | not measured                                                           | Real providers                        | `OMNIROUTE_API_KEY`, optional `OMNIROUTE_URL`, `GEMINI_API_KEY` | Never              | Never        |
+| Live boundary                      | `npm run test:boundary:live`                           | not measured                                                           | Real providers                        | `OMNIROUTE_API_KEY`, `OMNIROUTE_URL`                            | Never              | Never        |
+| Live combo                         | `RUN_COMBO_LIVE=1 npm run test:combo:live`             | not measured                                                           | Real providers                        | VPS access                                                      | Never              | Never        |
+
+Live tests never run without their opt-in flag: `tests/helpers/liveOptIn.ts` requires the flag to be
+exactly `1` in addition to the credentials, and `tests/unit/live-tests-opt-in-inventory.test.ts`
+fails if a file under `tests/integration` or `tests/boundary` decides to run from credentials alone.
 
 Coverage notes:
 
