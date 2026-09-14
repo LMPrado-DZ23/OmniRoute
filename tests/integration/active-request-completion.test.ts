@@ -1,11 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { liveSkipReason } from "../helpers/liveOptIn.ts";
 
 const API_KEY = process.env.OMNIROUTE_API_KEY;
 const BASE_URL = process.env.OMNIROUTE_URL || "http://localhost:20128";
 const MODEL = "default";
 
-const skip = !API_KEY ? "OMNIROUTE_API_KEY not set — skipping live test" : undefined;
+const skip = liveSkipReason({ requiredEnv: ["OMNIROUTE_API_KEY"] });
 
 // Simple SSE reader (compatible with streamed chat completions)
 async function readSSEStream(response: Response, onChunk?: (chunk: string) => void) {

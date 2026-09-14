@@ -1,0 +1,42 @@
+{
+  "description": "GET /api/health — unauthenticated liveness probe (docs/openapi.yaml, security: []). The SDK never sends the API key here.",
+  "cases": [
+    {
+      "name": "health does not send credentials",
+      "operation": "health",
+      "client": {
+        "apiKey": "sk-contract-key",
+        "requestId": "req-contract-1",
+        "retry": { "maxRetries": 0 }
+      },
+      "expectedRequests": [
+        {
+          "method": "GET",
+          "path": "/api/health",
+          "headers": { "accept": "application/json", "x-request-id": "req-contract-1" },
+          "absentHeaders": ["authorization", "content-type"],
+          "body": null
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "content-type": "application/json",
+            "cache-control": "no-store, no-cache, must-revalidate",
+            "x-request-id": "srv-health-1"
+          },
+          "json": { "status": "ok", "timestamp": "2026-09-14T12:00:00.000Z" }
+        }
+      ],
+      "expected": {
+        "result": {
+          "status": 200,
+          "requestId": "srv-health-1",
+          "clientRequestId": "req-contract-1",
+          "data": { "status": "ok", "timestamp": "2026-09-14T12:00:00.000Z" }
+        }
+      }
+    }
+  ]
+}

@@ -3,8 +3,10 @@
   "pages": [
     "API_REFERENCE",
     "API_USE_CASES",
+    "SDKS",
     "CLI-TOOLS",
     "ENVIRONMENT",
+    "COMPATIBILITY_MATRIX",
     "FEATURE_FLAGS",
     "FREE_TIERS",
     "FREE_PROXIES_API",

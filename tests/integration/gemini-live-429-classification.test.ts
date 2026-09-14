@@ -13,19 +13,21 @@
  * Env vars:
  *   OMNIROUTE_URL                 — base URL (default http://localhost:20128)
  *   OMNIROUTE_API_KEY             — API key for auth (REQUIRED)
+ *   RUN_LIVE_TESTS=1              — opt in to live traffic (REQUIRED)
  *   TEST_GEMINI_RPM_MODEL         — RPM model (default gemini/gemma-4-31b-it)
  *   TEST_GEMINI_RPD_MODEL         — RPD model (default gemini/gemini-2.5-flash)
  */
 
 import test from "node:test";
 import assert from "node:assert/strict";
+import { liveSkipReason } from "../helpers/liveOptIn.ts";
 
 const API_KEY = process.env.OMNIROUTE_API_KEY;
 const BASE_URL = process.env.OMNIROUTE_URL || "http://localhost:20128";
 const RPM_MODEL = process.env.TEST_GEMINI_RPM_MODEL || "gemini/gemma-4-31b-it";
 const RPD_MODEL = process.env.TEST_GEMINI_RPD_MODEL || "gemini/gemini-2.5-flash";
 
-const skip = !API_KEY ? "OMNIROUTE_API_KEY not set — skipping live test" : undefined;
+const skip = liveSkipReason({ requiredEnv: ["OMNIROUTE_API_KEY"] });
 
 async function chat(model: string, content: string) {
   const res = await fetch(`${BASE_URL}/api/v1/chat/completions`, {

@@ -455,6 +455,14 @@ jobs:
       # which is where flaky-detection volume actually comes from (ci.yml's heavy
       # jobs only run on the release PR). Advisory upload, own-origin only.
       - run: npm run test:vitest -- --reporter=default --reporter=junit --outputFile.junit=trunk-junit/vitest-fastpath.xml
+      - name: Upload Vitest JUnit report on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: vitest-fast-path-junit
+          path: trunk-junit/
+          if-no-files-found: warn
+          retention-days: 7
       - name: Upload test results to Trunk (advisory)
         if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         continue-on-error: true
@@ -465,14 +473,15 @@ jobs:
           token: ${{ secrets.TRUNK_TOKEN }}
 
   fast-unit:
-    name: Unit Tests fast-path (${{ matrix.shard }}/4)
+    name: Unit Tests fast-path (${{ matrix.shard }}/5)
     needs: changes
     if: ${{ github.event_name != 'pull_request' || ((github.event.pull_request.draft == false || startsWith(github.head_ref, 'mergify/merge-queue/')) && needs.changes.outputs.code == 'true') }}
     # Dynamic runner — see fast-gates (own-origin + flag; fork/unset → ubuntu-latest).
-    # This is the heaviest fast-path job; 4-way sharding (was 2, #6781) halves the
-    # critical path again (~8.5min → ~4.5min on ubuntu-latest; ~2min on the 8-slot
-    # runner box). Node's native --test-shard=N/total takes any denominator — only
-    # this matrix and the TEST_SHARD env below encode the shard count.
+    # This is the heaviest fast-path job and sets the PR feedback time. 5-way sharding
+    # (was 4, #6781 before that 2): on 2026-09-14 the 4 shards took 9.4-10.8 min each on
+    # ubuntu-latest (PR #24 runs 34806592108, 34809330562), over the 10 min fast-path
+    # target. Node's native --test-shard=N/total takes any denominator — only this
+    # matrix, the job name and the TEST_SHARD env below encode the shard count.
     # PINNED to hosted, deliberately not on the USE_VPS_RUNNER switch (gap 19). One variable
     # governed the build and the test jobs, which want OPPOSITE machines: the build needs the
     # .113's RAM, the tests need the hosted runner's link. Measured on 2026-07-29 —
@@ -480,7 +489,7 @@ jobs:
     # cache restore saturating the link), while the tests themselves tied, 2m54 vs 2m31. So
     # self-hosted is strictly worse here and there is nothing to configure.
     runs-on: ubuntu-latest
-    # A shard finishes in ~10 min. Without a ceiling a hung test process holds the PR for
+    # A shard finished in ~10 min with 4 shards. Without a ceiling a hung test process holds the PR for
     # GitHub's 6 h default: on 2026-08-28 shard 1/4 sat 64 min without a line of output
     # (twice, same spot — a timing race, gone on the third run) while the other three
     # shards were long green. 30 min = 3x the normal wall-clock; a shard that needs more
@@ -489,7 +498,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5]
     env:
       JWT_SECRET: ci-lint-secret-with-sufficient-length-for-validation
       API_KEY_SECRET: ci-lint-api-key-secret-long
@@ -506,9 +515,24 @@ jobs:
       # QW-d: fonte única — o mesmo npm script do CI pesado/local. Fecha dois drifts do
       # comando inline antigo: os dirs `memory` e `usage` estavam FORA do glob (testes
       # silenciosamente não rodavam no fast path) e o setupPolyfill não era importado.
-      - run: npm run test:unit:ci:shard
+      # The shard's full output is kept as an artifact when it fails, so a red shard can be
+      # diagnosed without re-running it (bash runs with pipefail, so tee keeps the exit code).
+      - name: Unit tests (shard)
+        shell: bash
+        run: |
+          mkdir -p test-output
+          npm run test:unit:ci:shard 2>&1 | tee "test-output/unit-shard-${SHARD_INDEX}.log"
         env:
-          TEST_SHARD: ${{ matrix.shard }}/4
+          SHARD_INDEX: ${{ matrix.shard }}
+          TEST_SHARD: ${{ matrix.shard }}/5
+      - name: Upload unit test log on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: unit-fast-path-shard-${{ matrix.shard }}-log
+          path: test-output/
+          if-no-files-found: warn
+          retention-days: 7
 
   # ── Pacote 4 (plano mestre testes+CI, aprovado 2026-07-04) ─────────────────────────
   # No-new-warnings por PR via ESLint bulk suppressions nativo (>=9.24). O baseline

@@ -3,3 +3,6 @@ contact_links:
   - name: Question / Help
     url: https://github.com/LMPrado-DZ23/OmniRoute/discussions
     about: For questions or help with setup, please use GitHub Discussions instead of opening an issue.
+  - name: Report a security vulnerability (private)
+    url: https://github.com/LMPrado-DZ23/OmniRoute/security/advisories/new
+    about: Never open a public issue for a vulnerability. Report it privately through GitHub Security Advisories, as described in SECURITY.md.

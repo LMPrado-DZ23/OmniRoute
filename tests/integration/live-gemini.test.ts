@@ -2,10 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { ensureTestEnvironment, MODEL, BASE_URL, API_KEY } from "./liveGeminiShared.ts";
+import { liveSkipReason } from "../helpers/liveOptIn.ts";
 
 const DIRECT_MODEL = process.env.TEST_GEMINI_DIRECT_MODEL || "gemini/gemini-2.0-flash";
 
-const skip = !API_KEY ? "OMNIROUTE_API_KEY not set — skipping live test" : undefined;
+const skip = liveSkipReason({ requiredEnv: ["OMNIROUTE_API_KEY"] });
 
 test.before(async () => {
   await ensureTestEnvironment();

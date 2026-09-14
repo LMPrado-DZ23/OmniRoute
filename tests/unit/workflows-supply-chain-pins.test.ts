@@ -65,12 +65,25 @@ test("pip installs in workflows pin an exact version", () => {
   assert.deepEqual(offenders, []);
 });
 
+/** Every `Dockerfile` under docker/ — discovered, so a new sidecar image cannot escape the pin check. */
+function sidecarDockerfiles(dir = "docker"): string[] {
+  const found: string[] = [];
+  for (const entry of fs.readdirSync(path.join(repoRoot, dir), { withFileTypes: true })) {
+    const rel = `${dir}/${entry.name}`;
+    if (entry.isDirectory()) found.push(...sidecarDockerfiles(rel));
+    else if (entry.name === "Dockerfile") found.push(rel);
+  }
+  return found;
+}
+
 test("container images used by CI and compose are pinned by version and digest", () => {
   assert.match(
     read(".github/workflows/semgrep.yml"),
     /image: semgrep\/semgrep:\d+\.\d+\.\d+@sha256:[0-9a-f]{64}/
   );
-  for (const file of ["Dockerfile", "Dockerfile.bun"]) {
+  const sidecars = sidecarDockerfiles();
+  assert.ok(sidecars.length >= 3, `expected docker/**/Dockerfile sidecars, found ${sidecars}`);
+  for (const file of ["Dockerfile", "Dockerfile.bun", ...sidecars]) {
     // comments explain history ("why not npm@latest") — only instructions are judged
     const text = read(file)
       .split(/\r?\n/)
@@ -88,11 +101,13 @@ test("container images used by CI and compose are pinned by version and digest",
     "docker-compose.yml",
     "docker-compose.prod.yml",
     "contrib/vps/compose.yaml",
+    "docker/devin-bridge/compose.yml",
   ]) {
     const text = read(file);
     for (const m of text.matchAll(/^\s*image:\s*(\S+)/gm)) {
       const image = m[1];
-      if (image.startsWith("omniroute:") || image.startsWith("${")) continue; // locally built / operator-supplied
+      // locally built (omniroute:<tag>, omniroute-devin-bridge:local) / operator-supplied
+      if (/^omniroute(-[a-z-]+)?:/.test(image) || image.startsWith("${")) continue;
       assert.match(image, /@sha256:[0-9a-f]{64}$/, `${file}: ${image}`);
     }
   }

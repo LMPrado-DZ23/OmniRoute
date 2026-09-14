@@ -1,0 +1,169 @@
+name: Regression
+description: Something that worked in an earlier OmniRoute version is broken after upgrading
+title: "[Regression] "
+labels: ["bug", "regression"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form when behaviour changed for the worse **after an upgrade**. Knowing the last good version is the most useful piece of information.
+
+        > **Security issues must not be reported here.** Use the private security advisory link on the "New issue" page (see SECURITY.md).
+
+  - type: input
+    id: version
+    attributes:
+      label: Broken Version
+      description: "Run `omniroute --version` (from source: `node bin/omniroute.mjs --version`)."
+      placeholder: "e.g. 3.8.53"
+    validations:
+      required: true
+
+  - type: input
+    id: last-good-version
+    attributes:
+      label: Last Known Good Version
+      placeholder: "e.g. 3.8.52 (or a commit SHA / image digest)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: Installation Method
+      options:
+        - Docker / Docker Compose
+        - Electron desktop app
+        - Built from source
+        - npm (global)
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: upgrade-path
+    attributes:
+      label: How Did You Upgrade?
+      options:
+        - Pulled a newer Docker image
+        - Electron auto-update
+        - git pull / checkout + npm ci + build
+        - omniroute update
+        - Fresh install (no upgrade)
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: runtime
+    attributes:
+      label: Runtime
+      description: "`node --version` (or `bun --version`). For Docker, the image tag or digest."
+      placeholder: "e.g. Node 24.14.1"
+    validations:
+      required: true
+
+  - type: input
+    id: provider
+    attributes:
+      label: Provider(s) Involved
+      placeholder: "e.g. openrouter, or n/a"
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Model(s) Involved
+      placeholder: "e.g. a model ID from /v1/models, or n/a"
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: Command or Request
+      description: "The command, request or dashboard action that regressed. Replace keys with placeholders."
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. On version X, do '...' (works)
+        2. Upgrade to version Y
+        3. Do '...' again (fails)
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior (as in the last good version)
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+    validations:
+      required: true
+
+  - type: dropdown
+    id: startup-migration
+    attributes:
+      label: Did Startup Report a Migration Error?
+      description: "A failed database migration aborts startup and names a restore point (see docs/guides/MIGRATION_GUIDE.md)."
+      options:
+        - "No"
+        - "Yes"
+        - Unsure
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ### ⚠️ Redact before pasting logs
+        Remove **API keys, OAuth/refresh tokens, cookies, `Authorization` headers, passwords, account e-mails, and prompt/response content you do not want public**. Anything posted here is public.
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted Logs
+      description: "Startup output and relevant request logs from both versions if available, with secrets removed."
+      render: shell
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: redaction
+    attributes:
+      label: Redaction Confirmation
+      options:
+        - label: I removed keys, tokens, cookies and private prompt content from everything above.
+          required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: "CHANGELOG entry you suspect, config differences between versions, rollback result."
+    validations:
+      required: false

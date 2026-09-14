@@ -20,10 +20,11 @@ import {
   genUserMessage,
   type Message,
 } from "./liveGeminiShared.ts";
+import { liveSkipReason } from "../helpers/liveOptIn.ts";
 
 export { API_KEY, BASE_URL };
 
-export const skip = !API_KEY ? "OMNIROUTE_API_KEY not set — skipping live test" : undefined;
+export const skip = liveSkipReason({ requiredEnv: ["OMNIROUTE_API_KEY"] });
 
 export interface ComboModelTarget {
   model: string;

@@ -1,0 +1,16 @@
+{
+  "name": "omniroute-sdk",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Experimental, unpublished TypeScript client for the OmniRoute API. Zero runtime dependencies.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}

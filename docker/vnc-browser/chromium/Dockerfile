@@ -10,7 +10,11 @@
 #
 # Alpine/Debian package mirrors are unreachable from the build sandbox, so we
 # extend a prebuilt image rather than apt/apk-installing anything.
-FROM linuxserver/chromium:latest
+#
+# SC-8: base image pinned by tag AND digest (multi-arch index, resolved 2026-09-14).
+# The upstream tag is the moving `latest`; the digest freezes the image that tag
+# pointed at. Bump the digest deliberately; a tag alone can be re-pointed upstream.
+FROM linuxserver/chromium:latest@sha256:54a61718733c82ac041e7c84543283419b06ab0d6439eef5c20b1f6a53b8dcd0
 
 COPY cdp-bridge.py /usr/local/bin/cdp-bridge.py
 COPY svc-de-run /etc/s6-overlay/s6-rc.d/svc-de/run
