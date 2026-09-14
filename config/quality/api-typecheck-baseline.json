@@ -111,9 +111,6 @@
   "src/app/api/settings/reasoning-routing-rules/simulate/route.ts": {
     "TS2322": 1
   },
-  "src/app/api/system/env/repair/route.ts": {
-    "TS2353": 3
-  },
   "src/app/api/system/version/route.ts": {
     "TS2769": 1
   },
