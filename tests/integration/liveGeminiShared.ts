@@ -3,8 +3,10 @@
  *
  * Shared utilities for live Gemini workload tests (streaming + non-streaming).
  * Import from here to reuse payload generators without duplicating code.
+ * Live tests that import `skip` run only with RUN_LIVE_TESTS=1 and OMNIROUTE_API_KEY set.
  */
 import assert from "node:assert/strict";
+import { liveSkipReason } from "../helpers/liveOptIn.ts";
 
 export const API_KEY = process.env.OMNIROUTE_API_KEY;
 export const BASE_URL = process.env.OMNIROUTE_URL || "http://localhost:3000";
@@ -12,7 +14,7 @@ export const MODEL = "default";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 export const DELAY_BETWEEN_REQUESTS_MS = Number(process.env.TEST_DELAY_MS) || 5000;
 
-export const skip = !API_KEY ? "OMNIROUTE_API_KEY not set — skipping live test" : undefined;
+export const skip = liveSkipReason({ requiredEnv: ["OMNIROUTE_API_KEY"] });
 
 // --------------------------------------------------------------------------
 // Test Environment Setup — ensures gemini provider + "default" combo exist
