@@ -473,7 +473,7 @@ export default function Sidebar({
           <div className="flex min-w-0 flex-col">
             <span className="truncate text-sm font-medium">{item.label}</span>
             {item.subtitle && (
-              <span className="truncate text-[10px] text-text-muted/60">{item.subtitle}</span>
+              <span className="truncate text-[10px] text-text-muted">{item.subtitle}</span>
             )}
           </div>
         )}
@@ -623,7 +623,7 @@ export default function Sidebar({
           )}
         >
           {isSearching && displaySections.length === 0 && (
-            <p className="px-2 py-3 text-xs text-text-muted/60">{tc("noResults")}</p>
+            <p className="px-2 py-3 text-xs text-text-muted">{tc("noResults")}</p>
           )}
           {displaySections.map((section, idx) => {
             const sectionId = section.id as SidebarSectionId;
@@ -678,7 +678,7 @@ export default function Sidebar({
                             {!separatorHidden && (
                               <div className="flex items-center gap-1.5 px-2 py-0.5 mb-0.5">
                                 <div className="h-px flex-1 bg-black/8 dark:bg-white/8" />
-                                <span className="text-[8px] font-semibold text-text-muted/40 uppercase tracking-widest">
+                                <span className="text-[8px] font-semibold text-text-muted uppercase tracking-widest">
                                   {child.title}
                                 </span>
                               </div>
@@ -713,7 +713,7 @@ export default function Sidebar({
             aria-label={t("restart")}
             className={cn(
               "flex items-center justify-center gap-2 rounded-lg font-medium transition-all",
-              "text-amber-500 hover:bg-amber-500/10 border border-amber-500/20 hover:border-amber-500/40",
+              "text-amber-700 dark:text-amber-500 hover:bg-amber-500/10 border border-amber-500/20 hover:border-amber-500/40",
               collapsed ? "p-2" : "flex-1 min-w-0 px-2 py-1.5 text-xs"
             )}
           >
@@ -728,7 +728,7 @@ export default function Sidebar({
             aria-label={t("shutdown")}
             className={cn(
               "flex items-center justify-center gap-2 rounded-lg font-medium transition-all",
-              "text-red-500 hover:bg-red-500/10 border border-red-500/20 hover:border-red-500/40",
+              "text-red-700 dark:text-red-500 hover:bg-red-500/10 border border-red-500/20 hover:border-red-500/40",
               collapsed ? "p-2" : "flex-1 min-w-0 px-2 py-1.5 text-xs"
             )}
           >

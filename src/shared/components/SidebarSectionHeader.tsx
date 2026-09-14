@@ -33,7 +33,7 @@ export default function SidebarSectionHeader({
         aria-expanded={isExpanded}
         className="flex w-full cursor-pointer items-center gap-0.5 rounded-md px-2 py-1 text-left transition-colors hover:bg-surface/30"
       >
-        <span className="flex-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted/60 transition-colors group-hover/header:text-text-muted/90">
+        <span className="flex-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted transition-colors group-hover/header:text-text-main">
           {title}
         </span>
         <span className="w-3.5 shrink-0" aria-hidden="true" />
