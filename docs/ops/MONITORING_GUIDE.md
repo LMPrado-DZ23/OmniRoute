@@ -404,48 +404,136 @@ OmniRoute supports **3 alert channels**:
 
 > **Note:** Webhook alerting configuration is handled via the dashboard Settings page. See the Settings UI for webhook URL, event filtering, and payload customization.
 
-### Alert Types
+### Alert Events
 
-| Alert                        | When                             | Default severity |
-| ---------------------------- | -------------------------------- | ---------------- |
-| `provider_circuit_open`      | Circuit opens                    | critical         |
-| `provider_circuit_half_open` | Circuit testing recovery         | info             |
-| `quota_warning`              | Quota at 80%+                    | warning          |
-| `quota_exhausted`            | Quota at 100%                    | critical         |
-| `token_refresh_failed`       | 3+ consecutive refresh failures  | warning          |
-| `token_expired`              | Token past expiry                | critical         |
-| `combo_target_unhealthy`     | Combo target in cooldown for 1h+ | warning          |
-| `db_integrity_warning`       | FK violations > 0                | warning          |
-| `heap_pressure`              | Heap usage > 80% of threshold    | warning          |
+SLO and circuit alerts are webhook events (`src/lib/webhooks/eventDescriptions.ts`),
+evaluated every 60 s by `src/lib/monitoring/sloAlerts.ts` (unref'd timer, started at
+boot unless background services are disabled). Only **state changes** are sent:
+
+| Event                   | Sent when                                                        | Payload fields                                                                          |
+| ----------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `slo.breached`          | An SLO objective moves into `breached`                           | `objective`, `value`, `threshold`, `comparison`, `windowMinutes`, `samples`, `provider` |
+| `slo.recovered`         | A breached objective is back to `ok`                             | same as `slo.breached`                                                                  |
+| `provider.circuit_open` | A provider circuit breaker is newly `OPEN` (once per open cycle) | `provider`, `failureCount`, `retryAfterMs`                                              |
+
+An objective with fewer samples than `minSamples` is `insufficient_data` and keeps its
+previous alert state (no flapping on low traffic). Payloads never contain prompts,
+responses, API keys, connection ids or account ids. Subscribe a webhook to these events
+(or `*`) in the dashboard; set `slo.alertsEnabled = false` to stop evaluation.
 
 ---
 
 ## Performance Metrics
 
-### Tracked Metrics
+### `GET /api/metrics`
 
-| Metric                  | Type      | Source                          |
-| ----------------------- | --------- | ------------------------------- |
-| `request_count`         | counter   | `services/usage.ts`             |
-| `request_latency_ms`    | histogram | `services/usage.ts`             |
-| `tokens_consumed`       | counter   | `services/usage.ts`             |
-| `cost_usd`              | counter   | `services/usage.ts`             |
-| `provider_errors`       | counter   | `services/errorClassifier.ts`   |
-| `circuit_state_changes` | counter   | `services/resilience.ts`        |
-| `cache_hits`            | counter   | `services/signatureCache.ts`    |
-| `compression_savings`   | histogram | `services/compression/stats.ts` |
-| `quota_used`            | gauge     | `services/quotaMonitor.ts`      |
-| `memory_used_mb`        | gauge     | `observability.ts`              |
+`src/app/api/metrics/route.ts` serves in-process routing metrics:
 
-### Latency Percentiles (p50/p95/p99)
+- default: Prometheus text exposition format 0.0.4 (`text/plain; version=0.0.4`)
+- `?format=json`: JSON summary — lifetime `totals`, the SLO `window` (p50/p95/p99), the
+  `slo` report, `circuitBreakers` and `quotaMonitor`
 
-> **No REST endpoint.** Latency percentile data is available via the dashboard `/dashboard/health` page. Prometheus/OpenTelemetry export is planned for v3.9.
+Always requires management auth (dashboard session, or a `manage`-scoped API key as
+`Authorization: Bearer …`), even when `requireLogin` is off — the route is listed in
+`ALWAYS_PROTECTED_API_PATHS` (`src/server/authz/routeGuard.ts`). Counters live in
+memory and reset on restart; use Prometheus `rate()` / `increase()`.
 
-### Prometheus / OpenTelemetry Export (Phase 2)
+```yaml
+# prometheus.yml
+scrape_configs:
+  - job_name: omniroute
+    metrics_path: /api/metrics
+    scheme: http
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/omniroute_manage_key
+    static_configs:
+      - targets: ["omniroute:20128"]
+```
 
-Planned for v3.9: native export to Prometheus, OpenTelemetry, Datadog.
+### Metric Reference
 
-For now, scrape `/api/monitoring/health` with any HTTP-based monitoring system (Prometheus blackbox exporter, Datadog HTTP check, etc.).
+Sources: `open-sse/services/routing/metricsSink.ts` (fed by every routing event, by
+`recordComboRequest` in `open-sse/services/comboMetrics.ts`, and by
+`insertCompressionAnalyticsRow` in `src/lib/db/compressionAnalytics.ts`) and
+`src/lib/monitoring/metricsExposition.ts` (scrape-time gauges).
+
+| Metric                                            | Type      | Labels                  | Meaning                                                                                               |
+| ------------------------------------------------- | --------- | ----------------------- | ----------------------------------------------------------------------------------------------------- |
+| `omniroute_requests_total`                        | counter   | `provider`, `outcome`   | Upstream attempts by outcome — total / success / failed / rate limits / timeouts / errors by provider |
+| `omniroute_model_requests_total`                  | counter   | `model`, `outcome`      | Same, by model (errors by model)                                                                      |
+| `omniroute_requests_by_status_class_total`        | counter   | `status_class`          | `1xx`…`5xx` or `none`                                                                                 |
+| `omniroute_strategy_requests_total`               | counter   | `strategy`, `outcome`   | `direct` or combo strategy                                                                            |
+| `omniroute_request_latency_ms`                    | histogram | `provider`              | End-to-end latency (buckets 50 ms … 300 s)                                                            |
+| `omniroute_ttft_ms`                               | histogram | `provider`              | Time to first forwarded stream chunk (streaming only)                                                 |
+| `omniroute_tokens_total`                          | counter   | `provider`, `direction` | Input / output tokens reported by upstream usage                                                      |
+| `omniroute_estimated_cost_usd_total`              | counter   | `provider`              | Estimated cost (non-streaming successes carry an estimate)                                            |
+| `omniroute_upstream_attempts_total`               | counter   | `provider`              | One per routing event                                                                                 |
+| `omniroute_upstream_retries_total`                | counter   | `provider`              | Retries reported on routing events                                                                    |
+| `omniroute_combo_requests_total`                  | counter   | `strategy`, `outcome`   | Combo requests, final outcome `success` / `failure`                                                   |
+| `omniroute_combo_fallbacks_total`                 | counter   | `strategy`              | Fallbacks to a later combo target                                                                     |
+| `omniroute_combo_failover_requests_total`         | counter   | `strategy`, `outcome`   | Combo requests that needed ≥ 1 fallback (success after failover)                                      |
+| `omniroute_compression_applied_total`             | counter   | `engine`                | Compression runs that recorded a result                                                               |
+| `omniroute_compression_tokens_saved_total`        | counter   | `engine`                | Estimated tokens saved                                                                                |
+| `omniroute_compression_estimated_usd_saved_total` | counter   | `engine`                | Estimated USD saved                                                                                   |
+| `omniroute_circuit_breakers`                      | gauge     | `state`                 | Breakers by `CLOSED` / `DEGRADED` / `OPEN` / `HALF_OPEN`                                              |
+| `omniroute_circuit_breaker_open`                  | gauge     | `provider`              | 1 per provider whose breaker is `OPEN`                                                                |
+| `omniroute_quota_monitors`                        | gauge     | `status`                | Active quota monitors by status                                                                       |
+| `omniroute_slo_objective_value`                   | gauge     | `objective`             | Current value (ratio or ms) over the SLO window                                                       |
+| `omniroute_slo_objective_threshold`               | gauge     | `objective`             | Configured threshold                                                                                  |
+| `omniroute_slo_objective_breached`                | gauge     | `objective`             | 1 when breached                                                                                       |
+| `omniroute_process_uptime_seconds`                | gauge     | —                       | Process uptime                                                                                        |
+
+`outcome` is one of `success`, `error`, `malformed`, `timeout`, `rate_limited`,
+`stream_interrupted`, `guardrail_blocked`, `cancelled`. Latency p50/p95/p99 over the SLO
+window are in the JSON `window` block; in PromQL use
+`histogram_quantile(0.95, sum by (le) (rate(omniroute_request_latency_ms_bucket[5m])))`.
+
+### Label Policy
+
+Enforced by `open-sse/services/routing/metricLabels.ts`:
+
+- Allowed label names only: `provider`, `model`, `strategy`, `outcome`, `status_class`,
+  `direction`, `engine`, `state`, `status`, `objective` (plus `le` on histogram buckets).
+- Bounded values: first 64 providers, 100 models, 16 strategies, 16 engines are kept;
+  later distinct values collapse into `other`. Each family is additionally capped at
+  2000 series. Combo names, connection ids, request ids and finish reasons are never labels.
+- Values are restricted to `[A-Za-z0-9._:/-]`, truncated to 80 chars, and replaced by
+  `redacted` when they look like a credential (API-key prefixes such as `sk-`, `ghp_`),
+  an opaque token (32+ alphanumerics), an e-mail address or a UUID.
+- The routing quality tracker (`open-sse/services/routing/quality.ts`) keeps at most
+  2000 provider/model pairs (least recently updated evicted).
+
+### SLO Settings
+
+Stored under the `slo` settings key (`PATCH /api/settings` with `{ "slo": { … } }`),
+validated by `sloSettingsSchema` (`src/shared/validation/schemas/slo.ts`) and resolved with
+defaults by `src/lib/monitoring/sloSettings.ts`. Evaluated by
+`src/lib/monitoring/sloEvaluator.ts`.
+
+| Key                      | Default  | Range           | Objective / meaning                                                                            |
+| ------------------------ | -------- | --------------- | ---------------------------------------------------------------------------------------------- |
+| `alertsEnabled`          | `true`   | boolean         | Emit the alert webhook events above                                                            |
+| `availabilityTarget`     | `0.99`   | 0.5 – 1         | `availability` = success / (success + failed) ≥ target                                         |
+| `errorRateMax`           | `0.05`   | 0 – 1           | `error_rate` = (error + malformed + stream_interrupted) / (success + failed) ≤ max             |
+| `latencyP95Ms`           | `30000`  | 1 – 3600000     | `latency_p95` ≤ value                                                                          |
+| `latencyP99Ms`           | `60000`  | 1 – 3600000     | `latency_p99` ≤ value                                                                          |
+| `ttftP95Ms`              | `5000`   | 1 – 3600000     | `ttft_p95` ≤ value (streaming requests)                                                        |
+| `failoverSuccessRateMin` | `0.8`    | 0 – 1           | `failover_success_rate` = combo requests that needed a fallback and succeeded ≥ min            |
+| `providerRecoveryMaxMs`  | `300000` | 1000 – 86400000 | `provider_recovery` = worst circuit OPEN→CLOSED time in the window (ongoing opens count) ≤ max |
+| `windowMinutes`          | `15`     | 1 – 60          | Sliding evaluation window                                                                      |
+| `minSamples`             | `20`     | 1 – 1000000     | Below this an objective is `insufficient_data` (provider recovery needs 1 episode)             |
+
+`failed` excludes `cancelled` and `guardrail_blocked` (client or policy decisions).
+Rate limits and timeouts count against availability but not against `error_rate`.
+
+`GET /api/telemetry/summary` `errorRate` (percent) uses the same definition —
+failed / (success + failed) routed requests in the requested window (clamped to 1–60 min).
+
+### OpenTelemetry Traces
+
+Routing events can also be exported as OTLP/HTTP spans (`open-sse/services/routing/otel.ts`)
+when `OMNIROUTE_OTEL_ENDPOINT` or `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
 
 ---
 
