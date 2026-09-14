@@ -25,12 +25,41 @@ curl https://localhost:20128/api/v1/models \
   -H "Authorization: Bearer $OMNIROUTE_TOKEN"
 ```
 
+### HEAD /api/v1/models
+
+HEAD models
+
+```bash
+curl -X HEAD https://localhost:20128/api/v1/models \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN"
+```
+
 ### GET /api/models
 
 List models (management)
 
 ```bash
 curl https://localhost:20128/api/models \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN"
+```
+
+### PUT /api/models
+
+PUT models
+
+```bash
+curl -X PUT https://localhost:20128/api/models \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+### GET /api/models/alias
+
+GET models › alias
+
+```bash
+curl https://localhost:20128/api/models/alias \
   -H "Authorization: Bearer $OMNIROUTE_TOKEN"
 ```
 
@@ -43,6 +72,26 @@ curl -X POST https://localhost:20128/api/models/alias \
   -H "Authorization: Bearer $OMNIROUTE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{}'
+```
+
+### PUT /api/models/alias
+
+PUT models › alias
+
+```bash
+curl -X PUT https://localhost:20128/api/models/alias \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+### DELETE /api/models/alias
+
+DELETE models › alias
+
+```bash
+curl -X DELETE https://localhost:20128/api/models/alias \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN"
 ```
 
 ### GET /api/models/catalog
@@ -91,6 +140,15 @@ GET models › <model>
 
 ```bash
 curl https://localhost:20128/api/v1/models/{model} \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN"
+```
+
+### HEAD /api/v1/models/{model}
+
+HEAD models › <model>
+
+```bash
+curl -X HEAD https://localhost:20128/api/v1/models/{model} \
   -H "Authorization: Bearer $OMNIROUTE_TOKEN"
 ```
 

@@ -34,6 +34,26 @@ curl -X POST https://localhost:20128/api/providers \
   -d '{}'
 ```
 
+### PATCH /api/providers
+
+PATCH providers
+
+```bash
+curl -X PATCH https://localhost:20128/api/providers \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+### DELETE /api/providers
+
+DELETE providers
+
+```bash
+curl -X DELETE https://localhost:20128/api/providers \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN"
+```
+
 ### GET /api/providers/{id}
 
 Get provider connection
@@ -41,6 +61,17 @@ Get provider connection
 ```bash
 curl https://localhost:20128/api/providers/{id} \
   -H "Authorization: Bearer $OMNIROUTE_TOKEN"
+```
+
+### PUT /api/providers/{id}
+
+PUT providers › <id>
+
+```bash
+curl -X PUT https://localhost:20128/api/providers/{id} \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}'
 ```
 
 ### PATCH /api/providers/{id}
@@ -189,6 +220,17 @@ curl -X POST https://localhost:20128/api/provider-nodes \
   -d '{}'
 ```
 
+### PUT /api/provider-nodes/{id}
+
+PUT provider nodes › <id>
+
+```bash
+curl -X PUT https://localhost:20128/api/provider-nodes/{id} \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
 ### PATCH /api/provider-nodes/{id}
 
 Update provider node
@@ -226,6 +268,48 @@ List provider models
 
 ```bash
 curl https://localhost:20128/api/provider-models \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN"
+```
+
+### POST /api/provider-models
+
+POST provider models
+
+```bash
+curl -X POST https://localhost:20128/api/provider-models \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+### PUT /api/provider-models
+
+PUT provider models
+
+```bash
+curl -X PUT https://localhost:20128/api/provider-models \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+### PATCH /api/provider-models
+
+PATCH provider models
+
+```bash
+curl -X PATCH https://localhost:20128/api/provider-models \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+### DELETE /api/provider-models
+
+DELETE provider models
+
+```bash
+curl -X DELETE https://localhost:20128/api/provider-models \
   -H "Authorization: Bearer $OMNIROUTE_TOKEN"
 ```
 

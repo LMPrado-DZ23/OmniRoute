@@ -119,6 +119,17 @@ curl https://localhost:20128/api/settings \
   -H "Authorization: Bearer $OMNIROUTE_TOKEN"
 ```
 
+### PUT /api/settings
+
+PUT settings
+
+```bash
+curl -X PUT https://localhost:20128/api/settings \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
 ### PATCH /api/settings
 
 Update settings
@@ -226,6 +237,17 @@ curl https://localhost:20128/api/settings/combo-defaults \
   -H "Authorization: Bearer $OMNIROUTE_TOKEN"
 ```
 
+### PATCH /api/settings/combo-defaults
+
+PATCH settings › combo defaults
+
+```bash
+curl -X PATCH https://localhost:20128/api/settings/combo-defaults \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
 ### GET /api/settings/proxy
 
 Get proxy settings
@@ -233,6 +255,17 @@ Get proxy settings
 ```bash
 curl https://localhost:20128/api/settings/proxy \
   -H "Authorization: Bearer $OMNIROUTE_TOKEN"
+```
+
+### PUT /api/settings/proxy
+
+PUT settings › proxy
+
+```bash
+curl -X PUT https://localhost:20128/api/settings/proxy \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}'
 ```
 
 ### PATCH /api/settings/proxy
@@ -246,6 +279,15 @@ curl -X PATCH https://localhost:20128/api/settings/proxy \
   -d '{}'
 ```
 
+### DELETE /api/settings/proxy
+
+DELETE settings › proxy
+
+```bash
+curl -X DELETE https://localhost:20128/api/settings/proxy \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN"
+```
+
 ### POST /api/settings/proxy/test
 
 Test proxy connection
@@ -255,6 +297,15 @@ curl -X POST https://localhost:20128/api/settings/proxy/test \
   -H "Authorization: Bearer $OMNIROUTE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{}'
+```
+
+### GET /api/settings/require-login
+
+GET settings › require login
+
+```bash
+curl https://localhost:20128/api/settings/require-login \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN"
 ```
 
 ### POST /api/settings/require-login
