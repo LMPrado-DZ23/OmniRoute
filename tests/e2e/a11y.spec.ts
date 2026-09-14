@@ -1,126 +1,177 @@
 /**
  * tests/e2e/a11y.spec.ts
  *
- * Accessibility gate using @axe-core/playwright (Task 13 — Fase 7).
+ * Accessibility gate using @axe-core/playwright (Task 13 — Fase 7, hardened in Fase 9).
  *
- * NIGHTLY advisory: this suite is scheduled in the NIGHTLY CI job, not in the
- * per-PR job, because axe analysis adds ~10–20 s per page and the results are
- * frozen baselines (see approach below).
+ * NIGHTLY: this suite is scheduled in the NIGHTLY CI job, not in the per-PR job,
+ * because axe analysis adds ~10–20 s per page × width (see REQUIRE_AXE below).
  *
- * Approach — freeze-and-alert (not fail-on-first-violation):
- *   1. Run axe on each key page.
- *   2. Count `violations.length` per page.
- *   3. Assert the count has NOT increased since the frozen baseline.
- *   4. Report violations in the test output so they are visible in CI logs.
+ * Two assertions per audited page:
+ *   1. ZERO `critical` or `serious` violations at every responsive width in
+ *      A11Y_WIDTHS (768 / 900 / 1024 / 1280 / 1440). A single blocking violation fails.
+ *   2. Ratchet on the TOTAL violation count (any impact) at the 1280px desktop
+ *      viewport: the count may never exceed VIOLATION_BASELINES. Lower the baseline
+ *      whenever a violation is fixed; never raise it.
  *
- * This means:
- *   - Existing violations are GRANDFATHERED (baseline frozen).
- *   - A new violation (count grows) FAILS the gate — catraca `down`.
- *   - Fixing a violation (count drops) passes + you can lower the baseline.
+ * Violations are fixed at the source, never silenced with `disableRules`.
  *
  * Graceful degradation:
- *   - If @axe-core/playwright is not installed the entire suite is skipped
- *     with a clear message instead of crashing the job.
- *   - The frozen baselines below are ADVISORY defaults (0). On the first real
- *     run update them to the actual counts (grep "axeViolationCount" in CI logs).
+ *   - If @axe-core/playwright is not installed the suite is skipped with a clear
+ *     message instead of crashing the job (the meta-test fails when REQUIRE_AXE=1).
  *
- * Pages audited (key dashboard surfaces):
+ * Pages audited:
+ *   /login                — public auth gate
  *   /dashboard            — main overview
  *   /dashboard/providers  — provider management (most complex UI surface)
- *   /login                — public auth gate (a11y critical for users)
- *   /dashboard/settings   — settings (redirects to /dashboard/settings/general)
+ *   /dashboard/settings   — settings (ratchet only, default viewport)
  *
- * Run locally (requires the app running on localhost:20128):
- *   npx playwright test tests/e2e/a11y.spec.ts --headed
+ * Run locally (requires the app running on the Playwright baseURL):
+ *   REQUIRE_AXE=1 npx playwright test tests/e2e/a11y.spec.ts
  */
 
 import { test, expect, type Page } from "@playwright/test";
+// Type-only: erased at runtime, so the graceful skip below still works without the package.
+import type AxeBuilderClass from "@axe-core/playwright";
 import { gotoDashboardRoute } from "./helpers/dashboardAuth";
+import { VIEWPORTS } from "./responsiveSpecs";
 
 // ---------------------------------------------------------------------------
 // Conditional import — skip entire suite if @axe-core/playwright is absent.
 // ---------------------------------------------------------------------------
 
-let AxeBuilder: (new (args: { page: Page }) => {
-  analyze(): Promise<{ violations: Array<{ id: string; description: string; impact: string | null; nodes: unknown[] }> }>;
-  withTags(tags: string[]): unknown;
-  exclude(selector: string): unknown;
-  disableRules(rules: string[]): unknown;
-}) | null = null;
+type AxeResults = Awaited<ReturnType<AxeBuilderClass["analyze"]>>;
+type AxeViolation = AxeResults["violations"][number];
+
+let AxeBuilder: typeof AxeBuilderClass | null = null;
 
 try {
   // Dynamic import so the module parse does not fail when the package is absent.
   const mod = await import("@axe-core/playwright");
-  AxeBuilder = mod.default ?? (mod as unknown as { AxeBuilder: typeof AxeBuilder }).AxeBuilder ?? null;
+  AxeBuilder = mod.default ?? null;
 } catch {
   // Package not installed — suite will skip gracefully below.
   AxeBuilder = null;
 }
 
 // ---------------------------------------------------------------------------
-// Frozen violation baselines.
-//
-// Update these after the first real run by reading the "axeViolationCount"
-// lines from the CI log and setting each value to the actual count.
-// Format: { [pageLabel]: maxAllowedViolations }
+// Frozen total-violation baselines (any impact) at the 1280px desktop viewport.
+// Values can only go DOWN. Critical/serious are asserted to be zero separately.
 // ---------------------------------------------------------------------------
 
-// Frozen from the first real nightly measurement (run 27852779527, REQUIRE_AXE=1,
-// wcag2a/2aa/21a/21aa). Each value is the actual `axeViolationCount` for that page —
-// existing violations are grandfathered; a NEW violation (count grows) fails the gate.
-// Lower a value (and re-run) whenever a violation is fixed.
+// Phase 9 (2026-09-14): /login, /dashboard and /dashboard/providers measured 0 violations
+// of any impact at 375/768/900/1024/1280/1440px (were 1 / 4 / 3). /dashboard/settings was
+// not re-measured in that run and keeps its previous frozen value.
 const VIOLATION_BASELINES: Record<string, number> = {
-  "/login": 1,
-  "/dashboard": 4,
-  "/dashboard/providers": 3,
+  "/login": 0,
+  "/dashboard": 0,
+  "/dashboard/providers": 0,
   "/dashboard/settings": 5,
 };
+
+const BLOCKING_IMPACTS = new Set(["critical", "serious"]);
+const RATCHET_WIDTH = VIEWPORTS.desktop.width;
+const A11Y_VIEWPORTS = [
+  VIEWPORTS.tablet,
+  VIEWPORTS.smallLaptop,
+  VIEWPORTS.laptop,
+  VIEWPORTS.desktop,
+  VIEWPORTS.wide,
+];
+// Each width reloads the page and runs a full axe pass.
+const WIDTH_SWEEP_TIMEOUT_MS = 600_000;
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-type AxeViolation = {
-  id: string;
-  description: string;
-  impact: string | null;
-  nodes: unknown[];
-};
+function skipUnlessAxeRequired() {
+  // Nightly-only: the real axe analysis runs in the nightly job (REQUIRE_AXE=1), NOT in
+  // the per-PR e2e shards — a11y.spec.ts is matched by the per-PR `tests/e2e/*.spec.ts`
+  // glob, so without this gate installing the package would flip axe on for every PR.
+  test.skip(
+    !AxeBuilder || process.env.REQUIRE_AXE !== "1",
+    AxeBuilder
+      ? "axe analysis runs in the nightly job only (set REQUIRE_AXE=1)"
+      : "@axe-core/playwright not installed"
+  );
+}
 
-async function runAxe(
-  page: Page,
-  label: string
-): Promise<AxeViolation[]> {
+async function runAxe(page: Page, label: string): Promise<AxeViolation[]> {
   if (!AxeBuilder) {
     throw new Error("@axe-core/playwright not available");
   }
-  const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-    // Exclude third-party iframes / injected widgets that we don't control.
-    .exclude("[data-axe-exclude]")
-    .analyze();
+  const builder = new AxeBuilder({ page });
+  builder.withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]);
+  // Exclude third-party iframes / injected widgets that we don't control.
+  builder.exclude("[data-axe-exclude]");
+  const results = await builder.analyze();
 
   // Emit machine-parseable line for CI baseline tracking.
   console.log(`axeViolationCount page=${label} count=${results.violations.length}`);
-
   if (results.violations.length > 0) {
     const summary = results.violations
-      .map((v) => `  [${v.impact ?? "unknown"}] ${v.id}: ${v.description} (${(v.nodes as unknown[]).length} nodes)`)
+      .map(
+        (v) => `  [${v.impact ?? "unknown"}] ${v.id}: ${v.description} (${v.nodes.length} nodes)`
+      )
       .join("\n");
     console.log(`axeViolations page=${label}:\n${summary}`);
   }
-
   return results.violations;
+}
+
+function describeBlocking(violations: AxeViolation[]): string[] {
+  return violations
+    .filter((v) => BLOCKING_IMPACTS.has(v.impact ?? ""))
+    .map((v) => {
+      const targets = v.nodes
+        .slice(0, 3)
+        .map((node) => JSON.stringify(node.target))
+        .join(", ");
+      return `[${v.impact}] ${v.id} (${v.nodes.length} nodes: ${targets})`;
+    });
+}
+
+async function openPage(page: Page, path: string) {
+  if (path === "/login") {
+    await page.goto(path);
+    await page.locator('input[type="password"]').first().waitFor({ state: "visible" });
+    return;
+  }
+  await gotoDashboardRoute(page, path);
+  await page.locator("main, #main-content").first().waitFor({ state: "visible" });
+}
+
+/**
+ * Audits `path` at every responsive width: zero critical/serious violations at each
+ * width, and the total count at the desktop width may not exceed the frozen baseline.
+ */
+async function auditAcrossWidths(page: Page, path: string) {
+  const blockingByWidth: string[] = [];
+  let ratchetCount: number | null = null;
+
+  for (const viewport of A11Y_VIEWPORTS) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await openPage(page, path);
+    const violations = await runAxe(page, `${path}@${viewport.width}`);
+    for (const line of describeBlocking(violations)) {
+      blockingByWidth.push(`${viewport.width}px ${line}`);
+    }
+    if (viewport.width === RATCHET_WIDTH) ratchetCount = violations.length;
+  }
+
+  expect(blockingByWidth, `Critical/serious a11y violations on ${path}`).toEqual([]);
+  const baseline = VIOLATION_BASELINES[path] ?? 0;
+  expect(ratchetCount, `axe did not run at ${RATCHET_WIDTH}px on ${path}`).not.toBeNull();
+  expect(ratchetCount ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(baseline);
 }
 
 // ---------------------------------------------------------------------------
 // Test suite
 // ---------------------------------------------------------------------------
 
-test.describe("A11y — Dashboard key surfaces (@axe-core, nightly advisory)", () => {
+test.describe("A11y — Dashboard key surfaces (@axe-core, nightly)", () => {
   test.beforeAll(() => {
     if (!AxeBuilder) {
-      // Log once; individual tests will call test.skip().
       console.log(
         "[a11y.spec.ts] SKIP: @axe-core/playwright is not installed.\n" +
           "Install with: npm install --save-dev @axe-core/playwright"
@@ -128,119 +179,18 @@ test.describe("A11y — Dashboard key surfaces (@axe-core, nightly advisory)", (
     }
   });
 
-  // -------------------------------------------------------------------------
-  // /login — public auth gate
-  // -------------------------------------------------------------------------
-  test("/login — axe wcag2a/wcag2aa violations must not exceed baseline", async ({ page }) => {
-    if (!AxeBuilder || process.env.REQUIRE_AXE !== "1") {
-      // Nightly-only: the real axe analysis (~10–20 s/page) runs in the nightly job
-      // (REQUIRE_AXE=1), NOT in the per-PR e2e shards — a11y.spec.ts is matched by the
-      // per-PR `tests/e2e/*.spec.ts` glob, so without this gate installing the package
-      // would silently flip axe on for every PR (and fail at baseline 0).
-      test.skip(
-        true,
-        AxeBuilder
-          ? "axe analysis runs in the nightly job only (set REQUIRE_AXE=1)"
-          : "@axe-core/playwright not installed"
-      );
-      return;
-    }
+  for (const path of ["/login", "/dashboard", "/dashboard/providers"]) {
+    test(`${path} — zero critical/serious violations at 768–1440px and total within baseline`, async ({
+      page,
+    }) => {
+      skipUnlessAxeRequired();
+      test.setTimeout(WIDTH_SWEEP_TIMEOUT_MS);
+      await auditAcrossWidths(page, path);
+    });
+  }
 
-    await page.goto("/login");
-    await page.locator("body").waitFor({ state: "visible" });
-
-    const violations = await runAxe(page, "/login");
-    const baseline = VIOLATION_BASELINES["/login"] ?? 0;
-
-    expect(violations.length).toBeLessThanOrEqual(
-      baseline,
-      `New a11y violations introduced on /login. ` +
-        `Expected ≤${baseline}, got ${violations.length}. ` +
-        `Run axe locally and update VIOLATION_BASELINES["/login"] if the new count is intentional.`
-    );
-  });
-
-  // -------------------------------------------------------------------------
-  // /dashboard — main overview
-  // -------------------------------------------------------------------------
-  test("/dashboard — axe wcag2a/wcag2aa violations must not exceed baseline", async ({ page }) => {
-    if (!AxeBuilder || process.env.REQUIRE_AXE !== "1") {
-      // Nightly-only: the real axe analysis (~10–20 s/page) runs in the nightly job
-      // (REQUIRE_AXE=1), NOT in the per-PR e2e shards — a11y.spec.ts is matched by the
-      // per-PR `tests/e2e/*.spec.ts` glob, so without this gate installing the package
-      // would silently flip axe on for every PR (and fail at baseline 0).
-      test.skip(
-        true,
-        AxeBuilder
-          ? "axe analysis runs in the nightly job only (set REQUIRE_AXE=1)"
-          : "@axe-core/playwright not installed"
-      );
-      return;
-    }
-
-    await gotoDashboardRoute(page, "/dashboard");
-
-    const violations = await runAxe(page, "/dashboard");
-    const baseline = VIOLATION_BASELINES["/dashboard"] ?? 0;
-
-    expect(violations.length).toBeLessThanOrEqual(
-      baseline,
-      `New a11y violations introduced on /dashboard. ` +
-        `Expected ≤${baseline}, got ${violations.length}.`
-    );
-  });
-
-  // -------------------------------------------------------------------------
-  // /dashboard/providers — provider management (most complex UI surface)
-  // -------------------------------------------------------------------------
-  test("/dashboard/providers — axe wcag2a/wcag2aa violations must not exceed baseline", async ({
-    page,
-  }) => {
-    if (!AxeBuilder || process.env.REQUIRE_AXE !== "1") {
-      // Nightly-only: the real axe analysis (~10–20 s/page) runs in the nightly job
-      // (REQUIRE_AXE=1), NOT in the per-PR e2e shards — a11y.spec.ts is matched by the
-      // per-PR `tests/e2e/*.spec.ts` glob, so without this gate installing the package
-      // would silently flip axe on for every PR (and fail at baseline 0).
-      test.skip(
-        true,
-        AxeBuilder
-          ? "axe analysis runs in the nightly job only (set REQUIRE_AXE=1)"
-          : "@axe-core/playwright not installed"
-      );
-      return;
-    }
-
-    await gotoDashboardRoute(page, "/dashboard/providers");
-
-    const violations = await runAxe(page, "/dashboard/providers");
-    const baseline = VIOLATION_BASELINES["/dashboard/providers"] ?? 0;
-
-    expect(violations.length).toBeLessThanOrEqual(
-      baseline,
-      `New a11y violations introduced on /dashboard/providers. ` +
-        `Expected ≤${baseline}, got ${violations.length}.`
-    );
-  });
-
-  // -------------------------------------------------------------------------
-  // /dashboard/settings — settings area
-  // -------------------------------------------------------------------------
-  test("/dashboard/settings — axe wcag2a/wcag2aa violations must not exceed baseline", async ({
-    page,
-  }) => {
-    if (!AxeBuilder || process.env.REQUIRE_AXE !== "1") {
-      // Nightly-only: the real axe analysis (~10–20 s/page) runs in the nightly job
-      // (REQUIRE_AXE=1), NOT in the per-PR e2e shards — a11y.spec.ts is matched by the
-      // per-PR `tests/e2e/*.spec.ts` glob, so without this gate installing the package
-      // would silently flip axe on for every PR (and fail at baseline 0).
-      test.skip(
-        true,
-        AxeBuilder
-          ? "axe analysis runs in the nightly job only (set REQUIRE_AXE=1)"
-          : "@axe-core/playwright not installed"
-      );
-      return;
-    }
+  test("/dashboard/settings — axe violations must not exceed baseline", async ({ page }) => {
+    skipUnlessAxeRequired();
 
     // The settings route redirects to /dashboard/settings/general; follow it.
     await gotoDashboardRoute(page, "/dashboard/settings");
@@ -248,11 +198,7 @@ test.describe("A11y — Dashboard key surfaces (@axe-core, nightly advisory)", (
     const violations = await runAxe(page, "/dashboard/settings");
     const baseline = VIOLATION_BASELINES["/dashboard/settings"] ?? 0;
 
-    expect(violations.length).toBeLessThanOrEqual(
-      baseline,
-      `New a11y violations introduced on /dashboard/settings. ` +
-        `Expected ≤${baseline}, got ${violations.length}.`
-    );
+    expect(violations.length).toBeLessThanOrEqual(baseline);
   });
 
   // -------------------------------------------------------------------------
@@ -262,20 +208,15 @@ test.describe("A11y — Dashboard key surfaces (@axe-core, nightly advisory)", (
   // -------------------------------------------------------------------------
   test("axe package availability is declared (meta-test)", async () => {
     if (AxeBuilder !== null) {
-      // Package is present — nothing to check.
       expect(AxeBuilder).toBeTruthy();
-    } else {
-      // Package absent — this is acceptable in PR CI; fatal in the NIGHTLY job.
-      // In the nightly job, set REQUIRE_AXE=1 and the check below will fail.
-      const requireAxe = process.env.REQUIRE_AXE === "1";
-      if (requireAxe) {
-        throw new Error(
-          "REQUIRE_AXE=1 but @axe-core/playwright is not installed. " +
-            "Add it as a devDependency and run npm install."
-        );
-      }
-      // Advisory skip in PR context.
-      test.skip(true, "@axe-core/playwright not installed — advisory skip in PR context");
+      return;
     }
+    if (process.env.REQUIRE_AXE === "1") {
+      throw new Error(
+        "REQUIRE_AXE=1 but @axe-core/playwright is not installed. " +
+          "Add it as a devDependency and run npm install."
+      );
+    }
+    test.skip(true, "@axe-core/playwright not installed — advisory skip in PR context");
   });
 });
