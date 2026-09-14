@@ -20,7 +20,7 @@ import type { AuthSubject } from "./types";
  * service principals (model sync, WS bridge, inspector ingest, internal service token) have
  * no management role: `null`.
  */
-export type ManagementRole = "owner" | "admin" | "operator" | "viewer";
+type ManagementRole = "owner" | "admin" | "operator" | "viewer";
 
 const ACCESS_SCOPE_ROLE: Readonly<Record<AccessScope, ManagementRole>> = {
   admin: "admin",
