@@ -27,6 +27,17 @@ export class SelfHealingManager {
   private incidentMode = false;
 
   /**
+   * Independent copy of the current state. A route preview evaluates candidates against the copy,
+   * so it sees the same exclusions as live traffic without adding or clearing any.
+   */
+  clone(): SelfHealingManager {
+    const copy = new SelfHealingManager();
+    for (const [provider, entry] of this.exclusions) copy.exclusions.set(provider, { ...entry });
+    copy.incidentMode = this.incidentMode;
+    return copy;
+  }
+
+  /**
    * Check if a provider is currently excluded.
    */
   isExcluded(provider: string): boolean {

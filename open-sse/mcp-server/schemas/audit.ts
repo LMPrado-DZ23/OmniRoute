@@ -8,6 +8,8 @@
  * of input and truncated output summaries are persisted.
  */
 
+import type { RoutingFactor } from "@/shared/contracts/routing";
+
 // ============ MCP Audit Entry ============
 
 export interface McpAuditEntry {
@@ -85,16 +87,7 @@ export interface RoutingDecisionLog {
   source: "api" | "mcp" | "a2a";
 }
 
-export interface RoutingFactor {
-  /** Factor name (quota, health, cost, latency, task_fit, stability) */
-  name: string;
-  /** Raw factor value [0..1] */
-  value: number;
-  /** Weight applied to this factor */
-  weight: number;
-  /** Weighted contribution (value × weight) */
-  contribution: number;
-}
+export type { RoutingFactor };
 
 // ============ Audit Helpers ============
 
