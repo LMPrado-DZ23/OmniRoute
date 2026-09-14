@@ -23,6 +23,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { redirectHome } from "../../helpers/tempHome.ts";
 import Database from "better-sqlite3";
 
 const { getOmpCredentials, saveOmpCredentials, deleteOmpCredentials } =
@@ -31,7 +32,7 @@ const { getOmpCredentials, saveOmpCredentials, deleteOmpCredentials } =
 const PROVIDER_ID = "omniroute";
 
 let tmpHome: string;
-let origHome: string | undefined;
+let restoreHome: () => void;
 
 function getOmpDbPath() {
   return path.join(tmpHome, ".omp", "agent", "agent.db");
@@ -58,12 +59,11 @@ function seedOmpDb() {
 
 beforeEach(() => {
   tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "omp-db-test-"));
-  origHome = process.env.HOME;
-  process.env.HOME = tmpHome;
+  restoreHome = redirectHome(tmpHome);
 });
 
 afterEach(() => {
-  process.env.HOME = origHome;
+  restoreHome();
   fs.rmSync(tmpHome, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 });
 

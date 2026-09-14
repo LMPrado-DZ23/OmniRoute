@@ -13,6 +13,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { redirectHome } from "../helpers/tempHome.ts";
 
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-codewhale-settings-"));
 process.env.DATA_DIR = TEST_DATA_DIR;
@@ -92,8 +93,7 @@ test("codewhale-settings POST: 400 when model is missing", async () => {
 
 test("codewhale-settings POST: writes primary ~/.codewhale/config.toml for a fresh install", async () => {
   const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "codewhale-home-"));
-  const origHome = process.env.HOME;
-  process.env.HOME = tmpHome;
+  const restoreHome = redirectHome(tmpHome);
 
   try {
     const res = await POST(
@@ -127,7 +127,7 @@ test("codewhale-settings POST: writes primary ~/.codewhale/config.toml for a fre
       );
     }
   } finally {
-    process.env.HOME = origHome;
+    restoreHome();
     fs.rmSync(tmpHome, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 });
@@ -136,8 +136,7 @@ test("codewhale-settings POST: writes primary ~/.codewhale/config.toml for a fre
 
 test("codewhale-settings POST: syncs an existing legacy ~/.deepseek/config.toml", async () => {
   const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "codewhale-home-legacy-"));
-  const origHome = process.env.HOME;
-  process.env.HOME = tmpHome;
+  const restoreHome = redirectHome(tmpHome);
 
   try {
     // Simulate an existing DeepSeek TUI install (pre-CodeWhale upgrade).
@@ -174,7 +173,7 @@ test("codewhale-settings POST: syncs an existing legacy ~/.deepseek/config.toml"
       assert.equal(primaryContent, legacyContent, "Primary and legacy configs should match");
     }
   } finally {
-    process.env.HOME = origHome;
+    restoreHome();
     fs.rmSync(tmpHome, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 });
@@ -183,8 +182,7 @@ test("codewhale-settings POST: syncs an existing legacy ~/.deepseek/config.toml"
 
 test("codewhale-settings GET: falls back to legacy ~/.deepseek/config.toml when primary is absent", async () => {
   const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "codewhale-home-getlegacy-"));
-  const origHome = process.env.HOME;
-  process.env.HOME = tmpHome;
+  const restoreHome = redirectHome(tmpHome);
 
   try {
     const legacyDir = path.join(tmpHome, ".deepseek");
@@ -202,7 +200,7 @@ test("codewhale-settings GET: falls back to legacy ~/.deepseek/config.toml when 
       assert.equal(body.hasOmniRoute, true);
     }
   } finally {
-    process.env.HOME = origHome;
+    restoreHome();
     fs.rmSync(tmpHome, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 });
@@ -211,8 +209,7 @@ test("codewhale-settings GET: falls back to legacy ~/.deepseek/config.toml when 
 
 test("codewhale-settings DELETE: removes primary and legacy config files", async () => {
   const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "codewhale-home-del-"));
-  const origHome = process.env.HOME;
-  process.env.HOME = tmpHome;
+  const restoreHome = redirectHome(tmpHome);
 
   try {
     const primaryDir = path.join(tmpHome, ".codewhale");
@@ -239,7 +236,7 @@ test("codewhale-settings DELETE: removes primary and legacy config files", async
       assert.ok(!fs.existsSync(path.join(legacyDir, "config.toml")), "Legacy config removed");
     }
   } finally {
-    process.env.HOME = origHome;
+    restoreHome();
     fs.rmSync(tmpHome, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 });

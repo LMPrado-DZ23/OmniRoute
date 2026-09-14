@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { redirectHome } from "../helpers/tempHome.ts";
 
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-jcode-settings-"));
 process.env.DATA_DIR = TEST_DATA_DIR;
@@ -85,8 +86,7 @@ test("jcode-settings POST: 400 when model is missing", async () => {
 
 test("jcode-settings POST: writes [providers.omniroute] into config.toml", async () => {
   const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "jcode-home-"));
-  const origHome = process.env.HOME;
-  process.env.HOME = tmpHome;
+  const restoreHome = redirectHome(tmpHome);
 
   try {
     const res = await POST(
@@ -115,7 +115,7 @@ test("jcode-settings POST: writes [providers.omniroute] into config.toml", async
       }
     }
   } finally {
-    process.env.HOME = origHome;
+    restoreHome();
     fs.rmSync(tmpHome, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 });
@@ -124,8 +124,7 @@ test("jcode-settings POST: writes [providers.omniroute] into config.toml", async
 
 test("jcode-settings DELETE: removes only the OmniRoute-managed block", async () => {
   const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "jcode-home-del-"));
-  const origHome = process.env.HOME;
-  process.env.HOME = tmpHome;
+  const restoreHome = redirectHome(tmpHome);
 
   try {
     const jcodeDir = path.join(tmpHome, ".jcode");
@@ -159,7 +158,7 @@ test("jcode-settings DELETE: removes only the OmniRoute-managed block", async ()
       }
     }
   } finally {
-    process.env.HOME = origHome;
+    restoreHome();
     fs.rmSync(tmpHome, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 });

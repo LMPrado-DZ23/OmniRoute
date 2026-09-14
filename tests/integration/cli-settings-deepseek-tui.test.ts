@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { redirectHome } from "../helpers/tempHome.ts";
 
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-deepseek-tui-settings-"));
 process.env.DATA_DIR = TEST_DATA_DIR;
@@ -86,8 +87,7 @@ test("deepseek-tui-settings POST: 400 when model is missing", async () => {
 
 test("deepseek-tui-settings POST: writes config.toml with valid body", async () => {
   const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "deepseek-tui-home-"));
-  const origHome = process.env.HOME;
-  process.env.HOME = tmpHome;
+  const restoreHome = redirectHome(tmpHome);
 
   try {
     const res = await POST(
@@ -114,7 +114,7 @@ test("deepseek-tui-settings POST: writes config.toml with valid body", async () 
       }
     }
   } finally {
-    process.env.HOME = origHome;
+    restoreHome();
     fs.rmSync(tmpHome, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 });
@@ -123,8 +123,7 @@ test("deepseek-tui-settings POST: writes config.toml with valid body", async () 
 
 test("deepseek-tui-settings DELETE: removes config file", async () => {
   const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "deepseek-tui-home-del-"));
-  const origHome = process.env.HOME;
-  process.env.HOME = tmpHome;
+  const restoreHome = redirectHome(tmpHome);
 
   try {
     const configDir = path.join(tmpHome, ".config", "deepseek-tui");
@@ -143,7 +142,7 @@ test("deepseek-tui-settings DELETE: removes config file", async () => {
       assert.equal(body.success, true);
     }
   } finally {
-    process.env.HOME = origHome;
+    restoreHome();
     fs.rmSync(tmpHome, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 });

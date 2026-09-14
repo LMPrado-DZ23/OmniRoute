@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync, mkdtempSync, mkdirSync, existsSync, statSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { redirectHome } from "../helpers/tempHome.ts";
 import { fileURLToPath } from "node:url";
 
 const update = await import("../../bin/cli/commands/update.mjs");
@@ -34,13 +35,13 @@ test("getCurrentVersion resolves the real version from a foreign cwd (#3295)", a
 // EISDIR which the outer catch swallowed → "Failed to create backup. Aborting".
 test("createBackup resolves bin/ from a foreign cwd and copies cli/ recursively (#3295)", async () => {
   const originalCwd = process.cwd();
-  const originalHome = process.env.HOME;
+  let restoreHome: (() => void) | undefined;
   const foreignCwd = mkdtempSync(path.join(tmpdir(), "omniroute-cwd-"));
   const fakeHome = mkdtempSync(path.join(tmpdir(), "omniroute-home-"));
   try {
     process.chdir(foreignCwd); // no bin/ here → cwd-relative binPath would be missing
-    process.env.HOME = fakeHome; // redirect ~/.omniroute/backups
     mkdirSync(fakeHome, { recursive: true });
+    restoreHome = redirectHome(fakeHome); // redirect ~/.omniroute/backups
 
     const backupDir = await update.createBackup();
 
@@ -54,8 +55,7 @@ test("createBackup resolves bin/ from a foreign cwd and copies cli/ recursively 
     assert.ok(existsSync(path.join(cliBackup, "commands")), "cli/ contents copied recursively");
   } finally {
     process.chdir(originalCwd);
-    if (originalHome === undefined) delete process.env.HOME;
-    else process.env.HOME = originalHome;
+    restoreHome?.();
     rmSync(foreignCwd, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
     rmSync(fakeHome, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
