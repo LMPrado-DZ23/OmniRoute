@@ -6,12 +6,6 @@
     "TS2345": 1,
     "TS2339": 1
   },
-  "src/app/api/compression/compare/route.ts": {
-    "TS2345": 1
-  },
-  "src/app/api/compression/preview/route.ts": {
-    "TS2345": 1
-  },
   "src/app/api/context/combos/[id]/route.ts": {
     "TS2345": 1
   },
@@ -52,17 +46,11 @@
   "src/app/api/settings/models-dev/route.ts": {
     "TS2339": 1
   },
-  "src/app/api/settings/proxies/bulk-import/route.ts": {
-    "TS2345": 1
-  },
   "src/app/api/settings/reasoning-routing-rules/simulate/route.ts": {
     "TS2322": 1
   },
   "src/app/api/tools/agent-bridge/agents/[id]/detected-models/route.ts": {
     "TS2769": 1
-  },
-  "src/app/api/tools/traffic-inspector/internal/ingest/route.ts": {
-    "TS2345": 1
   },
   "src/app/api/usage/combo-health-autopilot/route.ts": {
     "TS2769": 2

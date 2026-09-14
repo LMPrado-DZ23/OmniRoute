@@ -111,6 +111,15 @@ export async function POST(request: Request): Promise<Response> {
     const data = parsed.data;
     const req = {
       ...data,
+      id: data.id,
+      source: data.source,
+      timestamp: data.timestamp,
+      method: data.method,
+      host: data.host,
+      path: data.path,
+      requestSize: data.requestSize,
+      responseSize: data.responseSize,
+      status: data.status,
       requestHeaders: sanitizeHeaders(data.requestHeaders || {}),
       responseHeaders: sanitizeHeaders(data.responseHeaders || {}),
       requestBody: data.requestBody != null ? maskSecret(data.requestBody) : null,
