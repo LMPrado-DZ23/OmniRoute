@@ -12,9 +12,6 @@
   "src/app/(dashboard)/dashboard/tools/traffic-inspector/components/CustomHostsManager.tsx": {
     "TS2339": 1
   },
-  "src/app/(dashboard)/dashboard/tools/traffic-inspector/components/tabs/ResponseBodyTab.tsx": {
-    "TS2339": 5
-  },
   "src/lib/combos/builderDraft.ts": {
     "TS2741": 1
   }
