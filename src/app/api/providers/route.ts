@@ -40,7 +40,8 @@ import {
 import { getQuotaWindowObservation } from "@/domain/quotaCache";
 import { requireManagementAuth } from "@/lib/api/requireManagementAuth";
 import { isManagedProviderConnectionId } from "@/lib/providers/catalog";
-import { isApiKeyRevealEnabled, maskStoredApiKey } from "@/lib/apiKeyExposure";
+import { isProviderCredentialRevealAllowed, maskStoredApiKey } from "@/lib/apiKeyExposure";
+import { logAdminAuditEvent } from "@/lib/compliance/adminAuditActor";
 import { cleanupProviderModelsAfterConnectionDelete } from "@/lib/db/models";
 import {
   buildModelSyncInternalHeaders,
@@ -132,7 +133,18 @@ export async function GET(request: Request) {
 
     const connections = await getProviderConnections(filter, limit, offset);
     const total = getProviderConnectionsCount(filter);
-    const revealKeys = isApiKeyRevealEnabled();
+    const revealKeys = isProviderCredentialRevealAllowed(request);
+    const revealedIds = revealKeys
+      ? connections.filter((c) => c.apiKey).map((c) => String(c.id))
+      : [];
+    if (revealedIds.length > 0) {
+      logAdminAuditEvent(request, {
+        action: "provider.credentials.revealed",
+        target: "providers",
+        resourceType: "provider_credentials",
+        metadata: { connectionIds: revealedIds },
+      });
+    }
 
     // Hide or mask sensitive fields
     const safeConnections = connections.map((c) => {
