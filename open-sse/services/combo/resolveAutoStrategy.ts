@@ -3,7 +3,7 @@ import {
   unavailableResponse,
   errorResponseWithComboDiagnostics,
 } from "../../utils/error.ts";
-import { BudgetExceededError, selectProvider as selectAutoProvider } from "../autoCombo/engine.ts";
+import type { AutoComboConfig } from "../autoCombo/engine.ts";
 import type { ScoringWeights } from "../autoCombo/scoring.ts";
 import {
   resolveRequestModePack,
@@ -21,6 +21,11 @@ import { parseModel } from "../model.ts";
 import { supportsToolCalling } from "../modelCapabilities.ts";
 import type { ResilienceSettings } from "../../../src/lib/resilience/settings";
 import { parseAutoConfig } from "./autoConfig.ts";
+import {
+  orderTargetsByCostBudget,
+  recordExplicitStrategyDecision,
+  selectAutoProviderWithDecision,
+} from "./autoRoutingDecision.ts";
 import { dedupeTargetsByExecutionKey } from "./comboData.ts";
 import {
   getModelContextLimitForModelString,
@@ -361,6 +366,20 @@ export async function resolveAutoStrategyOrder(
     let selectedConnectionId: string | null = null;
     let selectionReason = "";
 
+    const autoConfig: AutoComboConfig = {
+      id: combo.id || combo.name,
+      name: combo.name,
+      type: "auto",
+      candidatePool,
+      weights,
+      modePack,
+      budgetCap,
+      budgetFallback,
+      explorationRate,
+      routerStrategy: routingStrategy,
+    };
+    const decisionContext = { config: autoConfig, candidates, routableCandidates, taskType, body };
+
     if (routingStrategy !== "rules") {
       try {
         const decision = selectWithStrategy(
@@ -387,6 +406,7 @@ export async function resolveAutoStrategyOrder(
         selectedConnectionId = decision.connectionId ?? null;
         selectionReason = decision.reason;
         autoUsedExplicitRouter = true;
+        recordExplicitStrategyDecision({ ...decisionContext, selection: decision });
       } catch (err) {
         log.warn(
           "COMBO",
@@ -396,32 +416,14 @@ export async function resolveAutoStrategyOrder(
     }
 
     if (!selectedProvider || !selectedModel) {
-      let selection;
-      try {
-        selection = selectAutoProvider(
-          {
-            id: combo.id || combo.name,
-            name: combo.name,
-            type: "auto",
-            candidatePool,
-            weights,
-            modePack,
-            budgetCap,
-            budgetFallback,
-            explorationRate,
-          },
-          routableCandidates,
-          taskType
-        );
-      } catch (err) {
-        // #3470: `budgetFallback: "strict"` refuses to select when every candidate
-        // exceeds `budgetCap` — surface a clear cost-exceeds-budget response
-        // instead of letting it propagate as an unhandled 500.
-        if (err instanceof BudgetExceededError) {
-          return { earlyResponse: errorResponse(402, err.message) };
-        }
-        throw err;
+      const ruled = selectAutoProviderWithDecision(decisionContext);
+      // #3470: `budgetFallback: "strict"` refuses to select when every candidate
+      // exceeds `budgetCap` — surface a clear cost-exceeds-budget response
+      // instead of letting it propagate as an unhandled 500.
+      if ("budgetError" in ruled) {
+        return { earlyResponse: errorResponse(402, ruled.budgetError.message) };
       }
+      const selection = ruled.selection;
       selectedProvider = selection.provider;
       selectedModel = selection.model;
       selectedConnectionId = selection.connectionId ?? null;
@@ -454,10 +456,16 @@ export async function resolveAutoStrategyOrder(
     // routable ranked ones (and, when the cutoff is OFF, makes this identical to
     // the pre-cutoff behavior), but a quota-blocked target still survives as a
     // final fallback instead of vanishing — the hard cutoff only de-prioritizes.
-    orderedTargets = dedupeTargetsByExecutionKey(
-      [selectedTarget, ...rankedTargets, ...eligibleTargets].filter(
-        (entry): entry is ResolvedComboTarget => entry !== undefined && entry !== null
-      )
+    // The budget cap that bounded the first pick also bounds every failover attempt.
+    orderedTargets = orderTargetsByCostBudget(
+      dedupeTargetsByExecutionKey(
+        [selectedTarget, ...rankedTargets, ...eligibleTargets].filter(
+          (entry): entry is ResolvedComboTarget => entry !== undefined && entry !== null
+        )
+      ),
+      candidates,
+      budgetCap,
+      budgetFallback
     );
 
     log.info(
