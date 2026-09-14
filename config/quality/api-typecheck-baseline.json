@@ -54,9 +54,6 @@
   "src/app/api/copilot/chat/route.ts": {
     "TS2345": 1
   },
-  "src/app/api/guardrails/test/route.ts": {
-    "TS2554": 1
-  },
   "src/app/api/keys/[id]/route.ts": {
     "TS2339": 1
   },
@@ -201,15 +198,8 @@
   "src/app/api/version-manager/stop/route.ts": {
     "TS2339": 1
   },
-  "src/app/api/webhooks/[id]/route.ts": {
-    "TS2554": 1
-  },
   "src/app/api/webhooks/[id]/test/route.ts": {
     "TS2352": 2
-  },
-  "src/app/api/webhooks/route.ts": {
-    "TS2554": 1,
-    "TS2345": 1
   },
   "src/lib/db/tierConfig.ts": {
     "TS2345": 2
@@ -248,8 +238,5 @@
   },
   "src/mitm/inspector/httpProxyServer.ts": {
     "TS2769": 1
-  },
-  "src/shared/schemas/cliCatalog.ts": {
-    "TS2554": 2
   }
 }

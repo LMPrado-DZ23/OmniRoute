@@ -20,8 +20,5 @@
   },
   "src/lib/combos/builderDraft.ts": {
     "TS2741": 1
-  },
-  "src/shared/schemas/cliCatalog.ts": {
-    "TS2554": 2
   }
 }
