@@ -5,6 +5,7 @@ import { createInjectionGuard } from "@/middleware/promptInjectionGuard";
 import { resolveResponsesApiModel } from "@/app/api/internal/codex-responses-ws/modelResolution";
 import { getModelInfo, getComboForModel } from "@/sse/services/model";
 import { generateRequestId } from "@/shared/utils/requestId";
+import { withRoutingRequestContext } from "@/shared/middleware/withRoutingRequestContext";
 import {
   admitChatRequest,
   admitChatStructure,
@@ -209,4 +210,4 @@ async function postHandler(request: any) {
   }
 }
 
-export const POST = postHandler;
+export const POST = withRoutingRequestContext(postHandler);

@@ -3,6 +3,7 @@ import { CORS_HEADERS, handleCorsOptions } from "@/shared/utils/cors";
 import { callCloudWithMachineId } from "@/shared/utils/cloud";
 import { handleChat } from "@/sse/handlers/chat";
 import { generateRequestId } from "@/shared/utils/requestId";
+import { withRoutingRequestContext } from "@/shared/middleware/withRoutingRequestContext";
 import { resolveIncomingCorrelationId } from "@/shared/utils/correlationPreserve.ts";
 import { errorResponse } from "@omniroute/open-sse/utils/error.ts";
 import { initTranslators } from "@omniroute/open-sse/translator/index.ts";
@@ -88,7 +89,7 @@ export async function OPTIONS() {
   return handleCorsOptions();
 }
 
-export async function POST(request) {
+async function postChatCompletion(request) {
   await ensureInitialized();
 
   // Content-Type guard (#6414) — reject non-JSON POST bodies with 415 per RFC 7231.
@@ -281,3 +282,7 @@ export async function POST(request) {
     throw error;
   }
 }
+
+// Runs inside the request id the authz pipeline stamped, so the routing decision is recorded
+// under the id the client receives.
+export const POST = withRoutingRequestContext(postChatCompletion);

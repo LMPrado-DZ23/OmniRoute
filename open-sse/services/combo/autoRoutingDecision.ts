@@ -21,8 +21,10 @@ import {
   type BuildRoutingDecisionInput,
   type DecisionCandidateInput,
   type StrategySelection,
+  summarizeRoutingDecision,
 } from "../autoCombo/routingDecision.ts";
 import { recordRoutingDecision } from "../routing/decisionStore.ts";
+import type { ComboLogger } from "./types.ts";
 
 export interface AutoDecisionContext {
   config: AutoComboConfig;
@@ -32,6 +34,20 @@ export interface AutoDecisionContext {
   routableCandidates: DecisionCandidateInput[];
   taskType: string;
   body: Record<string, unknown>;
+}
+
+/**
+ * Log a recorded decision. The decision id and policy version are always logged at debug level;
+ * with OMNIROUTE_ROUTING_DIAGNOSTICS=1 the counts summary (candidates, eligibility, exclusion
+ * reasons) is logged at info level. Neither carries prompts, credentials or connection ids.
+ */
+export function logRoutingDecision(log: ComboLogger, decision: RoutingDecision): void {
+  log.debug?.(
+    "COMBO",
+    `Routing decision ${decision.decisionId} policy=${decision.policyVersion} request=${decision.requestId || "-"}`
+  );
+  if (process.env.OMNIROUTE_ROUTING_DIAGNOSTICS !== "1") return;
+  log.info("COMBO", "Routing decision diagnostics", summarizeRoutingDecision(decision));
 }
 
 function requestProtocol(body: Record<string, unknown>): string {

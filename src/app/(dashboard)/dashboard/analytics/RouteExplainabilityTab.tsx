@@ -7,6 +7,7 @@ import Card from "@/shared/components/Card";
 import { Skeleton } from "@/shared/components/Loading";
 import { cn } from "@/shared/utils/cn";
 import { useProviderNodeMap, resolveProviderName } from "@/lib/display/useProviderNodeMap";
+import RoutingDecisionLookup from "./RoutingDecisionLookup";
 
 type CallLogOption = {
   id: string;
@@ -590,6 +591,8 @@ export default function RouteExplainabilityTab({
           </select>
         </div>
       </div>
+
+      <RoutingDecisionLookup />
 
       {logsLoading || explanationLoading ? <ExplainabilitySkeleton /> : null}
 

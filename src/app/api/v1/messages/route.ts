@@ -3,6 +3,7 @@ import { initTranslators } from "@omniroute/open-sse/translator/index.ts";
 import { withInjectionGuard } from "@/middleware/promptInjectionGuard";
 import { withChatAdmission } from "@/shared/middleware/withChatAdmission";
 import { requireJsonContentType } from "@/shared/middleware/requireJsonContentType";
+import { withRoutingRequestContext } from "@/shared/middleware/withRoutingRequestContext";
 import {
   withEarlyStreamKeepalive,
   ANTHROPIC_PING_FRAME,
@@ -81,4 +82,6 @@ async function postHandler(request: any, context: any, preParsedBody: any = null
 
 // `logger: null` — the guardrail registry re-evaluates this request inside
 // handleChat with the pino logger (#11936 dedupe).
-export const POST = withChatAdmission(withInjectionGuard(postHandler, { logger: null }));
+export const POST = withRoutingRequestContext(
+  withChatAdmission(withInjectionGuard(postHandler, { logger: null }))
+);

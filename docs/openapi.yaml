@@ -11115,6 +11115,25 @@ paths:
       responses:
         "200":
           description: OK
+  /api/omniroute/route/decisions/{id}:
+    get:
+      tags:
+        - Omniroute
+      summary: "GET omniroute › route › decisions › <id>"
+      description: >-
+        Recent live routing decision by decision id or request id (x-request-id). Decisions are
+        kept in memory for 30 minutes. Unknown and malformed ids both return 404.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Routing decision not found
   /api/omniroute/status:
     get:
       tags:
