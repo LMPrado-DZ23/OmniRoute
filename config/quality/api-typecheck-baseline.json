@@ -1,25 +1,4 @@
 {
-  "src/app/api/cache/route.ts": {
-    "TS2339": 1
-  },
-  "src/app/api/cli-tools/all-statuses/route.ts": {
-    "TS2339": 1
-  },
-  "src/app/api/cli-tools/claude-settings/route.ts": {
-    "TS2339": 1
-  },
-  "src/app/api/cli-tools/codex-settings/route.ts": {
-    "TS2345": 2
-  },
-  "src/app/api/cli-tools/grok-build-settings/route.ts": {
-    "TS2304": 1
-  },
-  "src/app/api/cli-tools/hermes-agent-settings/route.ts": {
-    "TS2345": 1
-  },
-  "src/app/api/cli-tools/qwen-settings/route.ts": {
-    "TS2322": 1
-  },
   "src/app/api/combos/auto/route.ts": {
     "TS2322": 1
   },
@@ -135,9 +114,6 @@
   },
   "src/lib/vscode/modelPresentation.ts": {
     "TS2554": 1
-  },
-  "src/lib/ws/handshake.ts": {
-    "TS2339": 1
   },
   "src/mitm/detection/index.ts": {
     "TS2741": 1

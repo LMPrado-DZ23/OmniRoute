@@ -26,7 +26,7 @@ const getClaudeSettingsPath = () => getCliPrimaryConfigPath("claude");
 // "installed but not configured" instead of a 500 misread as "not installed".
 const readSettings = async () => {
   const settingsPath = getClaudeSettingsPath();
-  return readJsoncConfig(settingsPath);
+  return readJsoncConfig<{ env?: Record<string, unknown> }>(settingsPath);
 };
 
 // GET - Check claude CLI and read current settings

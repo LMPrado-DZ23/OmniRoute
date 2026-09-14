@@ -81,7 +81,8 @@ export interface HermesAgentConfigPayload {
   baseUrl: string;
   keyId?: string | null;
   apiKey?: string | null;
-  selections: HermesAgentRoleSelection[];
+  // The route validates role as a free string; unknown roles are written under auxiliary.<role>.
+  selections: Array<Omit<HermesAgentRoleSelection, "role"> & { role: string }>;
 }
 
 // Resolved lazily at call-time so HERMES_HOME is always honoured (#3628).

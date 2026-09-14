@@ -136,7 +136,7 @@ export async function POST(request: Request): Promise<Response> {
     let apiKey = validation.data.apiKey || "";
     if (keyId) {
       const keyRecord = await getApiKeyById(keyId);
-      if (keyRecord?.key) apiKey = keyRecord.key;
+      if (typeof keyRecord?.key === "string" && keyRecord.key) apiKey = keyRecord.key;
     }
     if (!apiKey) apiKey = "sk_omniroute";
 

@@ -2,7 +2,7 @@
  * Helpers for generating/maintaining the Codex CLI `config.toml`.
  */
 
-interface ParsedCodexToml {
+export interface ParsedCodexToml {
   _root: Record<string, unknown>;
   _sections: Record<string, Record<string, unknown>>;
 }

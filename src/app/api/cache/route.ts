@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       getIdempotencyStats(),
       getCacheMetrics(),
       getCacheTrend(trendHours),
-      getCachedSettings().catch(() => ({})),
+      getCachedSettings().catch((): Record<string, unknown> => ({})),
     ]);
 
     return NextResponse.json({

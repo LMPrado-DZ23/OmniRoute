@@ -156,7 +156,7 @@ export async function GET(request: Request): Promise<Response> {
           const runtime =
             runtimeResult.status === "fulfilled"
               ? runtimeResult.value
-              : { installed: false, runnable: false, reason: "Timeout" };
+              : { installed: false, runnable: false, reason: "Timeout", command: null };
 
           const configStatus =
             configStatusResult.status === "fulfilled" ? configStatusResult.value : "unknown";
