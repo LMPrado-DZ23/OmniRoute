@@ -2,6 +2,7 @@
   "title": "Reference",
   "pages": [
     "API_REFERENCE",
+    "SDKS",
     "CLI-TOOLS",
     "ENVIRONMENT",
     "FEATURE_FLAGS",
