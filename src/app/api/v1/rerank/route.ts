@@ -16,7 +16,6 @@ import {
   isAllExpiredCredentials,
   isAllRateLimitedCredentials,
   rateLimitedProviderResponse,
-  isLeaseConnectionMismatchCredentials,
 } from "@/app/api/v1/_shared/rateLimit";
 import { saveCallLog } from "@/lib/usageDb";
 import { attachOmniRouteMetaHeaders } from "@/domain/omnirouteResponseMeta";
@@ -196,7 +195,7 @@ async function postHandler(request, _context) {
 
     if (localProvider) {
       const credentials = await getProviderCredentialsWithQuotaPreflight(localProvider.providerId);
-      if (!credentials || isLeaseConnectionMismatchCredentials(credentials)) {
+      if (!credentials) {
         return errorResponse(
           HTTP_STATUS.BAD_REQUEST,
           `No credentials for local provider: ${prefix}`

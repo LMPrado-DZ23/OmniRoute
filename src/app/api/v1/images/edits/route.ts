@@ -49,7 +49,6 @@ import {
   isAllExpiredCredentials,
   isAllRateLimitedCredentials,
   rateLimitedProviderResponse,
-  isLeaseConnectionMismatchCredentials,
 } from "@/app/api/v1/_shared/rateLimit";
 import { isSuccessFailure } from "@/shared/utils/resultGuards";
 
@@ -557,7 +556,7 @@ async function postHandler(request: Request, _context?: unknown) {
       allowedConnections,
       resolvedModel
     );
-    if (!credentials || isLeaseConnectionMismatchCredentials(credentials)) {
+    if (!credentials) {
       return errorResponse(
         HTTP_STATUS.UNAUTHORIZED,
         `No credentials for provider: ${parsed.provider}`
@@ -620,7 +619,7 @@ async function postHandler(request: Request, _context?: unknown) {
     allowedConnections,
     resolvedModel
   );
-  if (!credentials || isLeaseConnectionMismatchCredentials(credentials)) {
+  if (!credentials) {
     return errorResponse(
       HTTP_STATUS.BAD_REQUEST,
       `No credentials for custom image provider: ${customProviderId}`

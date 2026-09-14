@@ -4,7 +4,6 @@ import {
   isAllExpiredCredentials,
   isAllRateLimitedCredentials,
   rateLimitedProviderResponse,
-  isLeaseConnectionMismatchCredentials,
 } from "@/app/api/v1/_shared/rateLimit";
 import { HTTP_STATUS } from "@omniroute/open-sse/config/constants.ts";
 import { getRegistryEntry } from "@omniroute/open-sse/config/providerRegistry.ts";
@@ -79,7 +78,7 @@ export async function POST(request, { params }) {
   }
 
   const credentials = await getProviderCredentialsWithQuotaPreflight(providerEntry.id);
-  if (!credentials || isLeaseConnectionMismatchCredentials(credentials)) {
+  if (!credentials) {
     return errorResponse(HTTP_STATUS.BAD_REQUEST, `No credentials for provider: ${rawProvider}`);
   }
   if (isAllRateLimitedCredentials(credentials)) {
