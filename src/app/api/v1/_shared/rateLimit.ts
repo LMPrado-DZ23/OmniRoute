@@ -43,6 +43,20 @@ export function isAllExpiredCredentials(value: unknown): value is ExpiredCredent
   );
 }
 
+/** Lease-scoped selection verdict (auth.ts returns it only when options.lease is passed). */
+export type LeaseConnectionMismatchCredentials = { leaseConnectionMismatch: boolean };
+
+export function isLeaseConnectionMismatchCredentials(
+  value: unknown
+): value is LeaseConnectionMismatchCredentials {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "leaseConnectionMismatch" in value &&
+    value.leaseConnectionMismatch === true
+  );
+}
+
 /**
  * Same answer as the chat path (src/sse/handlers/chatHelpers.ts): expired or banned accounts are a
  * 401 with a reconnect hint, while credits_exhausted is quota, not invalid credentials, so it is a

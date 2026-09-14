@@ -20,6 +20,7 @@ import {
   isAllExpiredCredentials,
   isAllRateLimitedCredentials,
   rateLimitedProviderResponse,
+  isLeaseConnectionMismatchCredentials,
 } from "@/app/api/v1/_shared/rateLimit";
 
 export { resolveVertexOcrAccessToken };
@@ -94,7 +95,7 @@ async function postHandler(request, context) {
   // Default to mistral if no provider prefix
   const resolvedProvider = provider || "mistral";
   const credentials = await getProviderCredentialsWithQuotaPreflight(resolvedProvider);
-  if (!credentials) {
+  if (!credentials || isLeaseConnectionMismatchCredentials(credentials)) {
     return errorResponse(
       HTTP_STATUS.BAD_REQUEST,
       `No credentials for provider: ${resolvedProvider}`
