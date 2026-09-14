@@ -105,7 +105,8 @@ function useDirtySetter<T>(setValue: (value: T) => void, setDirty: (value: boole
 }
 
 function useProviderParamFilterConfig(providerId: string, t: Translate) {
-  const notify = useNotificationStore();
+  const notifySuccess = useNotificationStore((state) => state.success);
+  const notifyError = useNotificationStore((state) => state.error);
   const [, setConfig] = useState<ParamFilterConfig>({ block: [], allow: [], autoLearn: false });
   // Loading is derived: true until a load attempt for the CURRENT provider
   // settles — this also re-shows the skeleton when providerId changes.
@@ -133,12 +134,12 @@ function useProviderParamFilterConfig(providerId: string, t: Translate) {
         setAllowTextState(formatCommaList(outcome.config.allow));
         setAutoLearnState(outcome.config.autoLearn);
       } else {
-        notify.notify(t("paramFiltersLoadError", { error: outcome.error }), "error");
+        notifyError(t("paramFiltersLoadError", { error: outcome.error }));
       }
       setLoadedProviderId(providerId);
     };
     void run();
-  }, [providerId, notify, t]);
+  }, [providerId, notifyError, t]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -151,13 +152,13 @@ function useProviderParamFilterConfig(providerId: string, t: Translate) {
       await putParamFilterConfig(providerId, body);
       setConfig(body);
       setDirty(false);
-      notify.notify(t("paramFiltersSaveSuccess"), "success");
+      notifySuccess(t("paramFiltersSaveSuccess"));
     } catch (err) {
-      notify.notify(t("paramFiltersSaveError", { error: errorMessage(err) }), "error");
+      notifyError(t("paramFiltersSaveError", { error: errorMessage(err) }));
     } finally {
       setSaving(false);
     }
-  }, [providerId, blockText, allowText, autoLearn, notify, t]);
+  }, [providerId, blockText, allowText, autoLearn, notifySuccess, notifyError, t]);
 
   const handleReset = useCallback(async () => {
     setSaving(true);
@@ -168,13 +169,13 @@ function useProviderParamFilterConfig(providerId: string, t: Translate) {
       setAllowTextState("");
       setAutoLearnState(false);
       setDirty(false);
-      notify.notify(t("paramFiltersResetSuccess"), "success");
+      notifySuccess(t("paramFiltersResetSuccess"));
     } catch (err) {
-      notify.notify(t("paramFiltersResetError", { error: errorMessage(err) }), "error");
+      notifyError(t("paramFiltersResetError", { error: errorMessage(err) }));
     } finally {
       setSaving(false);
     }
-  }, [providerId, notify, t]);
+  }, [providerId, notifySuccess, notifyError, t]);
 
   return {
     loading,
