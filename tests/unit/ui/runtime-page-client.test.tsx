@@ -198,4 +198,45 @@ describe("RuntimePageClient", () => {
     await waitForText("UNK");
     expect(document.body.textContent).not.toContain("Internal Server Error");
   });
+
+  // QuotaGroup read `nodeMap`, which only existed inside the page component, so rendering any
+  // quota monitor with a provider threw a ReferenceError and took the page down.
+  it("renders an exhausted quota monitor with its provider name", async () => {
+    fetchMock.mockImplementation((input: RequestInfo | URL) => {
+      const path = getRequestPath(input);
+      if (path === "/api/monitoring/health") {
+        return Promise.resolve(
+          jsonResponse({
+            providerBreakers: [],
+            lockouts: {},
+            sessions: { activeCount: 0, stickyBoundCount: 0, byApiKey: {}, top: [] },
+            quotaMonitor: {
+              active: 1,
+              alerting: 0,
+              exhausted: 1,
+              errors: 0,
+              monitors: [
+                {
+                  accountId: "acc-quota-1",
+                  provider: "openai",
+                  window: "5h",
+                  status: "exhausted",
+                  remainingPercent: 0,
+                },
+              ],
+            },
+          })
+        );
+      }
+      if (path === "/api/providers/client") {
+        return Promise.resolve(jsonResponse({ connections: [] }));
+      }
+      return Promise.resolve(jsonResponse({}));
+    });
+
+    await renderRuntimePage();
+
+    await waitForText("acc-quota-1 / ");
+    expect(document.body.textContent).toContain("statusExhausted");
+  });
 });

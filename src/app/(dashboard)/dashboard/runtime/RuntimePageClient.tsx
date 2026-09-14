@@ -1002,13 +1002,28 @@ export default function RuntimePageClient() {
             return (
               <div className="mt-2 flex flex-col gap-3">
                 {exhausted.length > 0 && (
-                  <QuotaGroup tone="red" label={t("statusExhausted")} items={exhausted} />
+                  <QuotaGroup
+                    tone="red"
+                    label={t("statusExhausted")}
+                    items={exhausted}
+                    nodeMap={nodeMap}
+                  />
                 )}
                 {alerting.length > 0 && (
-                  <QuotaGroup tone="amber" label={t("statusAlerting")} items={alerting} />
+                  <QuotaGroup
+                    tone="amber"
+                    label={t("statusAlerting")}
+                    items={alerting}
+                    nodeMap={nodeMap}
+                  />
                 )}
                 {errors.length > 0 && (
-                  <QuotaGroup tone="orange" label={t("statusError")} items={errors} />
+                  <QuotaGroup
+                    tone="orange"
+                    label={t("statusError")}
+                    items={errors}
+                    nodeMap={nodeMap}
+                  />
                 )}
               </div>
             );
@@ -1148,10 +1163,12 @@ function QuotaGroup({
   tone,
   label,
   items,
+  nodeMap,
 }: {
   tone: "red" | "amber" | "orange";
   label: string;
   items: QuotaMonitor[];
+  nodeMap: ReturnType<typeof useProviderNodeMap>;
 }) {
   const t = useTranslations("runtime");
   const toneMap = {
