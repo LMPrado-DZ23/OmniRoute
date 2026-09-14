@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { cn } from "@/shared/utils/cn";
 
 interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -10,12 +11,17 @@ interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
  * Checkbox — token-driven native checkbox (brand accent + keyboard focus ring).
  * Replaces the ad-hoc `<input type="checkbox" style={{ accentColor: "#6366f1" }}>`
  * pattern scattered across the dashboard. Optional `label` wraps it in a clickable row.
+ * Without a `label`, pass `aria-label` (or `aria-labelledby`) so the box has a name.
  */
 export default function Checkbox({ label, className, id, ...props }: CheckboxProps) {
+  const generatedId = useId();
+  // The label wraps the input, but an explicit id/htmlFor pair keeps the association
+  // intact for assistive tech that ignores implicit wrapping.
+  const inputId = id ?? generatedId;
   const box = (
     <input
       type="checkbox"
-      id={id}
+      id={inputId}
       className={cn(
         "h-4 w-4 shrink-0 cursor-pointer rounded-[4px] accent-[var(--color-accent)]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30",
@@ -28,7 +34,7 @@ export default function Checkbox({ label, className, id, ...props }: CheckboxPro
   if (!label) return box;
   return (
     <label
-      htmlFor={id}
+      htmlFor={inputId}
       className="inline-flex items-center gap-2 cursor-pointer text-sm text-text-main"
     >
       {box}

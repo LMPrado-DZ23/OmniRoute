@@ -1,6 +1,8 @@
 "use client";
 
-import { Suspense, useEffect, useInsertionEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useInsertionEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useDialogFocus } from "@/shared/hooks/useDialogFocus";
 import Sidebar from "../Sidebar";
 import Header from "../Header";
 import NotificationToast from "../NotificationToast";
@@ -19,10 +21,15 @@ const SIDEBAR_COLLAPSED_KEY = "sidebar-collapsed";
 const isE2EMode = process.env.NEXT_PUBLIC_OMNIROUTE_E2E_MODE === "1";
 
 export default function DashboardLayout({ children }) {
+  const t = useTranslations("sidebar");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const isElectron = useIsElectron();
   const [collapsed, setCollapsed] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+  // Mobile drawer: Escape closes, focus moves in and is trapped, and returns to the menu button.
+  useDialogFocus(drawerRef, sidebarOpen, closeSidebar);
 
   useEffect(() => {
     try {
@@ -87,7 +94,8 @@ export default function DashboardLayout({ children }) {
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/20 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
+          onClick={closeSidebar}
+          aria-hidden="true"
         />
       )}
 
@@ -101,12 +109,19 @@ export default function DashboardLayout({ children }) {
       </div>
 
       {/* Sidebar - Mobile: full viewport height with proper scroll containment */}
+      {/* Closed, the off-canvas drawer is `inert`: its links stayed in the tab order and the
+          accessibility tree while translated out of view. Open, it is a modal dialog. */}
       <div
+        ref={drawerRef}
+        role={sidebarOpen ? "dialog" : undefined}
+        aria-modal={sidebarOpen ? true : undefined}
+        aria-label={sidebarOpen ? t("mainNavigation") : undefined}
+        inert={!sidebarOpen}
         className={`fixed inset-y-0 start-0 z-50 transform lg:hidden transition-transform duration-300 ease-in-out h-dvh overflow-y-auto ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <Sidebar onClose={() => setSidebarOpen(false)} isMacElectron={isMacElectron} />
+        <Sidebar onClose={closeSidebar} isMacElectron={isMacElectron} />
       </div>
 
       {/* Main content */}

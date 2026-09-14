@@ -260,6 +260,7 @@ export default function ProviderSummaryCard({
               <button
                 key={cat.key ?? "all"}
                 onClick={() => onCategoryChange(cat.key, cat.key === "free")}
+                aria-pressed={isActive}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
                   isActive
                     ? "bg-primary text-white border-primary"
@@ -269,9 +270,10 @@ export default function ProviderSummaryCard({
               >
                 {cat.color && <CategoryDot color={cat.color} label={cat.label} />}
                 <span>{cat.label}</span>
-                <span className={`text-[11px] ${isActive ? "text-white/80" : "text-text-muted"}`}>
+                {/* Full-opacity counts: the dimmed variants measured 2.1–2.6:1 contrast. */}
+                <span className={`text-[11px] ${isActive ? "text-white" : "text-text-muted"}`}>
                   {cat.stat.configured}
-                  <span className="opacity-70">/{cat.stat.total}</span>
+                  <span>/{cat.stat.total}</span>
                 </span>
               </button>
             );
@@ -295,7 +297,9 @@ export default function ProviderSummaryCard({
                     : "bg-bg-subtle border-border text-text-muted hover:text-text-primary hover:border-primary/30"
                 }`}
               >
-                <span className="material-symbols-outlined text-[14px]">{chip.icon}</span>
+                <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
+                  {chip.icon}
+                </span>
                 <span>{providerText(t, chip.labelKey, chip.fallback)}</span>
               </button>
             );

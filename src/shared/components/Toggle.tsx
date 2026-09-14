@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { cn } from "@/shared/utils/cn";
 
 interface ToggleProps {
@@ -48,6 +49,11 @@ export default function Toggle({
     },
   };
 
+  const descriptionId = useId();
+  // The description is announced as a description only when something else names the
+  // switch; with no label it already is the name, so it must not be read twice.
+  const describedBy = description && (ariaLabel || label) ? descriptionId : undefined;
+
   const handleClick = () => {
     if (!disabled && onChange) {
       onChange(!checked);
@@ -67,6 +73,7 @@ export default function Toggle({
         role="switch"
         aria-checked={checked}
         aria-label={ariaLabel || label || description || title || "Toggle"}
+        aria-describedby={describedBy}
         title={title}
         disabled={disabled}
         onClick={handleClick}
@@ -94,7 +101,11 @@ export default function Toggle({
       {(label || description) && (
         <div className="flex flex-col">
           {label && <span className="text-sm font-medium text-text-main">{label}</span>}
-          {description && <span className="text-xs text-text-muted">{description}</span>}
+          {description && (
+            <span id={descriptionId} className="text-xs text-text-muted">
+              {description}
+            </span>
+          )}
         </div>
       )}
     </div>
