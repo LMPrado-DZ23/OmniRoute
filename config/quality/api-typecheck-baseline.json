@@ -99,9 +99,6 @@
   "src/app/api/settings/reasoning-routing-rules/simulate/route.ts": {
     "TS2322": 1
   },
-  "src/app/api/system/version/route.ts": {
-    "TS2769": 1
-  },
   "src/app/api/tools/agent-bridge/agents/[id]/detected-models/route.ts": {
     "TS2769": 1
   },
@@ -136,12 +133,6 @@
   },
   "src/app/api/v1/rerank/route.ts": {
     "TS2339": 2
-  },
-  "src/app/api/v1/speech-to-text/route.ts": {
-    "TS2353": 1
-  },
-  "src/app/api/v1/text-to-speech/[voiceId]/route.ts": {
-    "TS2353": 1
   },
   "src/app/api/v1beta/models/route.ts": {
     "TS2345": 1,

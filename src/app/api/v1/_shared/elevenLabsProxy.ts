@@ -6,10 +6,7 @@ import {
   isAllRateLimitedCredentials,
   rateLimitedProviderResponse,
 } from "@/app/api/v1/_shared/rateLimit";
-import {
-  buildErrorBody,
-  sanitizeErrorMessage,
-} from "@omniroute/open-sse/utils/error.ts";
+import { buildErrorBody, sanitizeErrorMessage } from "@omniroute/open-sse/utils/error.ts";
 import { CORS_HEADERS, handleCorsOptions } from "@/shared/utils/cors";
 
 const ELEVENLABS_API_BASE = "https://api.elevenlabs.io/v1";
@@ -46,7 +43,7 @@ function proxyResponseHeaders(upstream: Response): Headers {
 export async function proxyElevenLabsRequest(
   request: Request,
   pathname: string,
-  init: Omit<RequestInit, "headers"> = {}
+  init: Omit<RequestInit, "headers"> & { duplex?: "half" } = {}
 ): Promise<Response> {
   const credentials = (await getProviderCredentialsWithQuotaPreflight(
     "elevenlabs"
@@ -90,9 +87,7 @@ export async function proxyElevenLabsRequest(
       JSON.stringify(
         buildErrorBody(
           502,
-          sanitizeErrorMessage(
-            error instanceof Error ? error.message : "ElevenLabs request failed"
-          )
+          sanitizeErrorMessage(error instanceof Error ? error.message : "ElevenLabs request failed")
         )
       ),
       {
