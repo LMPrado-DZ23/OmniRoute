@@ -4,7 +4,8 @@ import { buildComboTestRequestBody, extractComboTestResponseText } from "@/lib/c
 import { getComboByName, getCombos } from "@/lib/db/combos";
 import { pickApiKeyForInternalUse } from "@/lib/db/apiKeys";
 import { getRuntimePorts } from "@/lib/runtime/ports";
-import { resolveNestedComboTargets, toComboLike } from "@omniroute/open-sse/services/combo.ts";
+import { resolveNestedComboTargets } from "@omniroute/open-sse/services/combo.ts";
+import { toComboLike } from "@omniroute/open-sse/services/combo/comboStructure.ts";
 import { testComboSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import { requireManagementAuth } from "@/lib/api/requireManagementAuth";

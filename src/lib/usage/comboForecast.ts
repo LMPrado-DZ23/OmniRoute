@@ -3,7 +3,8 @@ import { getCombos, getComboById } from "@/lib/db/combos";
 import { getPricingForModel } from "@/lib/db/settings";
 import { getQuotaSnapshots } from "@/lib/db/quotaSnapshots";
 import { computeCostFromPricing, normalizeModelName } from "@/lib/usage/costCalculator";
-import { resolveNestedComboTargets, toComboLike } from "@omniroute/open-sse/services/combo.ts";
+import { resolveNestedComboTargets } from "@omniroute/open-sse/services/combo.ts";
+import { toComboLike } from "@omniroute/open-sse/services/combo/comboStructure.ts";
 import type {
   ComboRecord,
   ComboForecastHorizon,
