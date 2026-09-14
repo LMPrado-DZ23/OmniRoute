@@ -94,8 +94,9 @@ type ManagedLeaseSelectionFailure = {
 };
 
 export function buildManagedLeaseSelectionErrorResponse(
-  selection: ManagedLeaseSelectionFailure
+  credentialSelection: object
 ): Response | null {
+  const selection: ManagedLeaseSelectionFailure = credentialSelection;
   const code = selection.leaseRequired
     ? "LEASE_REQUIRED"
     : selection.leaseFenceStale
