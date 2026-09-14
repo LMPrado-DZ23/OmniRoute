@@ -229,12 +229,6 @@
     "TS2305": 1,
     "TS2345": 1
   },
-  "src/lib/monitoring/providerHealthAutopilot.ts": {
-    "TS2352": 4
-  },
-  "src/lib/providerModels/managedModelImport.ts": {
-    "TS2352": 4
-  },
   "src/lib/proxySubscription/parse.ts": {
     "TS2345": 3
   },
