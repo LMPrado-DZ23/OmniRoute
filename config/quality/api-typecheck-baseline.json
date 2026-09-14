@@ -1,8 +1,5 @@
 {
   "src/app/api/providers/[id]/refresh-cursor/route.ts": {
     "TS2352": 1
-  },
-  "src/app/api/webhooks/[id]/test/route.ts": {
-    "TS2352": 2
   }
 }
