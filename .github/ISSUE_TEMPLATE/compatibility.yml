@@ -1,0 +1,167 @@
+name: Compatibility Problem
+description: OmniRoute does not install, start or work on a specific OS, runtime, architecture, install method or client
+title: "[Compat] "
+labels: ["compatibility"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for environment-specific problems (e.g. a Node.js version, Windows, arm64, a Docker variant, or a client that speaks a specific API format). Please check `docs/reference/COMPATIBILITY_MATRIX.md` first: it separates what CI actually tests from what is only declared.
+
+        > **Security issues must not be reported here.** Use the private security advisory link on the "New issue" page (see SECURITY.md).
+
+  - type: input
+    id: version
+    attributes:
+      label: OmniRoute Version
+      description: "Run `omniroute --version` (from source: `node bin/omniroute.mjs --version`)."
+      placeholder: "e.g. 3.8.53"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Compatibility Area
+      multiple: true
+      options:
+        - Node.js / Bun runtime version
+        - Operating system
+        - CPU architecture (x64 / arm64)
+        - Docker image variant or tag
+        - Electron desktop app
+        - Client protocol / endpoint (OpenAI, Anthropic, Gemini, Responses, MCP, A2A)
+        - CLI tool / IDE integration
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: Installation Method
+      options:
+        - Docker / Docker Compose
+        - Electron desktop app
+        - Built from source
+        - npm (global)
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Android (Termux)
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: OS Version and Architecture
+      placeholder: "e.g. Windows 11 x64, macOS 26 arm64, Ubuntu 24.04 arm64"
+    validations:
+      required: true
+
+  - type: input
+    id: runtime
+    attributes:
+      label: Runtime
+      description: "`node --version` / `bun --version`, or the Docker image tag/digest."
+      placeholder: "e.g. Node 26.0.0"
+    validations:
+      required: true
+
+  - type: input
+    id: provider
+    attributes:
+      label: Provider(s) Involved
+      placeholder: "e.g. n/a, or a provider ID"
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Model(s) Involved
+      placeholder: "e.g. n/a, or a model ID from /v1/models"
+    validations:
+      required: true
+
+  - type: input
+    id: client
+    attributes:
+      label: Client / Tool and Version
+      placeholder: "e.g. Claude Code x.y, Codex CLI x.y, openai-python x.y, curl"
+    validations:
+      required: false
+
+  - type: textarea
+    id: command
+    attributes:
+      label: Command That Fails
+      description: "Install/build/start command or client request. Replace keys with placeholders."
+      placeholder: |
+        npm ci && npm run check:node-runtime && npm run build && npm start
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ### ⚠️ Redact before pasting logs
+        Remove **API keys, OAuth/refresh tokens, cookies, `Authorization` headers, passwords, account e-mails, and prompt/response content you do not want public**. Anything posted here is public.
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted Logs
+      description: "Full install/build/startup output or request logs, with secrets removed."
+      render: shell
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: redaction
+    attributes:
+      label: Redaction Confirmation
+      options:
+        - label: I removed keys, tokens, cookies and private prompt content from everything above.
+          required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: "Does the same version work on another OS/runtime? Output of `omniroute doctor` if available (redacted)."
+    validations:
+      required: false

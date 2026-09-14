@@ -2,8 +2,10 @@
   "title": "Reference",
   "pages": [
     "API_REFERENCE",
+    "SDKS",
     "CLI-TOOLS",
     "ENVIRONMENT",
+    "COMPATIBILITY_MATRIX",
     "FEATURE_FLAGS",
     "FREE_TIERS",
     "FREE_PROXIES_API",

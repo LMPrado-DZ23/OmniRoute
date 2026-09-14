@@ -1,0 +1,133 @@
+name: Documentation Issue
+description: Report missing, wrong, outdated or unclear documentation
+title: "[Docs] "
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for problems in README, `docs/`, translated docs under `docs/i18n/`, or the OpenAPI spec. If following the docs produced an error, include the command and the result so the doc can be corrected against the real behaviour.
+
+        > **Security issues must not be reported here.** Use the private security advisory link on the "New issue" page (see SECURITY.md).
+
+  - type: input
+    id: doc-path
+    attributes:
+      label: Document
+      description: "Path or URL of the page."
+      placeholder: "e.g. docs/getting-started/FIRST_10_MINUTES.md"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: problem-type
+    attributes:
+      label: Problem Type
+      options:
+        - Incorrect (does not match actual behaviour)
+        - Outdated
+        - Missing information
+        - Unclear / confusing
+        - Broken link
+        - Translation problem
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: OmniRoute Version
+      description: "Version you compared the doc against (`omniroute --version`)."
+      placeholder: "e.g. 3.8.53"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Not relevant
+    validations:
+      required: true
+
+  - type: input
+    id: runtime
+    attributes:
+      label: Runtime / Install Method
+      placeholder: "e.g. Docker ghcr.io/lmprado-dz23/omniroute:next, or source + Node 24.14.1, or not relevant"
+    validations:
+      required: true
+
+  - type: input
+    id: provider
+    attributes:
+      label: Provider(s) Involved
+      placeholder: "e.g. n/a"
+    validations:
+      required: false
+
+  - type: input
+    id: model
+    attributes:
+      label: Model(s) Involved
+      placeholder: "e.g. n/a"
+    validations:
+      required: false
+
+  - type: textarea
+    id: command
+    attributes:
+      label: Command You Ran From the Docs
+      description: "If a documented command/request failed, paste it (keys replaced with placeholders)."
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: "Which section you followed, step by step."
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What the Doc Says / What You Expected
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What Actually Happens
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ### ⚠️ Redact before pasting logs
+        Remove **API keys, OAuth/refresh tokens, cookies, `Authorization` headers, passwords, account e-mails, and prompt/response content you do not want public**. Anything posted here is public.
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted Logs / Output
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested Fix
+      description: "Proposed wording or the source file/line that shows the real behaviour."
+    validations:
+      required: false

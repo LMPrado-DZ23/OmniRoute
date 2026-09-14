@@ -1,0 +1,115 @@
+{
+  "description": "GET /api/v1/me/status — usage/quota of the calling API key; requires the self:usage scope (src/app/api/v1/me/status/route.ts). Its error bodies use the plain-string envelope.",
+  "cases": [
+    {
+      "name": "quota returns the API key status",
+      "operation": "quota",
+      "client": {
+        "apiKey": "sk-contract-key",
+        "requestId": "req-contract-1",
+        "retry": { "maxRetries": 0 }
+      },
+      "expectedRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/me/status",
+          "headers": {
+            "authorization": "Bearer sk-contract-key",
+            "accept": "application/json",
+            "x-request-id": "req-contract-1"
+          },
+          "body": null
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": { "content-type": "application/json", "x-request-id": "srv-quota-1" },
+          "json": {
+            "apiKey": { "id": "key-1", "name": "ci" },
+            "usage": {
+              "cost": {
+                "period": "monthly",
+                "currency": "USD",
+                "usedUsd": 1.25,
+                "limitUsd": 10,
+                "remainingUsd": 8.75,
+                "usedPercent": 12.5,
+                "warningThreshold": null,
+                "resetAt": "2026-10-01T00:00:00.000Z",
+                "periodStartAt": "2026-09-01T00:00:00.000Z"
+              },
+              "tokens": {
+                "periodStartAt": "2026-09-01T00:00:00.000Z",
+                "inputTokens": 1200,
+                "outputTokens": 300,
+                "cacheReadTokens": 0,
+                "cacheCreationTokens": 0,
+                "reasoningTokens": 0,
+                "totalTokens": 1500
+              }
+            }
+          }
+        }
+      ],
+      "expected": {
+        "result": {
+          "status": 200,
+          "requestId": "srv-quota-1",
+          "clientRequestId": "req-contract-1",
+          "data": {
+            "apiKey": { "id": "key-1", "name": "ci" },
+            "usage": {
+              "cost": {
+                "period": "monthly",
+                "currency": "USD",
+                "usedUsd": 1.25,
+                "limitUsd": 10,
+                "remainingUsd": 8.75,
+                "usedPercent": 12.5,
+                "warningThreshold": null,
+                "resetAt": "2026-10-01T00:00:00.000Z",
+                "periodStartAt": "2026-09-01T00:00:00.000Z"
+              },
+              "tokens": {
+                "periodStartAt": "2026-09-01T00:00:00.000Z",
+                "inputTokens": 1200,
+                "outputTokens": 300,
+                "cacheReadTokens": 0,
+                "cacheCreationTokens": 0,
+                "reasoningTokens": 0,
+                "totalTokens": 1500
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "a key without the self:usage scope gets a plain-string 403",
+      "operation": "quota",
+      "client": {
+        "apiKey": "sk-contract-key",
+        "requestId": "req-contract-1",
+        "retry": { "maxRetries": 2, "baseDelayMs": 0 }
+      },
+      "expectedRequests": [{ "method": "GET", "path": "/api/v1/me/status" }],
+      "responses": [
+        {
+          "status": 403,
+          "headers": { "content-type": "application/json", "x-request-id": "srv-quota-403" },
+          "json": { "error": "Forbidden" }
+        }
+      ],
+      "expected": {
+        "error": {
+          "status": 403,
+          "message": "Forbidden",
+          "code": null,
+          "type": null,
+          "requestId": "srv-quota-403"
+        }
+      }
+    }
+  ]
+}
