@@ -12,7 +12,9 @@ describe("webhook catalogue", () => {
     assert.equal(keys.includes("provider.error"), false);
     assert.equal(keys.includes("provider.recovered"), false);
     assert.equal(keys.includes("combo.switched"), false);
-    assert.equal(keys.length, 4); // completed, failed, quota.exceeded, test.ping
+    // completed, failed, quota.exceeded, test.ping + the SLO alert events emitted by
+    // src/lib/monitoring/sloAlerts.ts (slo.breached, slo.recovered, provider.circuit_open)
+    assert.equal(keys.length, 7);
   });
 
   it("rejected legacy events via zod (400)", () => {
