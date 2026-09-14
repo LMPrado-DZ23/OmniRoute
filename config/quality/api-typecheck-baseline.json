@@ -18,9 +18,6 @@
   "src/app/api/omniroute/route/preview/route.ts": {
     "TS2345": 1
   },
-  "src/app/api/providers/[id]/models/route.ts": {
-    "TS2345": 3
-  },
   "src/app/api/providers/[id]/refresh-cursor/route.ts": {
     "TS2352": 1
   },

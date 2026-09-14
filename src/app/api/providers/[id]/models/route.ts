@@ -121,6 +121,7 @@ import {
 } from "./discovery/providerModelsConfig";
 import {
   buildCodexDiscoveryCatalog,
+  type CodexCatalogInputModel,
   enrichCodexModelsFromGithubCatalog,
   fetchCodexDiscoveryModels,
   fetchCodexGithubCatalogModels,
@@ -2096,7 +2097,7 @@ export async function GET(
         getModelsByProviderId("codex") || [],
         getStaticModelsForProvider("codex") || []
       );
-      const finalizeCodexCatalog = (remoteModels: typeof cachedDiscoveryModels) =>
+      const finalizeCodexCatalog = (remoteModels: CodexCatalogInputModel[]) =>
         buildCodexDiscoveryCatalog(remoteModels, staticCodexCatalog);
       const cachedCatalogModels = finalizeCodexCatalog(cachedDiscoveryModels);
       const cachedIdsMatchFinalCatalog =
