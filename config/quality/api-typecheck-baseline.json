@@ -169,9 +169,6 @@
     "TS2305": 1,
     "TS2345": 1
   },
-  "src/lib/proxySubscription/parse.ts": {
-    "TS2345": 3
-  },
   "src/lib/quota/quotaAnalytics.ts": {
     "TS2769": 1
   },
