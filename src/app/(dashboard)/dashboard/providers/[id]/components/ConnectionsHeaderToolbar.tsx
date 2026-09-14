@@ -24,7 +24,7 @@ type ConnectionsHeaderToolbarProps = {
   claudeRoutingSettingsLoaded: boolean;
   claudeRoutingSettingsLoadError: string | null;
   savingClaudeRoutingPreference: boolean;
-  handleToggleClaudeRoutingPreference: () => void;
+  handleToggleClaudeRoutingPreference: (enabled: boolean) => void;
   loadClaudeRoutingSettings: () => Promise<void>;
   codexGlobalServiceMode: string;
   codexGlobalServiceModeOptions: Array<{ value: string; label: string }>;

@@ -204,7 +204,7 @@ function ParamFilterSectionSkeleton() {
   );
 }
 
-function ParamFilterSectionHeader({ t }: { t: (key: string) => string }) {
+function ParamFilterSectionHeader({ t }: { t: ReturnType<typeof useTranslations> }) {
   return (
     <>
       <h2 className="text-base font-semibold text-text-main mb-1">

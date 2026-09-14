@@ -45,23 +45,11 @@
   "src/app/(dashboard)/dashboard/providers/[id]/components/ConnectionsListPanel.tsx": {
     "TS2322": 2
   },
-  "src/app/(dashboard)/dashboard/providers/[id]/components/ProviderModalsPanel.tsx": {
-    "TS2322": 3,
-    "TS2739": 1,
-    "TS2345": 3
-  },
   "src/app/(dashboard)/dashboard/providers/[id]/components/ProviderModelsSection.tsx": {
     "TS2322": 1
   },
   "src/app/(dashboard)/dashboard/providers/[id]/components/ProviderParamFilterSection.tsx": {
-    "TS2339": 6
-  },
-  "src/app/(dashboard)/dashboard/providers/[id]/ProviderDetailPageClient.tsx": {
-    "TS2322": 4
-  },
-  "src/app/(dashboard)/dashboard/providers/components/onboarding/providerOnboardingCatalog.ts": {
-    "TS2339": 4,
-    "TS2345": 2
+    "TS2339": 5
   },
   "src/app/(dashboard)/dashboard/providers/providerPageUtils.ts": {
     "TS2345": 1
@@ -102,10 +90,6 @@
   },
   "src/shared/components/Header.tsx": {
     "TS2353": 1
-  },
-  "src/shared/components/OAuthModal.tsx": {
-    "TS2769": 3,
-    "TS2345": 3
   },
   "src/shared/schemas/cliCatalog.ts": {
     "TS2554": 2

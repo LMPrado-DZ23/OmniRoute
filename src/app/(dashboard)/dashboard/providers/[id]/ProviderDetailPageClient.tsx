@@ -614,7 +614,6 @@ export default function ProviderDetailPageClient() {
             batchTesting={batchTesting}
             batchRetesting={batchRetesting}
             retestingId={retestingId}
-            distributingProxies={distributingProxies}
             proxyConfig={proxyConfig}
             reorderingByAvailability={reorderingByAvailability}
             handleReorderByAvailability={handleReorderByAvailability}

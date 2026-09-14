@@ -35,7 +35,7 @@ export interface ImportProgress {
 export interface UseModelImportHandlersParams {
   providerId: string;
   models: Array<{ id: string; name?: string }>;
-  modelMeta: { customModels: Array<{ id: string }>; modelCompatOverrides?: unknown[] };
+  modelMeta: { customModels: Array<{ id?: string }>; modelCompatOverrides?: unknown[] };
   modelAliases: Record<string, string>;
   connections: Array<{
     id?: string;
