@@ -35,6 +35,7 @@ import { pickDisplayValue } from "@/shared/utils/maskEmail";
 import useEmailPrivacyStore from "@/store/emailPrivacyStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { ROUTING_STRATEGIES } from "@/shared/constants/routingStrategies";
+import type { ComboRuntimeConfigDraft } from "./comboRuntimeConfigDraft";
 import {
   COMBO_BUILDER_AUTO_CONNECTION,
   COMBO_BUILDER_STAGES,
@@ -252,35 +253,6 @@ function secondsInputToOptionalMs(value, maxSeconds = 86400) {
   const seconds = Number(value);
   if (!Number.isFinite(seconds) || seconds <= 0) return undefined;
   return Math.min(maxSeconds, Math.round(seconds)) * MS_PER_SECOND;
-}
-
-// Client-side draft of combo.config. Field types mirror comboRuntimeConfigSchema
-// (src/shared/validation/schemas/combo.ts) for the fields this form reads directly;
-// other keys stay open through the index signature.
-type ComboFusionTuningDraft = {
-  minPanel?: number;
-  stragglerGraceMs?: number;
-  panelHardTimeoutMs?: number;
-  maxPanel?: number;
-};
-
-interface ComboRuntimeConfigDraft {
-  [key: string]: unknown;
-  maxRetries?: number;
-  retryDelayMs?: number;
-  maxSetRetries?: number;
-  setRetryDelayMs?: number;
-  concurrencyPerModel?: number;
-  queueTimeoutMs?: number;
-  stickyRoundRobinLimit?: number;
-  stickyWeightedLimit?: number;
-  nestedComboMode?: "flatten" | "execute";
-  handoffThreshold?: number;
-  maxMessagesForSummary?: number;
-  handoffModel?: string;
-  judgeModel?: string;
-  fusionTuning?: ComboFusionTuningDraft;
-  weights?: Record<string, number>;
 }
 
 function sanitizeComboRuntimeConfig(config: unknown): ComboRuntimeConfigDraft {
