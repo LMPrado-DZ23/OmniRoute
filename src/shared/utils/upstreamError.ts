@@ -38,7 +38,7 @@ export function toJsonErrorPayload(rawError: unknown, fallbackMessage = "Upstrea
           },
         };
       }
-      return rawError;
+      return { ...rawErrorRecord, error: errorRecord };
     }
     if (!("message" in rawErrorRecord)) {
       const message = extractErrorMessage(rawErrorRecord);
