@@ -28,12 +28,16 @@ export function getOmpCredentials(providerId: string) {
   const dbPath = getOmpDbPath();
   try {
     const db = new Database(dbPath, databaseOptions(true));
-    const row = db
-      .prepare(
-        "SELECT data FROM auth_credentials WHERE provider = ? AND credential_type = 'api_key'"
-      )
-      .get(providerId) as { data: string } | undefined;
-    db.close();
+    let row: { data: string } | undefined;
+    try {
+      row = db
+        .prepare(
+          "SELECT data FROM auth_credentials WHERE provider = ? AND credential_type = 'api_key'"
+        )
+        .get(providerId) as { data: string } | undefined;
+    } finally {
+      db.close();
+    }
 
     if (row?.data) {
       const parsed = JSON.parse(row.data);
@@ -50,19 +54,20 @@ export function saveOmpCredentials(providerId: string, apiKey: string, baseUrl: 
   if (!Database) return;
   const dbPath = getOmpDbPath();
   const db = new Database(dbPath, databaseOptions());
-
-  db.prepare("DELETE FROM auth_credentials WHERE provider = ?").run(providerId);
-  db.prepare(
-    "INSERT INTO auth_credentials (provider, credential_type, data, disabled_cause, identity_key, created_at, updated_at) VALUES (?, ?, ?, NULL, NULL, ?, ?)"
-  ).run(
-    providerId,
-    "api_key",
-    JSON.stringify({ apiKey, baseUrl }),
-    Math.floor(Date.now() / 1000),
-    Math.floor(Date.now() / 1000)
-  );
-
-  db.close();
+  try {
+    db.prepare("DELETE FROM auth_credentials WHERE provider = ?").run(providerId);
+    db.prepare(
+      "INSERT INTO auth_credentials (provider, credential_type, data, disabled_cause, identity_key, created_at, updated_at) VALUES (?, ?, ?, NULL, NULL, ?, ?)"
+    ).run(
+      providerId,
+      "api_key",
+      JSON.stringify({ apiKey, baseUrl }),
+      Math.floor(Date.now() / 1000),
+      Math.floor(Date.now() / 1000)
+    );
+  } finally {
+    db.close();
+  }
 }
 
 export function deleteOmpCredentials(providerId: string) {
@@ -70,6 +75,9 @@ export function deleteOmpCredentials(providerId: string) {
   if (!Database) return;
   const dbPath = getOmpDbPath();
   const db = new Database(dbPath, databaseOptions());
-  db.prepare("DELETE FROM auth_credentials WHERE provider = ?").run(providerId);
-  db.close();
+  try {
+    db.prepare("DELETE FROM auth_credentials WHERE provider = ?").run(providerId);
+  } finally {
+    db.close();
+  }
 }
