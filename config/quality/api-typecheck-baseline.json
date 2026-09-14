@@ -93,9 +93,6 @@
   "src/app/api/settings/proxies/bulk-import/route.ts": {
     "TS2345": 1
   },
-  "src/app/api/settings/proxy/cloudflare-deploy/route.ts": {
-    "TS2769": 1
-  },
   "src/app/api/settings/reasoning-routing-rules/simulate/route.ts": {
     "TS2322": 1
   },
@@ -107,9 +104,6 @@
   },
   "src/app/api/usage/combo-health-autopilot/route.ts": {
     "TS2769": 2
-  },
-  "src/app/api/v1/files/[id]/content/route.ts": {
-    "TS2345": 1
   },
   "src/app/api/v1/images/edits/route.ts": {
     "TS2322": 2
@@ -172,8 +166,5 @@
   },
   "src/mitm/detection/index.ts": {
     "TS2741": 1
-  },
-  "src/mitm/inspector/httpProxyServer.ts": {
-    "TS2769": 1
   }
 }

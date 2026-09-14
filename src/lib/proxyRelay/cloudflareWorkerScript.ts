@@ -53,7 +53,7 @@ import { isPrivateRelayHostname } from "@/lib/proxyRelay/privateHostname";
 export function buildCloudflareWorkerUploadRequest(
   workerScript: string,
   metadata: Record<string, unknown>
-): { headers: Record<string, string>; body: Buffer } {
+): { headers: Record<string, string>; body: Buffer<ArrayBuffer> } {
   const boundary = `----OmniRouteCFWorker${randomUUID().replace(/-/g, "")}`;
   const CRLF = "\r\n";
   const parts: Buffer[] = [
