@@ -21,12 +21,6 @@
   "src/app/(dashboard)/dashboard/cli-code/components/DroidToolCard.tsx": {
     "TS2554": 2
   },
-  "src/app/(dashboard)/dashboard/combos/page.tsx": {
-    "TS2339": 4,
-    "TS2345": 5,
-    "TS2698": 1,
-    "TS2322": 13
-  },
   "src/app/(dashboard)/dashboard/compression/studio/EncoderComparisonTable.tsx": {
     "TS2322": 1
   },
