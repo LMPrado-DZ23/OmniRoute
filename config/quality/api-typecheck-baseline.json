@@ -124,13 +124,7 @@
     "TS2345": 1
   },
   "src/app/api/translator/send/route.ts": {
-    "TS2345": 1,
-    "TS2322": 1,
     "TS2339": 1
-  },
-  "src/app/api/translator/translate/route.ts": {
-    "TS2345": 1,
-    "TS2322": 1
   },
   "src/app/api/usage/combo-health-autopilot/route.ts": {
     "TS2769": 2

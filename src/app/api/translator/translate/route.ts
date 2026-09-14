@@ -21,6 +21,11 @@ function asJsonRecord(value: unknown): JsonRecord {
   return {};
 }
 
+/** Connection rows are Record<string, unknown>; providerSpecificData is an object or absent. */
+function isObjectValue(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 function getActualBody(body: JsonRecord): JsonRecord {
   const nested = asJsonRecord(body.body);
   return Object.keys(nested).length > 0 ? nested : body;
@@ -48,7 +53,9 @@ async function getUnmanagedActiveConnection(provider: string) {
   for (const connection of connections) {
     if (
       connection.isActive !== false &&
-      !(await isConnectionUnavailableToAuxiliaryActivity(connection.id))
+      !(await isConnectionUnavailableToAuxiliaryActivity(
+        typeof connection.id === "string" ? connection.id : ""
+      ))
     )
       return connection;
   }
@@ -201,7 +208,9 @@ export async function POST(request) {
         const url = buildProviderUrl(provider, model, true, {
           baseUrlIndex: 0,
           baseUrl: getProviderBaseUrl(connection.providerSpecificData),
-          providerSpecificData: connection.providerSpecificData,
+          providerSpecificData: isObjectValue(connection.providerSpecificData)
+            ? connection.providerSpecificData
+            : null,
         });
         const headers = buildProviderHeaders(provider, credentials, true, actualBody);
 

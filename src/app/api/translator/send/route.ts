@@ -18,6 +18,11 @@ import { areIntegrationPrivateUrlsAllowed } from "@/shared/network/outboundUrlGu
 /** Bound on the time to response headers for the forwarded provider request. */
 const PROVIDER_SEND_TIMEOUT_MS = 120_000;
 
+/** Connection rows are Record<string, unknown>; providerSpecificData is an object or absent. */
+function isObjectValue(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 function getProviderBaseUrl(providerSpecificData: unknown): string | undefined {
   if (!providerSpecificData || typeof providerSpecificData !== "object") return undefined;
   const baseUrl = (providerSpecificData as Record<string, unknown>).baseUrl;
@@ -85,7 +90,9 @@ export async function POST(request) {
       await Promise.all(
         connections.map(async (candidate) => ({
           candidate,
-          blocked: await isConnectionUnavailableToAuxiliaryActivity(candidate.id),
+          blocked: await isConnectionUnavailableToAuxiliaryActivity(
+            typeof candidate.id === "string" ? candidate.id : ""
+          ),
         }))
       )
     ).find(({ candidate, blocked }) => candidate.isActive !== false && !blocked)?.candidate;
@@ -115,7 +122,9 @@ export async function POST(request) {
     const url = buildProviderUrl(provider, body.model || "test-model", true, {
       baseUrlIndex: 0,
       baseUrl: getProviderBaseUrl(connection.providerSpecificData),
-      providerSpecificData: connection.providerSpecificData,
+      providerSpecificData: isObjectValue(connection.providerSpecificData)
+        ? connection.providerSpecificData
+        : null,
     });
     const headers = buildProviderHeaders(provider, credentials, true, body);
 
