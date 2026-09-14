@@ -216,6 +216,7 @@
       "tests/unit/combo-strict-random-distribution-3959.test.ts",
       "tests/unit/combo-system-prompt-templates-5501.test.ts",
       "tests/unit/combo-target-defensive-modelstr.test.ts",
+      "tests/unit/combo-to-combo-like.test.ts",
       "tests/unit/combo-vision-aware-routing.test.ts",
       "tests/unit/combo/auto-quota-cutoff.test.ts",
       "tests/unit/combo/auto-status-penalty-4540.test.ts",
