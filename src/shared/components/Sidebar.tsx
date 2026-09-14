@@ -25,6 +25,7 @@ import Button from "./Button";
 import Input from "./Input";
 import { ConfirmModal } from "./Modal";
 import CloudSyncStatus from "./CloudSyncStatus";
+import SidebarSectionHeader from "./SidebarSectionHeader";
 import { useTranslations } from "next-intl";
 import {
   HIDDEN_SIDEBAR_GROUP_LABELS_SETTING_KEY,
@@ -465,7 +466,7 @@ export default function Sidebar({
     );
     const content = (
       <>
-        <span className={iconClassName} style={getIconStyle(item.id)}>
+        <span className={iconClassName} style={getIconStyle(item.id)} aria-hidden="true">
           {item.icon}
         </span>
         {!collapsed && (
@@ -481,6 +482,8 @@ export default function Sidebar({
     const sharedProps = {
       onMouseEnter: (e: React.MouseEvent<HTMLElement>) => handleMouseEnter(e, item.id, item.label),
       onMouseLeave: handleMouseLeave,
+      // Collapsed (mini) links show only a glyph: name them by their label.
+      "aria-label": collapsed ? item.label : undefined,
     };
 
     if (item.external) {
@@ -537,13 +540,15 @@ export default function Sidebar({
               isMacElectron ? "pt-3" : "pt-5",
               collapsed ? "px-3 justify-center" : "px-4"
             )}
-            aria-hidden="true"
           >
+            {/* Only the decorative window dots are hidden: the collapse button beside them
+                must stay reachable (a focusable control inside aria-hidden is invisible to
+                screen readers yet still takes keyboard focus). */}
             {!isMacElectron && (
               <>
-                <div className="w-3 h-3 rounded-full bg-[#FF5F56]" />
-                <div className="w-3 h-3 rounded-full bg-[#FFBD2E]" />
-                <div className="w-3 h-3 rounded-full bg-[#27C93F]" />
+                <div className="w-3 h-3 rounded-full bg-[#FF5F56]" aria-hidden="true" />
+                <div className="w-3 h-3 rounded-full bg-[#FFBD2E]" aria-hidden="true" />
+                <div className="w-3 h-3 rounded-full bg-[#27C93F]" aria-hidden="true" />
               </>
             )}
             {!collapsed && <div className="flex-1" />}
@@ -653,50 +658,14 @@ export default function Sidebar({
             // Expanded mode: collapsible section with pin
             return (
               <div key={section.id} className={isFirst ? "space-y-0.5" : "mt-2"}>
-                <div
-                  className="flex items-center gap-0.5 px-2 py-1 rounded-md hover:bg-surface/30 transition-colors cursor-pointer group/header"
-                  onClick={() => toggleSection(sectionId)}
-                  role="button"
-                  aria-expanded={isExpanded}
-                >
-                  <span className="flex-1 text-[10px] font-semibold text-text-muted/60 uppercase tracking-wider group-hover/header:text-text-muted/90 transition-colors">
-                    {section.title}
-                  </span>
-
-                  {/* Pin button — right side near chevron */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      togglePin(sectionId);
-                    }}
-                    title={isPinned ? t("unpinSection") : t("pinSectionOpen")}
-                    className={cn(
-                      "p-0.5 rounded transition-all shrink-0",
-                      isPinned
-                        ? "text-primary opacity-100"
-                        : "text-text-muted/30 opacity-0 group-hover/header:opacity-100 hover:text-text-muted/70"
-                    )}
-                  >
-                    <span
-                      className="material-symbols-outlined"
-                      style={{
-                        fontSize: "10px",
-                        ...(isPinned ? { fontVariationSettings: "'FILL' 1" } : {}),
-                      }}
-                    >
-                      push_pin
-                    </span>
-                  </button>
-
-                  <span
-                    className={cn(
-                      "material-symbols-outlined text-[14px] text-text-muted/40 transition-all duration-200 group-hover/header:text-text-muted/70 shrink-0",
-                      isExpanded && "rotate-180"
-                    )}
-                  >
-                    expand_more
-                  </span>
-                </div>
+                <SidebarSectionHeader
+                  title={section.title}
+                  isExpanded={isExpanded}
+                  isPinned={isPinned}
+                  pinLabel={isPinned ? t("unpinSection") : t("pinSectionOpen")}
+                  onToggle={() => toggleSection(sectionId)}
+                  onTogglePin={() => togglePin(sectionId)}
+                />
 
                 {isExpanded && (
                   <div className="mt-0.5 space-y-0.5">
@@ -741,25 +710,31 @@ export default function Sidebar({
           <button
             onClick={() => setShowRestartModal(true)}
             title={t("restart")}
+            aria-label={t("restart")}
             className={cn(
               "flex items-center justify-center gap-2 rounded-lg font-medium transition-all",
               "text-amber-500 hover:bg-amber-500/10 border border-amber-500/20 hover:border-amber-500/40",
               collapsed ? "p-2" : "flex-1 min-w-0 px-2 py-1.5 text-xs"
             )}
           >
-            <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
+              restart_alt
+            </span>
             {!collapsed && <span className="truncate">{t("restart")}</span>}
           </button>
           <button
             onClick={() => setShowShutdownModal(true)}
             title={t("shutdown")}
+            aria-label={t("shutdown")}
             className={cn(
               "flex items-center justify-center gap-2 rounded-lg font-medium transition-all",
               "text-red-500 hover:bg-red-500/10 border border-red-500/20 hover:border-red-500/40",
               collapsed ? "p-2" : "flex-1 min-w-0 px-2 py-1.5 text-xs"
             )}
           >
-            <span className="material-symbols-outlined text-[16px]">power_settings_new</span>
+            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
+              power_settings_new
+            </span>
             {!collapsed && <span className="truncate">{t("shutdown")}</span>}
           </button>
         </div>
