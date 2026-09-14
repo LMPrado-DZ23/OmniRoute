@@ -6,12 +6,6 @@
     "TS2345": 1,
     "TS2339": 1
   },
-  "src/app/api/context/combos/[id]/route.ts": {
-    "TS2345": 1
-  },
-  "src/app/api/context/combos/route.ts": {
-    "TS2345": 1
-  },
   "src/app/api/copilot/chat/route.ts": {
     "TS2345": 1
   },
@@ -37,11 +31,7 @@
     "TS2352": 1
   },
   "src/app/api/settings/cache-config/route.ts": {
-    "TS2339": 1,
-    "TS2322": 1
-  },
-  "src/app/api/settings/database/route.ts": {
-    "TS2345": 1
+    "TS2339": 1
   },
   "src/app/api/settings/models-dev/route.ts": {
     "TS2339": 1

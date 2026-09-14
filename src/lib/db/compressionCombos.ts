@@ -196,7 +196,12 @@ function rowToAssignment(row: unknown): CompressionComboAssignment | null {
   };
 }
 
-function buildComboPayload(data: Partial<CompressionCombo>, existing?: CompressionCombo) {
+/** Engines without an intensity enum accept a free-form intensity string that is stored as-is. */
+export type CompressionComboInput = Omit<Partial<CompressionCombo>, "pipeline"> & {
+  pipeline?: Array<Omit<CompressionPipelineStep, "intensity"> & { intensity?: string }>;
+};
+
+function buildComboPayload(data: CompressionComboInput, existing?: CompressionCombo) {
   const now = new Date().toISOString();
   return {
     id: existing?.id ?? data.id ?? uuidv4(),
@@ -248,7 +253,7 @@ export function getDefaultCompressionCombo(): CompressionCombo | null {
   return rowToCompressionCombo(row);
 }
 
-export function createCompressionCombo(data: Partial<CompressionCombo>): CompressionCombo {
+export function createCompressionCombo(data: CompressionComboInput): CompressionCombo {
   ensureCompressionComboTables();
   const db = getDbInstance();
   const combo = buildComboPayload(data);
@@ -282,7 +287,7 @@ export function createCompressionCombo(data: Partial<CompressionCombo>): Compres
 
 export function updateCompressionCombo(
   id: string,
-  data: Partial<CompressionCombo>
+  data: CompressionComboInput
 ): CompressionCombo | null {
   ensureCompressionComboTables();
   const existing = getCompressionCombo(id);
