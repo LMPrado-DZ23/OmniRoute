@@ -26,6 +26,7 @@
  * Env vars:
  *   OMNIROUTE_URL       — base URL (default http://localhost:20128)
  *   OMNIROUTE_API_KEY   — API key for auth (REQUIRED)
+ *   RUN_LIVE_TESTS=1    — opt in to live traffic (REQUIRED)
  *   GEMINI_API_KEY      — used by liveGeminiShared to provision a gemini
  *                         connection if one doesn't already exist
  */

@@ -25,7 +25,7 @@
  * slow is data for the "is this viable" question, not a regression.
  *
  * Environment:
- *   OMNIROUTE_API_KEY  — required (else test skips)
+ *   OMNIROUTE_API_KEY  — required, with RUN_LIVE_TESTS=1 (else test skips)
  *   OMNIROUTE_URL      — defaults to http://localhost:3000
  */
 import test from "node:test";
