@@ -1,8 +1,9 @@
 import type { ProviderFailure } from "@/lib/resilience/failureClassification";
 import type { ProviderQuotaStatus } from "@/lib/quota/providerQuotaTelemetry";
+import type { RoutingCircuitState } from "@/shared/contracts/routing";
 
 export type AllocationDecision = "allow" | "warn" | "deny";
-export type CircuitState = "closed" | "open" | "half_open";
+export type CircuitState = RoutingCircuitState;
 
 export interface RoutingCandidate {
   providerId: string;
