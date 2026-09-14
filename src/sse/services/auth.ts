@@ -1133,7 +1133,7 @@ async function loadAdvertisedModelsForSelfHostedConnections(
  * @param {string} provider - Provider name
  * @param {string|null} excludeConnectionId - Connection ID to exclude (for retry with next account)
  */
-export async function getProviderCredentials(
+async function resolveProviderCredentials(
   provider: string,
   excludeConnectionId: string | null = null,
   allowedConnections: string[] | null = null,
@@ -2076,7 +2076,7 @@ export async function getProviderCredentials(
     if (options.lease) {
       const candidateIds = orderedConnections.map((candidate) => candidate.id);
       const selectNextLeaseCandidate = (excludedConnectionId: string) =>
-        getProviderCredentials(provider, null, allowedConnections, requestedModel, {
+        resolveProviderCredentials(provider, null, allowedConnections, requestedModel, {
           ...options,
           excludeConnectionIds: [...excludedConnectionIds, excludedConnectionId],
           deferLeaseClaim: true,
@@ -2094,7 +2094,7 @@ export async function getProviderCredentials(
         options.lease
       );
       if (claim.kind === "LOST") {
-        return getProviderCredentials(provider, null, allowedConnections, requestedModel, {
+        return resolveProviderCredentials(provider, null, allowedConnections, requestedModel, {
           ...options,
           excludeConnectionIds: [...excludedConnectionIds, connection.id],
           _leaseCandidateIds: candidateIds,
@@ -2121,7 +2121,98 @@ export async function getProviderCredentials(
     selectionLock?.release();
   }
 }
-export async function getProviderCredentialsWithQuotaPreflight(
+
+/** Verdict shapes returned only when `options.lease` is passed (see exclusiveConnectionLeasePolicy). */
+type LeaseOnlyCredentialVerdict =
+  | { leaseConnectionMismatch: unknown }
+  | { leaseRequired: unknown }
+  | { leaseFenceStale: unknown }
+  | { waitingForCapacity: unknown }
+  | { exclusiveLease: unknown }
+  // `{ [leasePolicy.error]: true }` is inferred as a boolean record.
+  | Record<string, boolean>;
+
+export type WithoutLeaseOnlyCredentialVerdicts<T> = T extends LeaseOnlyCredentialVerdict
+  ? never
+  : T;
+export type CredentialSelectionOptionsWithoutLease = Omit<CredentialSelectionOptions, "lease"> & {
+  lease?: undefined;
+};
+export type ProviderCredentialSelection = Awaited<ReturnType<typeof resolveProviderCredentials>>;
+export type ProviderCredentialSelectionWithoutLease =
+  WithoutLeaseOnlyCredentialVerdicts<ProviderCredentialSelection>;
+
+/**
+ * Get provider credentials from localDb. Lease verdicts are part of the result only when
+ * `options.lease` is passed.
+ */
+export function getProviderCredentials(
+  provider: string,
+  excludeConnectionId?: string | null,
+  allowedConnections?: string[] | null,
+  requestedModel?: string | null,
+  options?: CredentialSelectionOptionsWithoutLease
+): Promise<ProviderCredentialSelectionWithoutLease>;
+export function getProviderCredentials(
+  provider: string,
+  excludeConnectionId?: string | null,
+  allowedConnections?: string[] | null,
+  requestedModel?: string | null,
+  options?: CredentialSelectionOptions
+): Promise<ProviderCredentialSelection>;
+export function getProviderCredentials(
+  provider: string,
+  excludeConnectionId: string | null = null,
+  allowedConnections: string[] | null = null,
+  requestedModel: string | null = null,
+  options: CredentialSelectionOptions = {}
+): Promise<ProviderCredentialSelection> {
+  return resolveProviderCredentials(
+    provider,
+    excludeConnectionId,
+    allowedConnections,
+    requestedModel,
+    options
+  );
+}
+
+export type ProviderCredentialPreflightSelection = Awaited<
+  ReturnType<typeof resolveProviderCredentialsWithQuotaPreflight>
+>;
+export type ProviderCredentialPreflightSelectionWithoutLease =
+  WithoutLeaseOnlyCredentialVerdicts<ProviderCredentialPreflightSelection>;
+
+export function getProviderCredentialsWithQuotaPreflight(
+  provider: string,
+  excludeConnectionId?: string | null,
+  allowedConnections?: string[] | null,
+  requestedModel?: string | null,
+  options?: CredentialSelectionOptionsWithoutLease
+): Promise<ProviderCredentialPreflightSelectionWithoutLease>;
+export function getProviderCredentialsWithQuotaPreflight(
+  provider: string,
+  excludeConnectionId?: string | null,
+  allowedConnections?: string[] | null,
+  requestedModel?: string | null,
+  options?: CredentialSelectionOptions
+): Promise<ProviderCredentialPreflightSelection>;
+export function getProviderCredentialsWithQuotaPreflight(
+  provider: string,
+  excludeConnectionId: string | null = null,
+  allowedConnections: string[] | null = null,
+  requestedModel: string | null = null,
+  options: CredentialSelectionOptions = {}
+): Promise<ProviderCredentialPreflightSelection> {
+  return resolveProviderCredentialsWithQuotaPreflight(
+    provider,
+    excludeConnectionId,
+    allowedConnections,
+    requestedModel,
+    options
+  );
+}
+
+async function resolveProviderCredentialsWithQuotaPreflight(
   provider: string,
   excludeConnectionId: string | null = null,
   allowedConnections: string[] | null = null,

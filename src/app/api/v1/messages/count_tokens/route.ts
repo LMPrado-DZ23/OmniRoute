@@ -9,6 +9,10 @@ import { runWithProxyContext } from "@omniroute/open-sse/utils/proxyFetch.ts";
 import { isCommonChatGptWebRetirementError } from "@/shared/constants/chatgptWebRetirement";
 import { getModelInfo } from "@/sse/services/model";
 import { extractApiKey, getProviderCredentials, isValidApiKey } from "@/sse/services/auth";
+import {
+  isAllExpiredCredentials,
+  isAllRateLimitedCredentials,
+} from "@/app/api/v1/_shared/rateLimit";
 import { safeResolveProxy } from "@/sse/handlers/chatHelpers";
 import * as log from "@/sse/utils/logger";
 import { isInputTokenCountPlausible } from "@omniroute/open-sse/utils/usageTracking.ts";
@@ -65,7 +69,11 @@ export async function POST(request) {
       null,
       modelInfo.model
     );
-    if (!credentials || credentials.allRateLimited) {
+    if (
+      !credentials ||
+      isAllRateLimitedCredentials(credentials) ||
+      isAllExpiredCredentials(credentials)
+    ) {
       return estimated;
     }
 
