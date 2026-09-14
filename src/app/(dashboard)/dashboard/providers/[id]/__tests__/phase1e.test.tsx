@@ -172,6 +172,7 @@ describe("ModelRow — render smoke test", () => {
           fullModel="openai/gpt-4o"
           provider="openai"
           t={(k) => k}
+          onCopy={vi.fn()}
           effectiveModelNormalize={() => false}
           effectiveModelPreserveDeveloper={() => true}
           saveModelCompatFlags={vi.fn()}
@@ -209,6 +210,7 @@ describe("PassthroughModelRow — render smoke test", () => {
         <PassthroughModelRow
           modelId="some-model"
           fullModel="openrouter/some-model"
+          provider="openrouter"
           t={(k) => k}
           onCopy={vi.fn()}
           effectiveModelNormalize={() => false}

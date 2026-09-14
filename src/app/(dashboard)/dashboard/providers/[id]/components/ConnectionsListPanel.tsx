@@ -16,7 +16,7 @@ type ConnectionsListPanelProps = {
   providerId: string;
   isCcCompatible: boolean;
   isOAuth: boolean;
-  codexGlobalServiceMode: CodexGlobalServiceMode | string;
+  codexGlobalServiceMode: CodexGlobalServiceMode;
   selectedIds: Set<string>;
   batchUpdating: string | null;
   batchRetesting: boolean;
