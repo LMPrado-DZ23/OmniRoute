@@ -1,5 +1,1 @@
-{
-  "src/app/api/providers/[id]/refresh-cursor/route.ts": {
-    "TS2352": 1
-  }
-}
+{}

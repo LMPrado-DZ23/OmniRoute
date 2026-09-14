@@ -35,6 +35,22 @@ interface CursorConnectionLike {
   providerSpecificData?: Record<string, unknown> | null;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** Typed view of a cached connection row: only the fields this route reads, each type-checked. */
+function toCursorConnection(row: Record<string, unknown> | null): CursorConnectionLike | null {
+  if (!row || typeof row.id !== "string") return null;
+  return {
+    id: row.id,
+    provider: typeof row.provider === "string" ? row.provider : undefined,
+    accessToken: typeof row.accessToken === "string" ? row.accessToken : undefined,
+    expiresAt: typeof row.expiresAt === "string" ? row.expiresAt : null,
+    providerSpecificData: isRecord(row.providerSpecificData) ? row.providerSpecificData : null,
+  };
+}
+
 const MANUAL_REFRESH_COOLDOWN_MS = 30_000;
 
 /**
@@ -75,7 +91,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   try {
     const { id } = await params;
 
-    const connection = (await getCachedProviderConnectionById(id)) as CursorConnectionLike | null;
+    const connection = toCursorConnection(await getCachedProviderConnectionById(id));
     if (!connection) {
       return NextResponse.json({ error: "Connection not found" }, { status: 404 });
     }
