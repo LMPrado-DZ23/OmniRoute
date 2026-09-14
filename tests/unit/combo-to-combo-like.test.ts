@@ -13,7 +13,8 @@ const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-combo-to-
 process.env.DATA_DIR = TEST_DATA_DIR;
 
 const core = await import("../../src/lib/db/core.ts");
-const { resolveNestedComboTargets, toComboLike } = await import("../../open-sse/services/combo.ts");
+const { resolveNestedComboTargets } = await import("../../open-sse/services/combo.ts");
+const { toComboLike } = await import("../../open-sse/services/combo/comboStructure.ts");
 
 test.after(() => {
   core.resetDbInstance();
