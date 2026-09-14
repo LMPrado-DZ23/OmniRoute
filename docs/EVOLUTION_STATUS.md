@@ -129,7 +129,7 @@ Some suites fail on this Windows host for reasons unrelated to the branch; each 
 unchanged on the `v3.8.53` tree. Linux CI is the reference for these:
 
 - EPERM when removing a temp dir while SQLite still holds the file;
-- the libuv handle-closing assertion (`src\winsync.c`) at process exit;
+- the libuv handle-closing assertion (`async.c`) at process exit;
 - inode reuse checks that rely on POSIX rename semantics.
 
 Tests that isolate the home directory now set `USERPROFILE` as well as `HOME`
