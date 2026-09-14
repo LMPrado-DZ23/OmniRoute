@@ -168,8 +168,14 @@ import {
   applyExclusiveConnectionLeasePolicy,
   invalidateManagedConnectionLease,
   mutateExclusiveConnectionLease,
-  type CredentialLeaseSelectionContext,
 } from "./exclusiveConnectionLeasePolicy";
+import type {
+  CredentialSelectionOptions,
+  CredentialSelectionOptionsWithoutLease,
+  WithoutLeaseOnlyCredentialVerdicts,
+} from "./credentialSelectionTypes.ts";
+
+export type { ExclusiveLeaseSelectionResult } from "./credentialSelectionTypes.ts";
 import { readHeaderValue, type AuthRequestHeaders } from "./headerReader.ts";
 import {
   getOAuthSessionAvailability,
@@ -186,28 +192,6 @@ interface RecoverableConnectionState {
   lastErrorType?: string | null;
   lastErrorSource?: string | null;
 }
-export interface CredentialSelectionOptions {
-  allowSuppressedConnections?: boolean;
-  allowRateLimitedConnections?: boolean;
-  bypassQuotaPolicy?: boolean;
-  forcedConnectionId?: string | null;
-  excludeConnectionIds?: string[] | null;
-  sessionKey?: string | null;
-  sessionAffinityTtlMs?: number | null;
-  reserveOAuthSession?: boolean;
-  lease?: CredentialLeaseSelectionContext;
-  materializeCredentials?: boolean;
-  deferLeaseClaim?: boolean;
-  /** Internal: a same-call UNIQUE retry already holds the provider/owner selection lock. */
-  _leaseRetryWithLockHeld?: boolean;
-  /** Internal: freeze the original policy-valid candidate set across lease race/preflight retry. */
-  _leaseCandidateIds?: string[];
-}
-export type ExclusiveLeaseSelectionResult = {
-  exclusiveLease: ExclusiveConnectionLease;
-  connectionId: string;
-  provider: string;
-};
 interface CooldownInspectionState {
   connection: ProviderConnectionView;
   connectionCooldownMs: number | null;
@@ -2122,22 +2106,6 @@ async function resolveProviderCredentials(
   }
 }
 
-/** Verdict shapes returned only when `options.lease` is passed (see exclusiveConnectionLeasePolicy). */
-type LeaseOnlyCredentialVerdict =
-  | { leaseConnectionMismatch: unknown }
-  | { leaseRequired: unknown }
-  | { leaseFenceStale: unknown }
-  | { waitingForCapacity: unknown }
-  | { exclusiveLease: unknown }
-  // `{ [leasePolicy.error]: true }` is inferred as a boolean record.
-  | Record<string, boolean>;
-
-export type WithoutLeaseOnlyCredentialVerdicts<T> = T extends LeaseOnlyCredentialVerdict
-  ? never
-  : T;
-export type CredentialSelectionOptionsWithoutLease = Omit<CredentialSelectionOptions, "lease"> & {
-  lease?: undefined;
-};
 export type ProviderCredentialSelection = Awaited<ReturnType<typeof resolveProviderCredentials>>;
 export type ProviderCredentialSelectionWithoutLease =
   WithoutLeaseOnlyCredentialVerdicts<ProviderCredentialSelection>;
