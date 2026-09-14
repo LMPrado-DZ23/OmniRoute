@@ -6,9 +6,6 @@
   "src/app/api/oauth/cursor/login/poll/route.ts": {
     "TS2554": 1
   },
-  "src/app/api/omniroute/route/preview/route.ts": {
-    "TS2345": 1
-  },
   "src/app/api/providers/[id]/refresh-cursor/route.ts": {
     "TS2352": 1
   },
