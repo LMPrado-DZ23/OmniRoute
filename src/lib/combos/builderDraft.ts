@@ -1,5 +1,8 @@
 import type { ComboModelStep } from "@/lib/combos/steps";
 
+/** A model step as the builder creates it; the step id is assigned when it joins a combo. */
+export type ComboModelStepDraft = Omit<ComboModelStep, "id">;
+
 type JsonRecord = Record<string, unknown>;
 
 export const COMBO_BUILDER_AUTO_CONNECTION = "__auto__";
@@ -104,7 +107,7 @@ export function buildPrecisionComboModelStep({
    * unaffected.
    */
   modelPrefix?: string | null;
-}): ComboModelStep {
+}): ComboModelStepDraft {
   const normalizedProviderId = toTrimmedString(providerId) || "provider";
   const normalizedModelId = toTrimmedString(modelId) || "model";
   const normalizedModelPrefix = toTrimmedString(modelPrefix) || normalizedProviderId;
@@ -167,7 +170,7 @@ export function buildManualComboModelStep({
   value: unknown;
   providers?: ComboBuilderProviderIdentity[];
   weight?: number;
-}): ComboModelStep | null {
+}): ComboModelStepDraft | null {
   const parsed = parseQualifiedModel(value);
   if (!parsed) return null;
 
@@ -236,7 +239,7 @@ export type ComboBuilderGlobalModelEntry = {
   modelName: string;
   connectionCount: number;
   connections: unknown[];
-  step: ComboModelStep;
+  step: ComboModelStepDraft;
 };
 
 type ComboBuilderGlobalProvider = {

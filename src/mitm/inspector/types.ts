@@ -7,7 +7,7 @@ export type DetectedKind = "llm" | "app" | "unknown";
 export interface InterceptedRequest {
   id: string; // uuid
   source: CaptureSource;
-  agent?: import("../types").AgentId; // only when source === "agent-bridge"
+  agent?: import("../types").AgentId | string; // only when source === "agent-bridge"; ingest accepts any tag
   timestamp: string; // ISO 8601
   method: string;
   host: string;

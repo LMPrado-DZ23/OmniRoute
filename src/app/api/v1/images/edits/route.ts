@@ -19,7 +19,7 @@ import {
   getImageProvider,
   getImageModelEntry,
 } from "@omniroute/open-sse/config/imageRegistry.ts";
-import { errorResponse, unavailableResponse } from "@omniroute/open-sse/utils/error.ts";
+import { errorResponse } from "@omniroute/open-sse/utils/error.ts";
 import { HTTP_STATUS } from "@omniroute/open-sse/config/constants.ts";
 import * as log from "@/sse/utils/logger";
 import { toJsonErrorPayload } from "@/shared/utils/upstreamError";
@@ -44,6 +44,13 @@ import {
   isCommonChatGptWebRetirementError,
 } from "@/shared/constants/chatgptWebRetirement";
 import { z } from "zod";
+import {
+  expiredProviderResponse,
+  isAllExpiredCredentials,
+  isAllRateLimitedCredentials,
+  rateLimitedProviderResponse,
+} from "@/app/api/v1/_shared/rateLimit";
+import { isSuccessFailure } from "@/shared/utils/resultGuards";
 
 // JSON edit body (Open WebUI / OpenAI-style). All fields optional — the prompt
 // and resolvable image are enforced after extraction in POST — but the top-level
@@ -251,13 +258,11 @@ async function handleAdobeFireflyEditRequest(params: {
       `No credentials for provider: ${parsed.provider}`
     );
   }
-  if (credentials.allRateLimited) {
-    return unavailableResponse(
-      HTTP_STATUS.RATE_LIMITED,
-      `[${parsed.provider}] All accounts rate limited`,
-      credentials.retryAfter,
-      credentials.retryAfterHuman
-    );
+  if (isAllRateLimitedCredentials(credentials)) {
+    return rateLimitedProviderResponse(parsed.provider, credentials);
+  }
+  if (isAllExpiredCredentials(credentials)) {
+    return expiredProviderResponse(parsed.provider, credentials);
   }
 
   // Prefer multi-image list when present; fall back to the primary imageBytes.
@@ -417,13 +422,11 @@ async function postHandler(request: Request, _context?: unknown) {
         `No credentials for provider: ${parsed.provider}`
       );
     }
-    if (credentials.allRateLimited) {
-      return unavailableResponse(
-        HTTP_STATUS.RATE_LIMITED,
-        `[${parsed.provider}] All accounts rate limited`,
-        credentials.retryAfter,
-        credentials.retryAfterHuman
-      );
+    if (isAllRateLimitedCredentials(credentials)) {
+      return rateLimitedProviderResponse(parsed.provider, credentials);
+    }
+    if (isAllExpiredCredentials(credentials)) {
+      return expiredProviderResponse(parsed.provider, credentials);
     }
     const credentialDetails = credentials as {
       connectionId?: unknown;
@@ -494,13 +497,11 @@ async function postHandler(request: Request, _context?: unknown) {
         `No credentials for provider: ${parsed.provider}`
       );
     }
-    if (credentials.allRateLimited) {
-      return unavailableResponse(
-        HTTP_STATUS.RATE_LIMITED,
-        `[${parsed.provider}] All accounts rate limited`,
-        credentials.retryAfter,
-        credentials.retryAfterHuman
-      );
+    if (isAllRateLimitedCredentials(credentials)) {
+      return rateLimitedProviderResponse(parsed.provider, credentials);
+    }
+    if (isAllExpiredCredentials(credentials)) {
+      return expiredProviderResponse(parsed.provider, credentials);
     }
 
     const result = await handleFalAIImageEdit({
@@ -518,14 +519,14 @@ async function postHandler(request: Request, _context?: unknown) {
       log,
     });
 
-    if (result.success) {
-      await clearRecoveredProviderState(credentials);
-      return jsonResponse(result.data);
+    if (isSuccessFailure(result)) {
+      return jsonResponse(
+        toJsonErrorPayload(result.error, "Image edit provider error"),
+        result.status
+      );
     }
-    return jsonResponse(
-      toJsonErrorPayload(result.error, "Image edit provider error"),
-      result.status
-    );
+    await clearRecoveredProviderState(credentials);
+    return jsonResponse(result.data);
   }
 
   // Adobe Firefly: edit = storage upload + generate-async referenceBlobs (same as i2i generate).
@@ -561,13 +562,11 @@ async function postHandler(request: Request, _context?: unknown) {
         `No credentials for provider: ${parsed.provider}`
       );
     }
-    if (credentials.allRateLimited) {
-      return unavailableResponse(
-        HTTP_STATUS.RATE_LIMITED,
-        `[${parsed.provider}] All accounts rate limited`,
-        credentials.retryAfter,
-        credentials.retryAfterHuman
-      );
+    if (isAllRateLimitedCredentials(credentials)) {
+      return rateLimitedProviderResponse(parsed.provider, credentials);
+    }
+    if (isAllExpiredCredentials(credentials)) {
+      return expiredProviderResponse(parsed.provider, credentials);
     }
 
     const result = await handleOpenRouterImageEdit({
@@ -626,13 +625,11 @@ async function postHandler(request: Request, _context?: unknown) {
       `No credentials for custom image provider: ${customProviderId}`
     );
   }
-  if (credentials.allRateLimited) {
-    return unavailableResponse(
-      HTTP_STATUS.RATE_LIMITED,
-      `[${customProviderId}] All accounts rate limited`,
-      credentials.retryAfter,
-      credentials.retryAfterHuman
-    );
+  if (isAllRateLimitedCredentials(credentials)) {
+    return rateLimitedProviderResponse(customProviderId, credentials);
+  }
+  if (isAllExpiredCredentials(credentials)) {
+    return expiredProviderResponse(customProviderId, credentials);
   }
 
   const result = await handleOpenAIImageEdit({

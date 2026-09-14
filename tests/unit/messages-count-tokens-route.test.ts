@@ -324,3 +324,40 @@ test("messages/count_tokens rejects an impossible provider count and uses the lo
     globalThis.fetch = originalFetch;
   }
 });
+
+// Every connection expired: credential selection returns an allExpired verdict, not credentials.
+// The route used to pass that verdict on as credentials and ask the upstream to count.
+test("messages/count_tokens estimates locally without an upstream call when every connection is expired", async () => {
+  await seedConnection("anthropic", { apiKey: "sk-ant-expired-count", testStatus: "expired" });
+
+  const originalFetch = globalThis.fetch;
+  let fetchCalls = 0;
+  globalThis.fetch = async () => {
+    fetchCalls += 1;
+    return new Response(JSON.stringify({ input_tokens: 1 }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  try {
+    const response = await POST(
+      new Request("http://localhost/api/v1/messages/count_tokens", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "anthropic/claude-opus-4.6",
+          messages: [{ role: "user", content: "abcd" }],
+        }),
+      })
+    );
+
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as CountTokensResponse;
+    assert.equal(body.source, "local");
+    assert.equal(body.input_tokens, 1);
+    assert.equal(fetchCalls, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

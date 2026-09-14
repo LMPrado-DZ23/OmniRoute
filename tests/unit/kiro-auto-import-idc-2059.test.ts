@@ -35,6 +35,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { redirectHome } from "../helpers/tempHome.ts";
 
 // ── Hermetic DATA_DIR so DB setup / requireLogin does not hit real disk ──────
 
@@ -48,7 +49,7 @@ const core = await import("../../src/lib/db/core.ts");
 // Import route module once (DB is initialized on first import).
 const { GET } = await import("../../src/app/api/oauth/kiro/auto-import/route.ts");
 
-const ORIGINAL_HOME = process.env.HOME;
+let restoreHome: (() => void) | undefined;
 const ORIGINAL_APPDATA = process.env.APPDATA;
 const ORIGINAL_FETCH = globalThis.fetch;
 
@@ -59,14 +60,14 @@ test.beforeEach(() => {
   core.resetDbInstance();
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   fs.mkdirSync(TEST_DATA_DIR, { recursive: true });
-  process.env.HOME = tmpHome;
+  restoreHome = redirectHome(tmpHome);
   delete process.env.APPDATA;
   // Reset fetch so tests with mocks don't bleed into each other.
   globalThis.fetch = ORIGINAL_FETCH;
 });
 
 test.afterEach(() => {
-  process.env.HOME = ORIGINAL_HOME;
+  restoreHome?.();
   if (ORIGINAL_APPDATA !== undefined) {
     process.env.APPDATA = ORIGINAL_APPDATA;
   } else {

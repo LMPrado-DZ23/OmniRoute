@@ -29,6 +29,7 @@ const { GET, POST, DELETE } = await import("../../src/app/api/cli-tools/omp-sett
 
 let tmpHome: string;
 let origHome: string | undefined;
+let origUserProfile: string | undefined;
 
 function getOmpDir() {
   return path.join(tmpHome, ".omp", "agent");
@@ -73,11 +74,17 @@ test.beforeEach(async () => {
   await resetStorage();
   tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "omp-settings-home-"));
   origHome = process.env.HOME;
+  origUserProfile = process.env.USERPROFILE;
+  // os.homedir() reads HOME on POSIX but USERPROFILE on Windows; without both the route
+  // would read and write the real ~/.omp/agent on a Windows machine.
   process.env.HOME = tmpHome;
+  process.env.USERPROFILE = tmpHome;
+  assert.equal(os.homedir(), tmpHome, "the route must see the temporary home");
 });
 
 test.afterEach(() => {
   process.env.HOME = origHome;
+  process.env.USERPROFILE = origUserProfile;
   fs.rmSync(tmpHome, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 });
 
@@ -187,6 +194,80 @@ test("omp-settings: error responses do not leak stack traces", async () => {
     !bodyStr.match(/\s+at\s+\/[^\s]/),
     "Error response must not contain absolute-path stack traces"
   );
+});
+
+// ── Test 8+: an existing models.yml that cannot be merged is never overwritten ─
+
+const VALID_BODY = JSON.stringify({ baseUrl: "http://localhost:20128", apiKey: "sk-test-omp" });
+
+function writeModelsYml(content: string) {
+  const file = path.join(getOmpDir(), "models.yml");
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, content, "utf-8");
+  return file;
+}
+
+function postValidBody() {
+  return POST(
+    req({ method: "POST", headers: { "content-type": "application/json" }, body: VALID_BODY })
+  );
+}
+
+for (const [label, content] of [
+  ["is not valid YAML", "providers:\n  other: [unclosed\n"],
+  ["is a scalar, not a mapping", "just some text\n"],
+  ["is a list, not a mapping", "- one\n- two\n"],
+  ["has a providers value that is not a mapping", "providers: nope\n"],
+] as const) {
+  test(`omp-settings POST: 409 and models.yml left untouched when it ${label}`, async () => {
+    seedOmpDb();
+    const file = writeModelsYml(content);
+
+    const res = await postValidBody();
+    assert.equal(res.status, 409, `Expected 409, got ${res.status}`);
+    const body = await res.json();
+    assert.match(String(body.error?.message), /models\.yml/);
+    assert.equal(fs.readFileSync(file, "utf-8"), content, "models.yml must not be rewritten");
+
+    const getBody = await (await GET(req())).json();
+    assert.equal(getBody.hasOmniRoute, false, "credentials must not be saved either");
+  });
+}
+
+test("omp-settings POST: keeps other providers and top-level settings in models.yml", async () => {
+  seedOmpDb();
+  const file = writeModelsYml(
+    "defaultModel: local/llama\nproviders:\n  local:\n    baseUrl: http://127.0.0.1:11434/v1\n"
+  );
+
+  const res = await postValidBody();
+  assert.equal(res.status, 200, `Expected 200, got ${res.status}`);
+
+  const { load: yamlLoad } = await import("js-yaml");
+  assert.deepEqual(yamlLoad(fs.readFileSync(file, "utf-8")), {
+    defaultModel: "local/llama",
+    providers: {
+      local: { baseUrl: "http://127.0.0.1:11434/v1" },
+      omniroute: {
+        baseUrl: "http://localhost:20128/v1",
+        apiKey: "sk-test-omp",
+        api: "openai-completions",
+        authHeader: true,
+        disableStrictTools: true,
+        discovery: { type: "proxy" },
+      },
+    },
+  });
+});
+
+test("omp-settings DELETE: leaves a models.yml it cannot parse untouched", async () => {
+  seedOmpDb();
+  const content = "providers:\n  omniroute: [unclosed\n";
+  const file = writeModelsYml(content);
+
+  const res = await DELETE(req({ method: "DELETE" }));
+  assert.equal(res.status, 200, `Expected 200, got ${res.status}`);
+  assert.equal(fs.readFileSync(file, "utf-8"), content);
 });
 
 test.after(async () => {

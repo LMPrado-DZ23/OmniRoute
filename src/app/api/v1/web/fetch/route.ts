@@ -35,9 +35,13 @@ import { enforceApiKeyPolicy } from "@/shared/utils/apiKeyPolicy";
 import { isRequireApiKeyEnabled } from "@/shared/utils/featureFlags";
 import { v1WebFetchSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
+import { isOkFailure } from "@/shared/utils/resultGuards";
 import {
+  expiredProviderResponse,
+  isAllExpiredCredentials,
   isAllRateLimitedCredentials,
   rateLimitedProviderResponse,
+  type ExpiredCredentials,
   type RateLimitedCredentials,
 } from "@/app/api/v1/_shared/rateLimit";
 
@@ -66,7 +70,7 @@ const QUOTA_STATUS_PROVIDERS = new Set<WebFetchProviderId>([
   "tinyfish",
 ]);
 
-type CredentialsLookup = WebFetchCredentials | RateLimitedCredentials | null;
+type CredentialsLookup = WebFetchCredentials | RateLimitedCredentials | ExpiredCredentials | null;
 
 export async function OPTIONS() {
   return new Response(null, { headers: CORS_HEADERS });
@@ -103,7 +107,7 @@ async function findNextFallbackProvider(
     if (tried.has(pid)) continue;
     const creds = await resolveCredentials(pid);
     tried.add(pid);
-    if (creds && !isAllRateLimitedCredentials(creds)) {
+    if (creds && !isAllRateLimitedCredentials(creds) && !isAllExpiredCredentials(creds)) {
       return { providerId: pid, credentials: creds };
     }
   }
@@ -179,13 +183,19 @@ async function resolveExplicitTarget(
     return {
       ok: true,
       provider: providerId,
-      credentials: creds && !isAllRateLimitedCredentials(creds) ? creds : {},
+      credentials:
+        creds && !isAllRateLimitedCredentials(creds) && !isAllExpiredCredentials(creds)
+          ? creds
+          : {},
       tried: new Set([providerId]),
       isExplicit: true,
     };
   }
   if (isAllRateLimitedCredentials(creds)) {
     return { ok: false, response: rateLimitedProviderResponse(providerId, creds) };
+  }
+  if (isAllExpiredCredentials(creds)) {
+    return { ok: false, response: expiredProviderResponse(providerId, creds) };
   }
   if (!creds) {
     return {
@@ -215,12 +225,18 @@ async function resolveAutoSelectTarget(): Promise<ResolvedWebFetchTarget> {
     providerId: WebFetchProviderId;
     credentials: RateLimitedCredentials;
   } | null = null;
+  let firstExpired: { providerId: WebFetchProviderId; credentials: ExpiredCredentials } | null =
+    null;
 
   for (const pid of WEB_FETCH_PROVIDERS) {
     if (EXPLICIT_ONLY_PROVIDERS.has(pid)) continue;
     const creds = await resolveCredentials(pid);
     if (isAllRateLimitedCredentials(creds)) {
       firstRateLimited ??= { providerId: pid, credentials: creds };
+      continue;
+    }
+    if (isAllExpiredCredentials(creds)) {
+      firstExpired ??= { providerId: pid, credentials: creds };
       continue;
     }
     if (creds) {
@@ -241,6 +257,12 @@ async function resolveAutoSelectTarget(): Promise<ResolvedWebFetchTarget> {
         firstRateLimited.providerId,
         firstRateLimited.credentials
       ),
+    };
+  }
+  if (firstExpired) {
+    return {
+      ok: false,
+      response: expiredProviderResponse(firstExpired.providerId, firstExpired.credentials),
     };
   }
   return {
@@ -295,7 +317,7 @@ export async function POST(request: Request) {
 
   // Resolve provider + credentials (explicit provider never falls back; #8297)
   const target = await resolveWebFetchTarget(body.provider);
-  if (!target.ok) return target.response;
+  if (isOkFailure(target)) return target.response;
 
   log.info("WEB_FETCH", `${target.provider} | ${body.url} | format=${body.format}`);
 

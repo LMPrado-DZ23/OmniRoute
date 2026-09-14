@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { redirectHome } from "../helpers/tempHome.ts";
 
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-smelt-settings-"));
 process.env.DATA_DIR = TEST_DATA_DIR;
@@ -85,8 +86,7 @@ test("smelt-settings POST: 400 when model is missing", async () => {
 
 test("smelt-settings POST: writes config.json with valid body", async () => {
   const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "smelt-home-"));
-  const origHome = process.env.HOME;
-  process.env.HOME = tmpHome;
+  const restoreHome = redirectHome(tmpHome);
 
   try {
     const res = await POST(
@@ -113,7 +113,7 @@ test("smelt-settings POST: writes config.json with valid body", async () => {
       }
     }
   } finally {
-    process.env.HOME = origHome;
+    restoreHome();
     fs.rmSync(tmpHome, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 });
@@ -122,8 +122,7 @@ test("smelt-settings POST: writes config.json with valid body", async () => {
 
 test("smelt-settings DELETE: removes OmniRoute fields from existing config", async () => {
   const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "smelt-home-del-"));
-  const origHome = process.env.HOME;
-  process.env.HOME = tmpHome;
+  const restoreHome = redirectHome(tmpHome);
 
   try {
     const smeltDir = path.join(tmpHome, ".smelt");
@@ -147,7 +146,7 @@ test("smelt-settings DELETE: removes OmniRoute fields from existing config", asy
       assert.equal(body.success, true);
     }
   } finally {
-    process.env.HOME = origHome;
+    restoreHome();
     fs.rmSync(tmpHome, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 });

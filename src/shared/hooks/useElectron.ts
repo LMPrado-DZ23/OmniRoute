@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useSyncExternalStore } from "react";
+import { isIpcFailure } from "@/shared/utils/resultGuards";
 
 /**
  * Code Review Fixes Applied:
@@ -83,7 +84,9 @@ export function useDataDir() {
     window.electronAPI
       .getDataDir()
       .then((dir) => {
-        setDataDir(dir);
+        // A refused remote sender gets { success: false, error } instead of the path (F-8).
+        if (isIpcFailure(dir)) setError(new Error(dir.error));
+        else setDataDir(dir);
         setLoading(false);
       })
       .catch((err) => {
@@ -93,6 +96,19 @@ export function useDataDir() {
   }, []);
 
   return { dataDir, loading, error };
+}
+
+/**
+ * Turn start-on-login on or off through the main process. Resolves true only when the change was
+ * applied: the handler answers false when the OS call fails, and a privileged-channel denial
+ * ({ success: false, error }, finding F-8) is truthy, so the answer is compared with `true`.
+ */
+export async function requestAutostart(enabled: boolean): Promise<boolean> {
+  if (typeof window === "undefined" || !window.electronAPI) return false;
+  const result = enabled
+    ? await window.electronAPI.enableAutostart()
+    : await window.electronAPI.disableAutostart();
+  return result === true;
 }
 
 /**

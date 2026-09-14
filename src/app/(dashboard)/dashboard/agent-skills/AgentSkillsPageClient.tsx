@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, type JSX } from "react";
 import { useTranslations } from "next-intl";
 import { SkillsConceptCard } from "@/shared/components/SkillsConceptCard";
 import { matchesSearch } from "@/shared/utils/turkishText";

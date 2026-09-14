@@ -7,6 +7,10 @@ export async function OPTIONS() {
   return handleCorsOptions();
 }
 
+function isArrayBufferBacked(buffer: Buffer): buffer is Buffer<ArrayBuffer> {
+  return buffer.buffer instanceof ArrayBuffer;
+}
+
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const scope = await getApiKeyRequestScope(request);
   if (scope.rejection) return scope.rejection;
@@ -33,7 +37,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const sanitizedFilename = file.filename.replace(/[^\w.\-()\[\] ]/g, "_").slice(0, 255);
   const encodedFilename = encodeURIComponent(file.filename);
 
-  return new Response(content, {
+  const body = isArrayBufferBacked(content) ? content : new Uint8Array(content);
+  return new Response(body, {
     headers: {
       ...CORS_HEADERS,
       "Content-Type": file.mimeType || "application/octet-stream",

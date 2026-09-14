@@ -2,6 +2,7 @@ import { CORS_HEADERS, handleCorsOptions } from "@/shared/utils/cors";
 import { createFile, listFiles, formatFileResponse, countFiles } from "@/lib/db/files";
 import { NextResponse } from "next/server";
 import { getApiKeyRequestScope } from "@/app/api/v1/_helpers/apiKeyScope";
+import { isOkFailure } from "@/shared/utils/resultGuards";
 
 export async function OPTIONS() {
   return handleCorsOptions();
@@ -134,7 +135,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const parsed = parseFilesListQuery(searchParams);
-  if (!parsed.ok) return parsed.response;
+  if (isOkFailure(parsed)) return parsed.response;
   const { limit, after, order, purpose } = parsed;
 
   // We fetch limit + 1 to check if there are more items

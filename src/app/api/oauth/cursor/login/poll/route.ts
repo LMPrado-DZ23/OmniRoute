@@ -24,10 +24,10 @@ async function requireOAuthAuth(request: Request) {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
-async function syncToCloudIfEnabled() {
+async function syncToCloudIfEnabled(machineId: string) {
   try {
     if (await isCloudEnabled()) {
-      await syncToCloud();
+      await syncToCloud(machineId);
     }
   } catch {
     // best-effort
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
       authMethod: "deep_control",
     });
 
-    await syncToCloudIfEnabled();
+    await syncToCloudIfEnabled(machineId);
 
     return NextResponse.json({
       status: "ok",

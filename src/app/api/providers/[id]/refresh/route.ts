@@ -9,10 +9,24 @@ import {
 } from "@/sse/services/tokenRefresh";
 import { rotationGroupFor } from "@omniroute/open-sse/services/refreshSerializer.ts";
 
+/**
+ * What the getAccessToken wrapper (src/sse/services/tokenRefresh.ts, untyped) resolves to:
+ * refreshed credentials, or an error contract such as the deprecated-provider one
+ * `{ error: "unrecoverable_refresh_error", code: "provider_deprecated", migrateTo, reason }`
+ * returned by open-sse/services/tokenRefresh.ts.
+ */
 type RefreshResult = {
   accessToken?: string;
   expiresIn?: number;
+  /** ISO timestamp, when the provider reports an absolute expiry instead of expiresIn. */
+  expiresAt?: string;
   error?: string;
+  /** Machine-readable reason for an error, e.g. "provider_deprecated". */
+  code?: string;
+  /** Human-readable explanation that accompanies `code`. */
+  reason?: string;
+  /** Provider a deprecated provider's accounts should be migrated to. */
+  migrateTo?: string;
 };
 
 /**
@@ -23,6 +37,10 @@ type RefreshResult = {
  *
  * T12 — Manual Token Refresh UI
  */
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -99,6 +117,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     if (
       (provider === "github" || provider === "ghe-copilot") &&
       !connection.refreshToken &&
+      typeof connection.accessToken === "string" &&
       connection.accessToken
     ) {
       const copilotResult = await refreshCopilotToken(
@@ -114,7 +133,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       }
 
       const refreshedProviderSpecificData = {
-        ...(connection.providerSpecificData || {}),
+        ...(isObjectRecord(connection.providerSpecificData) ? connection.providerSpecificData : {}),
         copilotToken: copilotResult.token,
         copilotTokenExpiresAt: copilotResult.expiresAt,
       };

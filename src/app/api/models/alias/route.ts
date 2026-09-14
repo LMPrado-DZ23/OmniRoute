@@ -10,6 +10,7 @@ import {
   resolveModelAliasLookup,
 } from "@/lib/modelMetadataRegistry";
 import { requireManagementAuth } from "@/lib/api/requireManagementAuth";
+import { isOkFailure } from "@/shared/utils/resultGuards";
 
 // GET /api/models/alias - Get all aliases
 export async function GET(request) {
@@ -26,7 +27,7 @@ export async function GET(request) {
 
     if (alias) {
       const resolved = await resolveModelAliasLookup(alias);
-      if (!resolved.ok) {
+      if (isOkFailure(resolved)) {
         return NextResponse.json(
           {
             error: {

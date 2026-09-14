@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
@@ -11,7 +12,10 @@ export interface SkillsConceptCardProps {
 const COMPARISON_ROWS = ["whatIs", "direction", "executor", "storage", "tagline"] as const;
 type ComparisonRow = (typeof COMPARISON_ROWS)[number];
 
-export function SkillsConceptCard({ variant, className = "" }: SkillsConceptCardProps): JSX.Element {
+export function SkillsConceptCard({
+  variant,
+  className = "",
+}: SkillsConceptCardProps): JSX.Element {
   const t = useTranslations("agentSkills");
 
   const crossLinkHref = variant === "agent" ? "/dashboard/omni-skills" : "/dashboard/agent-skills";

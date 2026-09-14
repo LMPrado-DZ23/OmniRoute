@@ -16,13 +16,9 @@
 import React, { useState } from "react";
 import { providerText, type ProviderMessageTranslator } from "../providerPageHelpers";
 import { extractImportWarning } from "./modelImportWarning";
+import type { NotificationActions } from "@/store/notificationStore";
 
-interface NotifyStore {
-  success: (message: string, title?: string) => number;
-  error: (message: string, title?: string) => number;
-  warning: (message: string, title?: string) => number;
-  info: (message: string, title?: string) => number;
-}
+type NotifyStore = NotificationActions;
 
 // ──── types ──────────────────────────────────────────────────────────────────
 
@@ -39,7 +35,7 @@ export interface ImportProgress {
 export interface UseModelImportHandlersParams {
   providerId: string;
   models: Array<{ id: string; name?: string }>;
-  modelMeta: { customModels: Array<{ id: string }>; modelCompatOverrides?: unknown[] };
+  modelMeta: { customModels: Array<{ id?: string }>; modelCompatOverrides?: unknown[] };
   modelAliases: Record<string, string>;
   connections: Array<{
     id?: string;

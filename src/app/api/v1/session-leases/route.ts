@@ -26,13 +26,11 @@ import {
 import { getModelInfo } from "@/sse/services/model";
 import { buildErrorBody } from "@omniroute/open-sse/utils/error.ts";
 
-const action = <T extends string>(name: T, shape: z.ZodRawShape) =>
-  z.object({ action: z.literal(name), ...shape });
 const generation = z.number().int().positive().safe();
 const actionSchema = z.discriminatedUnion("action", [
-  action("acquire", { model: z.string().trim().min(1).max(512) }),
-  action("status", { generation }),
-  action("renew", { generation }),
+  z.object({ action: z.literal("acquire"), model: z.string().trim().min(1).max(512) }),
+  z.object({ action: z.literal("status"), generation }),
+  z.object({ action: z.literal("renew"), generation }),
   z.object({
     action: z.literal("release"),
     generation,

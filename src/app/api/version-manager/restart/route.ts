@@ -6,10 +6,11 @@ import { getOrInitSupervisor } from "@/app/api/services/cliproxy/_lib";
 import { sanitizeErrorMessage } from "@omniroute/open-sse/utils/error";
 
 import { parseVersionManagerToolRequest } from "../request";
+import { isOkFailure } from "@/shared/utils/resultGuards";
 
 export async function POST(request: Request) {
   const parsed = await parseVersionManagerToolRequest(request);
-  if (!parsed.ok) {
+  if (isOkFailure(parsed)) {
     return parsed.response;
   }
 

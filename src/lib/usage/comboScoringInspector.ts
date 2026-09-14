@@ -107,6 +107,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+/** True when every scoring factor is present as a finite number. */
+function hasAllScoringWeightKeys(
+  value: Record<string, unknown>
+): value is Record<string, unknown> & ScoringWeights {
+  return Object.keys(DEFAULT_WEIGHTS).every((key) => {
+    const weight = value[key];
+    return typeof weight === "number" && Number.isFinite(weight);
+  });
+}
+
 /**
  * Resolves the auto-strategy config object a combo's weights should be read from,
  * honoring the same precedence the runtime auto-combo strategy uses: a dedicated
@@ -130,8 +140,10 @@ function resolveModePackName(config: Record<string, unknown>): string | null {
 /** Resolves an explicit, validated `weights` object from the config, if present. */
 function resolveExplicitWeights(config: Record<string, unknown>): ScoringWeights | undefined {
   if (!isRecord(config.weights)) return undefined;
-  const explicitWeights = config.weights as ScoringWeights;
-  if (validateWeights(explicitWeights)) return explicitWeights;
+  const explicitWeights = config.weights;
+  if (hasAllScoringWeightKeys(explicitWeights) && validateWeights(explicitWeights)) {
+    return explicitWeights;
+  }
   const normalized = normalizeScoringWeights(config.weights as Partial<ScoringWeights>);
   return validateWeights(normalized) ? normalized : undefined;
 }
@@ -194,6 +206,7 @@ function buildEmptyAutopilotReport(options: ComboScoringInspectorOptions): Combo
       degradedCount: 0,
       downCount: 0,
       issueCount: 0,
+      suggestionCount: 0,
       actionableCount: 0,
     },
     combos: [],

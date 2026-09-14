@@ -31,6 +31,14 @@ export type CodexDiscoveryModel = {
   supportsVision?: boolean;
 };
 
+/** Minimal shape the merge/filter policy reads: live, GitHub, and cached synced rows all satisfy it. */
+export type CodexCatalogInputModel = {
+  id: string;
+  name?: string;
+  inputTokenLimit?: number;
+  outputTokenLimit?: number;
+};
+
 export type CodexModelsFetch = (
   input: string,
   init: {
@@ -324,7 +332,7 @@ function mergeCapacityLimitConservatively(
 }
 
 function mergeLiveAndLocalCodexModel(
-  liveModel: CodexDiscoveryModel,
+  liveModel: CodexCatalogInputModel,
   localModel: CodexDiscoveryModel
 ): CodexDiscoveryModel {
   const merged: CodexDiscoveryModel = { ...localModel, ...liveModel };
@@ -356,11 +364,11 @@ function mergeLiveAndLocalCodexModel(
  * caps) — those merge conservatively, see mergeCapacityLimitConservatively.
  * Do NOT reintroduce curated-only allowlisting as the default path (#6862 / #6859).
  */
-export function mergeCodexLiveModelsWithLocalCatalog(
-  liveModels: CodexDiscoveryModel[],
+export function mergeCodexLiveModelsWithLocalCatalog<T extends CodexCatalogInputModel>(
+  liveModels: T[],
   localCatalogModels: CodexLocalCatalogModel[]
-): CodexDiscoveryModel[] {
-  const merged = new Map<string, CodexDiscoveryModel>();
+): Array<T | CodexDiscoveryModel> {
+  const merged = new Map<string, T | CodexDiscoveryModel>();
 
   for (const liveModel of liveModels) {
     if (!liveModel?.id) continue;
@@ -380,17 +388,14 @@ export function mergeCodexLiveModelsWithLocalCatalog(
   return Array.from(merged.values());
 }
 
-/** Return true to KEEP the model. */
-export type CodexDiscoveryModelFilter = (model: CodexDiscoveryModel) => boolean;
-
 /**
  * Apply policy filters after discovery merge. Default denylist runs first;
  * extraFilters are additional keep-predicates (all must pass).
  */
-export function applyCodexDiscoveryFilters(
-  models: CodexDiscoveryModel[],
-  extraFilters: readonly CodexDiscoveryModelFilter[] = []
-): CodexDiscoveryModel[] {
+export function applyCodexDiscoveryFilters<T extends CodexCatalogInputModel>(
+  models: T[],
+  extraFilters: readonly ((model: T) => boolean)[] = []
+): T[] {
   return models.filter((model) => {
     if (isCodexDiscoveryModelExcluded(model)) return false;
     return extraFilters.every((keep) => keep(model));
@@ -398,11 +403,11 @@ export function applyCodexDiscoveryFilters(
 }
 
 /** Convenience: merge live/local then apply default (+ optional) filters. */
-export function buildCodexDiscoveryCatalog(
-  remoteModels: CodexDiscoveryModel[],
+export function buildCodexDiscoveryCatalog<T extends CodexCatalogInputModel>(
+  remoteModels: T[],
   localCatalogModels: CodexLocalCatalogModel[],
-  extraFilters: readonly CodexDiscoveryModelFilter[] = []
-): CodexDiscoveryModel[] {
+  extraFilters: readonly ((model: T | CodexDiscoveryModel) => boolean)[] = []
+): Array<T | CodexDiscoveryModel> {
   return applyCodexDiscoveryFilters(
     mergeCodexLiveModelsWithLocalCatalog(remoteModels, localCatalogModels),
     extraFilters

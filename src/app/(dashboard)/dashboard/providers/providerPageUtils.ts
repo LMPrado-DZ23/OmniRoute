@@ -255,7 +255,7 @@ export function connectionMatchesProviderCard(
 
 type GetProviderStats = (
   providerId: string,
-  authType: "oauth" | "free" | "apikey"
+  authType: ProviderEntry["toggleAuthType"]
 ) => ProviderStatsSnapshot;
 
 function getProviderSortLabel<TProvider>(entry: ProviderEntry<TProvider>): string {
@@ -500,9 +500,7 @@ export function filterConfiguredProviderEntries<TProvider>(
       return connections.some(
         (conn) =>
           connectionBelongsToProviderPage(conn.provider, entry.providerId) &&
-          connectionSearchHaystacks(conn).some((haystack) =>
-            matchesAnyToken(haystack, searchQuery)
-          )
+          connectionSearchHaystacks(conn).some((haystack) => matchesAnyToken(haystack, searchQuery))
       );
     });
   }

@@ -59,7 +59,10 @@ const EXPECTED: Record<InventoryKind, Record<string, number>> = {
     "src/lib/search/executeWebSearch.ts": 2,
     "src/lib/skills/webFetchExecution.ts": 1,
     "src/sse/handlers/chat.ts": 2,
-    "src/sse/services/auth.ts": 4,
+    // The exported credential functions are overloaded wrappers around private
+    // resolveProviderCredentials* bodies: two lease-retry recursions, two preflight
+    // selections, and one delegation per wrapper.
+    "src/sse/services/auth.ts": 6,
     "src/sse/services/imageCredentialRetry.ts": 1,
   },
   executor: {
@@ -266,7 +269,9 @@ function countCalls(): Record<InventoryKind, Record<string, number>> {
         if (ts.isIdentifier(expression)) {
           if (
             expression.text === "getProviderCredentials" ||
-            expression.text === "getProviderCredentialsWithQuotaPreflight"
+            expression.text === "getProviderCredentialsWithQuotaPreflight" ||
+            expression.text === "resolveProviderCredentials" ||
+            expression.text === "resolveProviderCredentialsWithQuotaPreflight"
           ) {
             increment("credential");
           }

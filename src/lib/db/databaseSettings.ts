@@ -264,9 +264,12 @@ export function getDatabaseSettings(): DatabaseSettings {
   };
 }
 
-export function updateDatabaseSettings(
-  updates: Partial<UserDatabaseSettings>
-): UserDatabaseSettings {
+/** mergeSectionObject() merges key by key, so each section may be partial. */
+export type DatabaseSettingsUpdate = {
+  [Section in DatabaseSettingsSection]?: Partial<UserDatabaseSettings[Section]>;
+};
+
+export function updateDatabaseSettings(updates: DatabaseSettingsUpdate): UserDatabaseSettings {
   const nextSettings = getUserDatabaseSettings();
   const optimizationUpdated = updates.optimization !== undefined;
 

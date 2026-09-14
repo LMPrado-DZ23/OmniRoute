@@ -20,7 +20,7 @@ const MAX_RESPONSE_BODY = 2048;
 
 async function testFetch(
   url: string,
-  body: Record<string, unknown>,
+  body: object,
   headers: Record<string, string>
 ): Promise<{
   success: boolean;
@@ -77,15 +77,15 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
     };
     const testPayload = { event: "test.ping", timestamp: new Date().toISOString(), data: testData };
 
-    let payloadSent: Record<string, unknown>;
+    let payloadSent: object;
     let fetchUrl: string;
     let extraHeaders: Record<string, string> = {};
 
     if (kind === "slack") {
-      payloadSent = buildSlackPayload("test.ping", testData) as Record<string, unknown>;
+      payloadSent = buildSlackPayload("test.ping", testData);
       fetchUrl = webhook.url;
     } else if (kind === "discord") {
-      payloadSent = buildDiscordPayload("test.ping", testData) as Record<string, unknown>;
+      payloadSent = buildDiscordPayload("test.ping", testData);
       fetchUrl = webhook.url;
     } else if (kind === "telegram") {
       const meta = decryptMetadata(webhook.metadata_encrypted ?? null);
@@ -94,12 +94,9 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
         return NextResponse.json({ error: "Missing Telegram botToken" }, { status: 422 });
       }
       fetchUrl = buildTelegramUrl(botToken);
-      payloadSent = buildTelegramPayload("test.ping", testData, webhook.url) as Record<
-        string,
-        unknown
-      >;
+      payloadSent = buildTelegramPayload("test.ping", testData, webhook.url);
     } else {
-      payloadSent = testPayload as Record<string, unknown>;
+      payloadSent = testPayload;
       fetchUrl = webhook.url;
       if (webhook.secret) {
         const bodyStr = JSON.stringify(testPayload);

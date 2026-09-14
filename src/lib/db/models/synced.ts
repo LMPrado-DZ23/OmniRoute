@@ -2,7 +2,7 @@ import { isRetiredGitHubCopilotModelId } from "@omniroute/open-sse/config/provid
 
 import { asRecord, toNonEmptyString } from "./shared";
 
-export interface SyncedAvailableModel {
+export type SyncedAvailableModel = {
   id: string;
   name: string;
   source: "imported";
@@ -22,7 +22,7 @@ export interface SyncedAvailableModel {
   // #4264: image-input capability captured at sync time (e.g. OpenRouter
   // `architecture.input_modalities`/`modality`) so the catalog can surface vision.
   supportsVision?: boolean;
-}
+};
 
 export type SyncedAvailableModelInput = Omit<SyncedAvailableModel, "source"> & {
   source?: string;

@@ -85,8 +85,8 @@ export async function GET(request: Request): Promise<Response> {
     });
   }
 
-  // @ts-expect-error — Next.js standalone server exposes the raw socket via
-  // `request.socket` but the Request type does not declare it.
+  // Next.js standalone server exposes the raw socket via `request.socket`, but the
+  // Request type does not declare it, hence the narrow cast below.
   const socket = (request as unknown as { socket?: import("node:net").Socket }).socket;
   if (!socket) {
     return new Response(JSON.stringify(buildErrorBody(500, "WebSocket upgrade unavailable")), {

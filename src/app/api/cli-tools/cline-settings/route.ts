@@ -11,7 +11,8 @@ import { saveCliToolLastConfigured, deleteCliToolLastConfigured } from "@/lib/db
 import { cliModelConfigSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import { resolveApiKey } from "@/shared/services/apiKeyResolver";
-import { readJsoncConfig } from "../_lib/jsoncConfig";
+import { readJsoncConfig, readJsoncObjectForMerge } from "../_lib/jsoncConfig";
+import { isOkFailure } from "@/shared/utils/resultGuards";
 
 const CLINE_DATA_DIR = path.join(os.homedir(), ".cline", "data");
 const GLOBAL_STATE_PATH = path.join(CLINE_DATA_DIR, "globalState.json");
@@ -21,7 +22,7 @@ const SECRETS_PATH = path.join(CLINE_DATA_DIR, "secrets.json");
 // Ported from upstream decolua/9router@6c10edf8: tolerate JSONC (trailing
 // commas) and return null on any parse error so the dashboard renders
 // "installed but not configured" instead of a 500 misread as "not installed".
-const readGlobalState = async () => readJsoncConfig(GLOBAL_STATE_PATH);
+const readGlobalState = async () => readJsoncConfig<Record<string, unknown>>(GLOBAL_STATE_PATH);
 
 // Read secrets.json (same JSONC-tolerant behaviour; defaults to {} for compat).
 const readSecrets = async () => readJsoncConfig<Record<string, unknown>>(SECRETS_PATH, {});
@@ -127,6 +128,17 @@ export async function POST(request: Request) {
     const { baseUrl, model } = validation.data;
     const apiKey = await resolveApiKey(keyId, validation.data.apiKey);
 
+    // Read both files before writing either: a file that cannot be merged is refused and both
+    // stay untouched, instead of being replaced by OmniRoute's keys alone (F-14).
+    const globalStateRead = await readJsoncObjectForMerge(GLOBAL_STATE_PATH, "globalState.json");
+    if (isOkFailure(globalStateRead)) {
+      return NextResponse.json({ error: { message: globalStateRead.error } }, { status: 409 });
+    }
+    const secretsRead = await readJsoncObjectForMerge(SECRETS_PATH, "secrets.json");
+    if (isOkFailure(secretsRead)) {
+      return NextResponse.json({ error: { message: secretsRead.error } }, { status: 409 });
+    }
+
     // Ensure directory exists
     await fs.mkdir(CLINE_DATA_DIR, { recursive: true });
 
@@ -134,14 +146,7 @@ export async function POST(request: Request) {
     await createBackup("cline", GLOBAL_STATE_PATH);
     await createBackup("cline", SECRETS_PATH);
 
-    // Read existing globalState or create new
-    let globalState: Record<string, any> = {};
-    try {
-      const existing = await fs.readFile(GLOBAL_STATE_PATH, "utf-8");
-      globalState = JSON.parse(existing);
-    } catch {
-      /* No existing config */
-    }
+    const globalState = globalStateRead.value;
 
     // Normalize baseUrl - Cline expects the base without /v1
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl.slice(0, -3) : baseUrl;
@@ -156,15 +161,8 @@ export async function POST(request: Request) {
     // Write globalState
     await fs.writeFile(GLOBAL_STATE_PATH, JSON.stringify(globalState, null, 2));
 
-    // Write API key to secrets
-    let secrets: Record<string, any> = {};
-    try {
-      const existing = await fs.readFile(SECRETS_PATH, "utf-8");
-      secrets = JSON.parse(existing);
-    } catch {
-      /* No existing secrets */
-    }
-
+    // Write API key to secrets, keeping every other stored secret
+    const secrets = secretsRead.value;
     secrets.openAiApiKey = apiKey || "sk_omniroute";
 
     await fs.writeFile(SECRETS_PATH, JSON.stringify(secrets, null, 2));
@@ -203,16 +201,22 @@ export async function DELETE(request: Request) {
     await createBackup("cline", SECRETS_PATH);
 
     // Read existing state
-    let globalState: Record<string, any> = {};
     try {
-      const existing = await fs.readFile(GLOBAL_STATE_PATH, "utf-8");
-      globalState = JSON.parse(existing);
-    } catch (error: any) {
-      if (error.code === "ENOENT") {
+      await fs.access(GLOBAL_STATE_PATH);
+    } catch (error) {
+      if (error instanceof Error && "code" in error && error.code === "ENOENT") {
         return NextResponse.json({ success: true, message: "No settings file to reset" });
       }
-      throw error;
     }
+    const globalStateRead = await readJsoncObjectForMerge(GLOBAL_STATE_PATH, "globalState.json");
+    if (isOkFailure(globalStateRead)) {
+      return NextResponse.json({ error: { message: globalStateRead.error } }, { status: 409 });
+    }
+    const secretsRead = await readJsoncObjectForMerge(SECRETS_PATH, "secrets.json");
+    if (isOkFailure(secretsRead)) {
+      return NextResponse.json({ error: { message: secretsRead.error } }, { status: 409 });
+    }
+    const globalState = globalStateRead.value;
 
     // Only reset if currently set to openai mode with our config
     if (globalState.actModeApiProvider === "openai") {
@@ -226,15 +230,8 @@ export async function DELETE(request: Request) {
 
     await fs.writeFile(GLOBAL_STATE_PATH, JSON.stringify(globalState, null, 2));
 
-    // Remove API key from secrets
-    let secrets: Record<string, any> = {};
-    try {
-      const existing = await fs.readFile(SECRETS_PATH, "utf-8");
-      secrets = JSON.parse(existing);
-    } catch {
-      /* ignore */
-    }
-
+    // Remove API key from secrets, keeping every other stored secret
+    const secrets = secretsRead.value;
     delete secrets.openAiApiKey;
     await fs.writeFile(SECRETS_PATH, JSON.stringify(secrets, null, 2));
 

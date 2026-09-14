@@ -56,7 +56,7 @@ export interface ProviderModelsSectionProps {
   onCopy: (text: string) => void;
 
   // Model alias handlers
-  onSetAlias: (modelId: string, alias: string, providerAlias: string) => Promise<void>;
+  onSetAlias: (modelId: string, alias: string, providerAlias?: string) => Promise<void>;
   onDeleteAlias: (alias: string) => Promise<void>;
   fetchProviderModelMeta: () => Promise<void>;
 
@@ -264,6 +264,7 @@ export default function ProviderModelsSection({
           {clearAllButton}
         </div>
         <CompatibleModelsSection
+          providerId={providerId}
           providerStorageAlias={providerStorageAlias}
           providerDisplayAlias={providerDisplayAlias}
           modelAliases={modelAliases}

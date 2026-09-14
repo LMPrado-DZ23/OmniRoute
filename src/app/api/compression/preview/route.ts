@@ -84,7 +84,7 @@ function quantumExtras(quantumLock?: { enabled: boolean }) {
     : { configPatch: {}, applyOpts: {} };
 }
 
-function messagesToText(messages: Array<{ role: string; content: unknown }>): string {
+function messagesToText(messages: Array<{ role: string; content?: unknown }>): string {
   return messages
     .map((m) => {
       const content = typeof m.content === "string" ? m.content : JSON.stringify(m.content);
@@ -226,8 +226,18 @@ export async function POST(req: Request) {
     );
   }
 
-  const { messages, mode, engineId: rawEngineId, pipeline, config, fidelityGate, fuzzyDedup, riskGate, quantumLock, heatmap: heatmapMode } =
-    parsed.data;
+  const {
+    messages,
+    mode,
+    engineId: rawEngineId,
+    pipeline,
+    config,
+    fidelityGate,
+    fuzzyDedup,
+    riskGate,
+    quantumLock,
+    heatmap: heatmapMode,
+  } = parsed.data;
   // Alias: `mode: "caveman"` is a synonym for `engineId: "caveman"` (single-engine stacked run).
   // The caveman engine is not a top-level CompressionMode, but it IS a registered engine.
   const engineId = mode === "caveman" && !rawEngineId ? "caveman" : rawEngineId;

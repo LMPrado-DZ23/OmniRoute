@@ -322,8 +322,9 @@ export async function createSqlJsAdapter(filePath: string): Promise<SqliteAdapte
       return filePath;
     },
 
-    prepare(sql: string): PreparedStatement {
-      return makeStatement(sql);
+    prepare<Row = unknown>(sql: string): PreparedStatement<Row> {
+      // makeStatement yields untyped rows; this is where they take the caller-declared Row.
+      return makeStatement(sql) as PreparedStatement<Row>;
     },
 
     exec(sql: string): void {

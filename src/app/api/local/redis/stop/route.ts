@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { isLocalRequestAllowed } from "@/lib/security/localEndpoints";
+import { isLocalRequestAllowed, isLocalRequestDenied } from "@/lib/security/localEndpoints";
 import { sanitizeErrorMessage } from "@omniroute/open-sse/utils/error";
 
 import {
@@ -12,7 +12,7 @@ import {
 
 export async function POST() {
   const guard = isLocalRequestAllowed();
-  if (!guard.allowed) {
+  if (isLocalRequestDenied(guard)) {
     return NextResponse.json({ error: guard.reason }, { status: 403 });
   }
 

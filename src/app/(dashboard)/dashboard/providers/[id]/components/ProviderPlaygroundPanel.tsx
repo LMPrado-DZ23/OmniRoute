@@ -5,7 +5,7 @@
 // Shows ServiceKindTabs if the provider declares multiple kinds; falls back to
 // a single-kind panel or the LlmChatCard for standard LLM providers.
 
-import { useState } from "react";
+import { useState, type JSX } from "react";
 import { useTranslations } from "next-intl";
 import { LlmChatCard } from "@/app/(dashboard)/dashboard/media-providers/components/LlmChatCard";
 import { ServiceKindTabs } from "@/app/(dashboard)/dashboard/media-providers/components/ServiceKindTabs";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useSyncExternalStore } from "react";
+import { useCallback, useState, useSyncExternalStore, type JSX } from "react";
 import { useTranslations } from "next-intl";
 
 // SSR-safe origin via useSyncExternalStore.

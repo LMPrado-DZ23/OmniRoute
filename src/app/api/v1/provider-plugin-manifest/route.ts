@@ -16,13 +16,12 @@ import type {
   ProviderPluginModel,
 } from "@omniroute/open-sse/config/providerPluginManifest.ts";
 
-const SERVICE_BACKEND_EXPOSURE_REQUIRED = new Set(SERVICE_BACKEND_PLUGIN_IDS);
+const SERVICE_BACKEND_EXPOSURE_REQUIRED = new Set<string>(SERVICE_BACKEND_PLUGIN_IDS);
 const SERVICE_BACKEND_PLUGIN_ID_SET = new Set<string>(SERVICE_BACKEND_PLUGIN_IDS);
 
 function createServiceManifestTemplate(providerId: string): ProviderPluginManifestEntry | null {
-  const entry = SERVICE_BACKEND_MANIFEST_TEMPLATE[
-    providerId as keyof typeof SERVICE_BACKEND_MANIFEST_TEMPLATE
-  ];
+  const entry =
+    SERVICE_BACKEND_MANIFEST_TEMPLATE[providerId as keyof typeof SERVICE_BACKEND_MANIFEST_TEMPLATE];
   if (!entry) return null;
 
   return {
@@ -78,7 +77,10 @@ function toProviderPluginModel(tool: string, model: ServiceModel): ProviderPlugi
   };
 }
 
-function pickServiceModels(tool: string, reader: (toolName: string) => ServiceModel[]): ProviderPluginModel[] {
+function pickServiceModels(
+  tool: string,
+  reader: (toolName: string) => ServiceModel[]
+): ProviderPluginModel[] {
   const models = reader(tool).filter(isValidServiceModelEntry);
 
   const unique = new Map<string, ProviderPluginModel>();
@@ -145,7 +147,7 @@ export async function injectServiceModelsIntoManifest(
       } catch {
         return provider;
       }
-    }),
+    })
   );
 
   return {

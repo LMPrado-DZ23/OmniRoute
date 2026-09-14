@@ -1,8 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState, useEffect } from "react";
-import { useIsElectron } from "@/shared/hooks/useElectron";
+import { useDataDir, useIsElectron } from "@/shared/hooks/useElectron";
 
 /**
  * Forgot Password Page — Phase 8.2
@@ -18,16 +17,8 @@ import { Card } from "@/shared/components";
 export default function ForgotPasswordPage() {
   const t = useTranslations("auth");
   const isElectron = useIsElectron();
-  const [dataDir, setDataDir] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isElectron && typeof window !== "undefined" && (window as any).electronAPI?.getDataDir) {
-      (window as any).electronAPI
-        .getDataDir()
-        .then((dir: string) => setDataDir(dir))
-        .catch(() => {});
-    }
-  }, [isElectron]);
+  // Null until the main process answers, and stays null when it refuses the request (F-8).
+  const { dataDir } = useDataDir();
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">

@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { after, it } from "node:test";
+import { redirectHome } from "../helpers/tempHome.ts";
 
 const require = createRequire(import.meta.url);
 // Read the pin from the installed package instead of hard-coding it: the constant
@@ -14,15 +15,13 @@ const require = createRequire(import.meta.url);
 // the version this repo pins) while surviving future bumps.
 const OPENCODE_VERSION: string = require("opencode-ai/package.json").version;
 const testHome = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-opencode-8849-"));
-const originalHome = process.env.HOME;
 const originalFetch = globalThis.fetch;
 
-process.env.HOME = testHome;
+const restoreHome = redirectHome(testHome);
 
 after(() => {
   globalThis.fetch = originalFetch;
-  if (originalHome === undefined) delete process.env.HOME;
-  else process.env.HOME = originalHome;
+  restoreHome();
   fs.rmSync(testHome, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 });
 

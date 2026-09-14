@@ -605,7 +605,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       );
     }
 
-    const allFetchedModels = modelsData.models || [];
+    const allFetchedModels = Array.isArray(modelsData.models) ? modelsData.models : [];
     const importFreeOnly = Boolean(
       (connection.providerSpecificData as Record<string, unknown> | undefined)?.importFreeModelsOnly
     );

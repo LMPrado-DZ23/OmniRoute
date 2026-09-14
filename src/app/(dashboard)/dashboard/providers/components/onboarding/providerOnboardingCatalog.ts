@@ -49,6 +49,9 @@ export const SUPPORTED_WIZARD_OAUTH_PROVIDER_IDS = new Set([
   "cline",
 ]);
 
+// FREE_PROVIDERS is declared as an (empty) object literal; give it the shape read here.
+const FREE_PROVIDER_DEFINITIONS: Record<string, WizardProviderDefinition> = FREE_PROVIDERS;
+
 function toProviderOption(
   provider: WizardProviderDefinition,
   authKind: WizardProviderAuthKind
@@ -79,7 +82,7 @@ function sortProviderOptions(options: WizardProviderOption[]): WizardProviderOpt
 }
 
 export function getWizardApiKeyProviderOptions(): WizardProviderOption[] {
-  const freeApiKeyProviders = Object.values(FREE_PROVIDERS).filter(
+  const freeApiKeyProviders = Object.values(FREE_PROVIDER_DEFINITIONS).filter(
     (provider) => provider.noAuth || supportsApiKeyOnFreeProvider(provider.id)
   );
   const providers = [...Object.values(APIKEY_PROVIDERS), ...freeApiKeyProviders].filter(
@@ -90,7 +93,10 @@ export function getWizardApiKeyProviderOptions(): WizardProviderOption[] {
 
 export function getWizardOAuthProviderOptions(): WizardProviderOption[] {
   const providersById = new Map<string, WizardProviderDefinition>();
-  for (const provider of [...Object.values(OAUTH_PROVIDERS), ...Object.values(FREE_PROVIDERS)]) {
+  for (const provider of [
+    ...Object.values(OAUTH_PROVIDERS),
+    ...Object.values(FREE_PROVIDER_DEFINITIONS),
+  ]) {
     if (SUPPORTED_WIZARD_OAUTH_PROVIDER_IDS.has(provider.id)) {
       providersById.set(provider.id, provider);
     }

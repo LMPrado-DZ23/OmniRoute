@@ -4,5 +4,5 @@
     "noEmit": true,
     "incremental": false
   },
-  "include": ["src/app/(dashboard)/**/*.ts", "src/app/(dashboard)/**/*.tsx"]
+  "include": ["src/app/(dashboard)/**/*.ts", "src/app/(dashboard)/**/*.tsx", "electron/types.d.ts"]
 }

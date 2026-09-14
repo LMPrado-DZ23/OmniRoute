@@ -226,6 +226,9 @@ function parseExampleEntries(content, scope = "full") {
   return entries;
 }
 
+/**
+ * @param {{ rootDir?: string, scope?: string }} [options]
+ */
 export function getEnvSyncPlan({ rootDir, scope = "full" } = {}) {
   const root = resolveRootDir(rootDir);
   const envExamplePath = join(root, ".env.example");
@@ -292,6 +295,9 @@ function replaceBlankSecret(content, key, value) {
   return pattern.test(content) ? content.replace(pattern, `${key}=${value}`) : content;
 }
 
+/**
+ * @param {{ rootDir?: string, quiet?: boolean, scope?: string }} [options]
+ */
 export function syncEnv({ rootDir, quiet = false, scope = "full" } = {}) {
   const log = quiet ? () => {} : (message) => process.stderr.write(`[sync-env] ${message}\n`);
   const root = resolveRootDir(rootDir);

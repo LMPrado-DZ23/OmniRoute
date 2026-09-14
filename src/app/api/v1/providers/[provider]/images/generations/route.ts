@@ -1,5 +1,6 @@
 import { handleImageGeneration } from "@omniroute/open-sse/handlers/imageGeneration.ts";
-import { errorResponse, unavailableResponse } from "@omniroute/open-sse/utils/error.ts";
+import { errorResponse } from "@omniroute/open-sse/utils/error.ts";
+import { credentialVerdictResponse } from "@/app/api/v1/_shared/rateLimit";
 import { HTTP_STATUS } from "@omniroute/open-sse/config/constants.ts";
 import {
   getProviderCredentialsWithQuotaPreflight,
@@ -88,14 +89,9 @@ export async function POST(request, { params }) {
       `No credentials for image provider: ${rawProvider}`
     );
   }
-  if (credentials.allRateLimited) {
-    return unavailableResponse(
-      HTTP_STATUS.RATE_LIMITED,
-      `[${rawProvider}] All accounts rate limited`,
-      credentials.retryAfter,
-      credentials.retryAfterHuman
-    );
-  }
+  // #F-6: rate-limited and all-expired pools are verdicts, not credentials — answer like chat.
+  const verdict = credentialVerdictResponse(rawProvider, credentials);
+  if (verdict) return verdict;
 
   const execution = await executeImageWithCredentialFallback({
     provider: rawProvider,

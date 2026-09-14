@@ -588,3 +588,57 @@ test("returns bounded WAITING_FOR_CAPACITY without credential or owner disclosur
   assert.equal("connection" in body, false);
   assert.equal(attemptedExternalCalls, 0);
 });
+
+test("acquire answers 429 LEASE_ELIGIBILITY_UNAVAILABLE when every allowed connection is expired", async () => {
+  const connection = (await providersDb.createProviderConnection({
+    provider: "glm",
+    authType: "apikey",
+    name: "lease-route-expired",
+    apiKey: "sk-route-expired",
+    isActive: true,
+    testStatus: "expired",
+    backoffLevel: 4,
+    priority: 1,
+    providerSpecificData: {},
+  })) as { id: string };
+  const managed = await seedKey([connection.id]);
+
+  const response = await route.POST(
+    request(managed.key, { action: "acquire", model: "glm/glm-4.6" }, OWNER_A)
+  );
+  assert.equal(response.status, 429);
+  const body = await json(response);
+  assert.equal((body.error as { code: string }).code, "LEASE_ELIGIBILITY_UNAVAILABLE");
+  const serialized = JSON.stringify(body);
+  assert.equal(serialized.includes("sk-route-expired"), false);
+  assert.equal(serialized.includes(OWNER_A), false);
+  assert.equal(attemptedExternalCalls, 0);
+});
+
+test("rejects an acquire without a model and a status without a generation", async () => {
+  const connection = await seedConnection(1);
+  const managed = await seedKey([connection.id]);
+
+  for (const body of [{ action: "acquire" }, { action: "status" }, { action: "renew" }]) {
+    const response = await route.POST(request(managed.key, body, OWNER_A));
+    assert.equal(response.status, 400, `${JSON.stringify(body)} must be rejected`);
+    const parsed = await json(response);
+    assert.equal((parsed.error as { code: string }).code, "LEASE_ACTION_INVALID");
+  }
+  assert.equal(attemptedExternalCalls, 0);
+});
+
+test("rejects out-of-range values for each action", async () => {
+  const connection = await seedConnection(1);
+  const managed = await seedKey([connection.id]);
+
+  for (const body of [
+    { action: "acquire", model: "" },
+    { action: "status", generation: 0 },
+    { action: "release", generation: 1, reason: "NOT_A_REASON" },
+  ]) {
+    const response = await route.POST(request(managed.key, body, OWNER_A));
+    assert.equal(response.status, 400, `${JSON.stringify(body)} must be rejected`);
+  }
+  assert.equal(attemptedExternalCalls, 0);
+});

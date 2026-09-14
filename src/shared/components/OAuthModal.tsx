@@ -241,7 +241,7 @@ export default function OAuthModal({
               : null;
           const errMsg = errorObject
             ? (errorObject.message as string) || JSON.stringify(errorObject)
-            : data.error || t("errorExchangeFailed");
+            : String(data.error || t("errorExchangeFailed"));
           const details = Array.isArray(errorObject?.details)
             ? (errorObject.details as Array<{ field?: string; message?: string }>)
                 .map((detail) => {
@@ -492,7 +492,7 @@ export default function OAuthModal({
 
               setAuthData({ ...serverData, redirectUri: serverData.redirectUri });
               setStep("waiting");
-              popupRef.current = window.open(serverData.authUrl, "oauth_auth");
+              popupRef.current = window.open(String(serverData.authUrl ?? ""), "oauth_auth");
 
               // If browser blocked the popup, switch to manual input step immediately
               if (!popupRef.current) {
@@ -519,7 +519,7 @@ export default function OAuthModal({
                 }
 
                 if (pollData.error && !pollData.pending) {
-                  throw new Error(pollData.errorDescription || pollData.error);
+                  throw new Error(String(pollData.errorDescription || pollData.error));
                 }
               }
 
@@ -594,7 +594,7 @@ export default function OAuthModal({
         }
 
         if (!data.authUrl) {
-          throw new Error(data.error || t("errorBrowserUnavailable"));
+          throw new Error(String(data.error || t("errorBrowserUnavailable")));
         }
 
         setAuthData({ ...data, redirectUri: data.redirectUri || redirectUri });
@@ -602,11 +602,15 @@ export default function OAuthModal({
         // For non-true-localhost (LAN IPs, remote) or manual fallback: use manual input mode (user pastes callback URL)
         if (!isTrueLocalhost || forceManual) {
           setStep("input");
-          window.open(data.authUrl, "oauth_auth");
+          window.open(String(data.authUrl), "oauth_auth");
         } else {
           // Localhost: Open popup and wait for message
           setStep("waiting");
-          popupRef.current = window.open(data.authUrl, "oauth_popup", "width=600,height=700");
+          popupRef.current = window.open(
+            String(data.authUrl),
+            "oauth_popup",
+            "width=600,height=700"
+          );
 
           // Check if popup was blocked
           if (!popupRef.current) {

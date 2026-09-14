@@ -11,6 +11,8 @@ import { HTTP_STATUS } from "@omniroute/open-sse/config/constants.ts";
 import * as log from "@/sse/utils/logger";
 import { enforceApiKeyPolicy } from "@/shared/utils/apiKeyPolicy";
 import {
+  expiredProviderResponse,
+  isAllExpiredCredentials,
   isAllRateLimitedCredentials,
   rateLimitedProviderResponse,
 } from "@/app/api/v1/_shared/rateLimit";
@@ -116,6 +118,9 @@ async function postHandler(request, context) {
     if (isAllRateLimitedCredentials(credentials)) {
       return rateLimitedProviderResponse(provider, credentials);
     }
+    if (isAllExpiredCredentials(credentials)) {
+      return expiredProviderResponse(provider, credentials);
+    }
   } else if (isCustomModel) {
     credentials = await getProviderCredentialsWithQuotaPreflight(
       provider,
@@ -131,6 +136,9 @@ async function postHandler(request, context) {
     }
     if (isAllRateLimitedCredentials(credentials)) {
       return rateLimitedProviderResponse(provider, credentials);
+    }
+    if (isAllExpiredCredentials(credentials)) {
+      return expiredProviderResponse(provider, credentials);
     }
   } else if (providerConfig?.authType === "none") {
     credentials = await resolveLocalOverrideCredentials(provider);

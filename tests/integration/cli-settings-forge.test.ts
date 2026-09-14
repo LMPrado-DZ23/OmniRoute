@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { redirectHome } from "../helpers/tempHome.ts";
 import { makeManagementSessionRequest } from "../helpers/managementSession.ts";
 
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-forge-settings-"));
@@ -89,8 +90,7 @@ test("forge-settings POST: 400 when model is missing", async () => {
 
 test("forge-settings POST: writes config.toml with valid body", async () => {
   const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "forge-home-"));
-  const origHome = process.env.HOME;
-  process.env.HOME = tmpHome;
+  const restoreHome = redirectHome(tmpHome);
 
   try {
     const res = await POST(
@@ -121,7 +121,7 @@ test("forge-settings POST: writes config.toml with valid body", async () => {
       }
     }
   } finally {
-    process.env.HOME = origHome;
+    restoreHome();
     fs.rmSync(tmpHome, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 });
@@ -130,8 +130,7 @@ test("forge-settings POST: writes config.toml with valid body", async () => {
 
 test("forge-settings DELETE: removes config file when it exists", async () => {
   const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "forge-home-del-"));
-  const origHome = process.env.HOME;
-  process.env.HOME = tmpHome;
+  const restoreHome = redirectHome(tmpHome);
 
   try {
     // Pre-create a config file
@@ -152,7 +151,7 @@ test("forge-settings DELETE: removes config file when it exists", async () => {
       assert.equal(body.success, true);
     }
   } finally {
-    process.env.HOME = origHome;
+    restoreHome();
     fs.rmSync(tmpHome, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 });

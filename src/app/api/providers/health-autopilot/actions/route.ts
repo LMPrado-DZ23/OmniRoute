@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { requireManagementAuth } from "@/lib/api/requireManagementAuth";
 import { executeProviderHealthAutopilotAction } from "@/lib/monitoring/providerHealthAutopilot";
-import { validateBody } from "@/shared/validation/helpers";
+import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 
 const actionSchema = z.object({
   type: z.enum([
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     }
 
     const validation = validateBody(actionSchema, rawBody);
-    if (!validation.success) {
+    if (isValidationFailure(validation)) {
       return NextResponse.json({ error: { message: validation.error } }, { status: 400 });
     }
 

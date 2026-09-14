@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { redirectHome } from "../helpers/tempHome.ts";
 
 // ── Catalog shape ────────────────────────────────────────────────────────────
 
@@ -119,8 +120,7 @@ test("crush-settings POST: 400 when model is missing", async () => {
 
 test("crush-settings POST: writes crush.json with an openai-compat providers.omniroute block", async () => {
   const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "crush-home-"));
-  const origHome = process.env.HOME;
-  process.env.HOME = tmpHome;
+  const restoreHome = redirectHome(tmpHome);
 
   try {
     const res = await POST(
@@ -151,15 +151,14 @@ test("crush-settings POST: writes crush.json with an openai-compat providers.omn
       }
     }
   } finally {
-    process.env.HOME = origHome;
+    restoreHome();
     fs.rmSync(tmpHome, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 });
 
 test("crush-settings DELETE: removes only the omniroute provider entry", async () => {
   const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "crush-home-del-"));
-  const origHome = process.env.HOME;
-  process.env.HOME = tmpHome;
+  const restoreHome = redirectHome(tmpHome);
 
   try {
     const crushDir = path.join(tmpHome, ".config", "crush");
@@ -196,7 +195,7 @@ test("crush-settings DELETE: removes only the omniroute provider entry", async (
       }
     }
   } finally {
-    process.env.HOME = origHome;
+    restoreHome();
     fs.rmSync(tmpHome, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 });

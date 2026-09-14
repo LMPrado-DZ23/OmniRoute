@@ -84,14 +84,14 @@ export interface ComboHealthResponse {
   combos: ComboHealthMetrics[];
 }
 
-export interface ComboRecord {
+export type ComboRecord = {
   id?: string;
   name?: string;
   strategy?: string;
   models?: unknown[];
   autoConfig?: unknown;
   config?: unknown;
-}
+};
 
 export type UtilizationTimeRange = "1h" | "24h" | "7d" | "30d";
 

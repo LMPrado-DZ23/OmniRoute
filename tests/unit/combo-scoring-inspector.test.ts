@@ -390,6 +390,34 @@ test("scoring inspector normalizes partial explicit auto weights like runtime", 
   assert.equal(response.combos[0].warnings.length, 0);
 });
 
+test("scoring inspector normalizes partial explicit weights even when they sum to 1", async () => {
+  const explicitWeights = { quota: 0.6, health: 0.4 };
+  const combo = await combosDb.createCombo({
+    name: "combo-scoring-partial-weights-sum-one",
+    strategy: "auto",
+    models: ["openai/gpt-4o-mini"],
+    autoConfig: { weights: explicitWeights },
+  });
+
+  const response = await inspector.buildComboScoringInspectorResponse({
+    range: "24h",
+    horizon: "7d",
+    comboId: String(combo.id),
+    combos: [combo],
+    skipAutopilot: true,
+  });
+
+  assert.equal(response.combos[0].weightSource, "explicit");
+  assert.deepEqual(response.combos[0].weights, normalizeScoringWeights(explicitWeights));
+  for (const key of Object.keys(DEFAULT_WEIGHTS)) {
+    assert.equal(
+      typeof (response.combos[0].weights as Record<string, unknown>)[key],
+      "number",
+      `weight ${key} must be present`
+    );
+  }
+});
+
 test("scoring inspector marks non-auto combos as explanatory recompute", async () => {
   const combo = await combosDb.createCombo({
     name: "combo-scoring-priority",

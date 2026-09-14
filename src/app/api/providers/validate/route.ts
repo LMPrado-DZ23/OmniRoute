@@ -117,7 +117,9 @@ export async function POST(request) {
     }
 
     const registryProxy = await resolveProxyForProvider(provider);
-    let proxyToUse = registryProxy;
+    let proxyToUse:
+      | Awaited<ReturnType<typeof resolveProxyForProvider>>
+      | Awaited<ReturnType<typeof getProxyForLevel>> = registryProxy;
 
     if (!proxyToUse) {
       const providerProxy = await getProxyForLevel("provider", provider);

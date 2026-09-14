@@ -11,7 +11,8 @@ import { saveCliToolLastConfigured, deleteCliToolLastConfigured } from "@/lib/db
 import { cliModelConfigSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import { resolveApiKey } from "@/shared/services/apiKeyResolver";
-import { readJsoncConfig } from "../_lib/jsoncConfig";
+import { readJsoncConfig, readJsoncObjectForMerge } from "../_lib/jsoncConfig";
+import { isOkFailure } from "@/shared/utils/resultGuards";
 
 const KILO_DATA_DIR = path.join(os.homedir(), ".local", "share", "kilo");
 const AUTH_PATH = path.join(KILO_DATA_DIR, "auth.json");
@@ -143,20 +144,19 @@ export async function POST(request) {
     const { baseUrl, model } = validation.data;
     const apiKey = await resolveApiKey(keyId, validation.data.apiKey);
 
+    // Read existing auth before writing: a file that cannot be merged is refused and left
+    // untouched, instead of being replaced by OmniRoute's provider alone (F-14).
+    const authRead = await readJsoncObjectForMerge(AUTH_PATH, "auth.json");
+    if (isOkFailure(authRead)) {
+      return NextResponse.json({ error: { message: authRead.error } }, { status: 409 });
+    }
+    const auth = authRead.value;
+
     // Ensure directories exist
     await fs.mkdir(KILO_DATA_DIR, { recursive: true });
 
     // Backup auth before modifying
     await createBackup("kilo", AUTH_PATH);
-
-    // Read existing auth
-    let auth = {};
-    try {
-      const existing = await fs.readFile(AUTH_PATH, "utf-8");
-      auth = JSON.parse(existing);
-    } catch {
-      /* No existing auth */
-    }
 
     // Normalize baseUrl
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
@@ -180,23 +180,22 @@ export async function POST(request) {
         "User",
         "settings.json"
       );
-      let vscodeSettings = {};
-      try {
-        const raw = await fs.readFile(vscodeSettingsPath, "utf-8");
-        vscodeSettings = JSON.parse(raw);
-      } catch {
-        /* no existing settings */
+      // Best-effort: a settings.json that cannot be merged (e.g. with comments) is left as it
+      // is rather than replaced by two kilocode keys (F-14); the CLI config above still applies.
+      const vscodeRead = await readJsoncObjectForMerge(vscodeSettingsPath, "settings.json");
+      if (!isOkFailure(vscodeRead)) {
+        const vscodeSettings = vscodeRead.value;
+        // Set custom provider config for the extension
+        vscodeSettings["kilocode.customProvider"] = {
+          name: "OmniRoute",
+          baseURL: normalizedBaseUrl,
+          apiKey: apiKey || "sk_omniroute",
+        };
+        vscodeSettings["kilocode.defaultModel"] = model;
+
+        await fs.mkdir(path.dirname(vscodeSettingsPath), { recursive: true });
+        await fs.writeFile(vscodeSettingsPath, JSON.stringify(vscodeSettings, null, 2));
       }
-
-      // Set custom provider config for the extension
-      vscodeSettings["kilocode.customProvider"] = {
-        name: "OmniRoute",
-        baseURL: normalizedBaseUrl,
-        apiKey: apiKey || "sk_omniroute",
-      };
-      vscodeSettings["kilocode.defaultModel"] = model;
-
-      await fs.writeFile(vscodeSettingsPath, JSON.stringify(vscodeSettings, null, 2));
     } catch {
       // VS Code settings not writable — not a problem for CLI
     }
@@ -234,16 +233,18 @@ export async function DELETE(request: Request) {
     await createBackup("kilo", AUTH_PATH);
 
     // Read existing auth
-    let auth = {};
     try {
-      const existing = await fs.readFile(AUTH_PATH, "utf-8");
-      auth = JSON.parse(existing);
+      await fs.access(AUTH_PATH);
     } catch (error) {
-      if (error.code === "ENOENT") {
+      if (error instanceof Error && "code" in error && error.code === "ENOENT") {
         return NextResponse.json({ success: true, message: "No settings file to reset" });
       }
-      throw error;
     }
+    const authRead = await readJsoncObjectForMerge(AUTH_PATH, "auth.json");
+    if (isOkFailure(authRead)) {
+      return NextResponse.json({ error: { message: authRead.error } }, { status: 409 });
+    }
+    const auth = authRead.value;
 
     // Remove OmniRoute provider
     delete auth["openai-compatible"];

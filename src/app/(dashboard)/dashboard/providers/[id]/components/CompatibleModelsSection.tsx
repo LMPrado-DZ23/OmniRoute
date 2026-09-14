@@ -37,6 +37,8 @@ export type CompatibleModelsSaveFlags = {
 };
 
 export interface CompatibleModelsSectionProps {
+  /** Provider id used by the per-model param-filter editor (`/api/providers/<id>/param-filters`). */
+  providerId?: string;
   providerStorageAlias: string;
   providerDisplayAlias: string;
   modelAliases: Record<string, string>;
@@ -81,6 +83,7 @@ export interface CompatibleModelsSectionProps {
 // ---------------------------------------------------------------------------
 
 export default function CompatibleModelsSection({
+  providerId,
   providerStorageAlias,
   providerDisplayAlias,
   modelAliases,
@@ -435,6 +438,7 @@ export default function CompatibleModelsSection({
                 <PassthroughModelRow
                   key={`${providerStorageAlias}:${modelId}`}
                   modelId={modelId}
+                  provider={providerId}
                   fullModel={fullModel}
                   alias={alias}
                   displayName={displayName}

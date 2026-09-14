@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, type JSX } from "react";
 import { useTranslations } from "next-intl";
 import type { AgentSkill } from "@/lib/agentSkills/types";
 
@@ -20,7 +20,7 @@ export function SkillCard({ skill, selected, onClick }: SkillCardProps): JSX.Ele
         onClick();
       }
     },
-    [onClick],
+    [onClick]
   );
 
   const previewItems: string[] =

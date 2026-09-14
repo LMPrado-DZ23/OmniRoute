@@ -90,9 +90,9 @@ function findOrCreateHead(doc: Document): Element {
   const head = makeElement("head");
   head.childNodes = [];
   (head as Element & { parentNode: Node }).parentNode = htmlEl;
-  htmlEl.childNodes = [head as Node];
-  (htmlEl as Element & { parentNode: Node }).parentNode = doc as unknown as Node;
-  doc.childNodes.push(htmlEl as unknown as Node);
+  htmlEl.childNodes = [head];
+  htmlEl.parentNode = doc;
+  doc.childNodes.push(htmlEl);
   return head;
 }
 
@@ -119,7 +119,7 @@ function injectBase(head: Element, baseHref: string): void {
   baseEl.attrs = [{ name: "href", value: baseHref }];
   baseEl.childNodes = [];
   (baseEl as Element & { parentNode: Node }).parentNode = head;
-  head.childNodes.unshift(baseEl as unknown as Node);
+  head.childNodes.unshift(baseEl);
 }
 
 /** Recursively walk the parse5 tree and rewrite matching attrs. */

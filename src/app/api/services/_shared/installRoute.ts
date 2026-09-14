@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createErrorResponse } from "@/lib/api/errorResponse";
 import { InstallError, SERVICE_VERSION_PATTERN } from "@/lib/services/installers/utils";
 import { sanitizeErrorMessage } from "@omniroute/open-sse/utils/error";
+import { isOkFailure } from "@/shared/utils/resultGuards";
 
 export type ServiceInstallResult = {
   installedVersion: string;
@@ -59,7 +60,7 @@ export async function handleServiceInstall(
   install: ServiceInstaller
 ): Promise<Response> {
   const parsed = await readServiceInstallVersion(request);
-  if (!parsed.ok) {
+  if (isOkFailure(parsed)) {
     return parsed.response;
   }
 

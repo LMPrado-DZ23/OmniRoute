@@ -12,9 +12,13 @@ export function EncoderComparisonTable({ comparison }: { comparison: EncoderComp
     label: string;
     size: { bytes: number; tokens: number } | null;
   }> = [
-    { key: "gcf", label: "GCF", size: comparison.gcf },
-    { key: "toon", label: "TOON", size: comparison.toonAvailable ? comparison.toon : null },
-    { key: "json", label: "JSON", size: comparison.json },
+    { key: "gcf" as const, label: "GCF", size: comparison.gcf },
+    {
+      key: "toon" as const,
+      label: "TOON",
+      size: comparison.toonAvailable ? comparison.toon : null,
+    },
+    { key: "json" as const, label: "JSON", size: comparison.json },
   ].sort((a, b) => (a.size?.tokens ?? Infinity) - (b.size?.tokens ?? Infinity));
 
   return (

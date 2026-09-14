@@ -35,9 +35,11 @@ import { pickDisplayValue } from "@/shared/utils/maskEmail";
 import useEmailPrivacyStore from "@/store/emailPrivacyStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { ROUTING_STRATEGIES } from "@/shared/constants/routingStrategies";
+import type { ComboRuntimeConfigDraft } from "./comboRuntimeConfigDraft";
 import {
   COMBO_BUILDER_AUTO_CONNECTION,
   COMBO_BUILDER_STAGES,
+  type ComboBuilderStage,
   addAllGlobalSearchMatches,
   addGlobalModelStep,
   buildGlobalModelList,
@@ -114,7 +116,7 @@ const STRATEGY_LABEL_FALLBACK = {
   "reset-aware": "Reset-Aware RR",
 };
 
-const STRATEGY_DESC_FALLBACK = {
+const STRATEGY_DESC_FALLBACK: Record<string, string> = {
   "context-relay":
     "Priority-style routing with automatic context handoffs when account rotation happens.",
   "reset-aware":
@@ -253,7 +255,7 @@ function secondsInputToOptionalMs(value, maxSeconds = 86400) {
   return Math.min(maxSeconds, Math.round(seconds)) * MS_PER_SECOND;
 }
 
-function sanitizeComboRuntimeConfig(config) {
+function sanitizeComboRuntimeConfig(config: unknown): ComboRuntimeConfigDraft {
   if (!config || typeof config !== "object") return {};
   return Object.fromEntries(
     Object.entries(config).filter(
@@ -413,7 +415,12 @@ function isStaleIntelligentSelection(
   if (intelligentCombos.length === 0) return true;
   return !intelligentCombos.some((combo) => combo.id === selectedId);
 }
-const COMBO_FORM_STAGE_META = [
+const COMBO_FORM_STAGE_META: Array<{
+  id: ComboBuilderStage;
+  fallbackLabel: string;
+  fallbackDescription: string;
+  icon: string;
+}> = [
   {
     id: "basics",
     fallbackLabel: "Basics",
@@ -2076,7 +2083,7 @@ function ComboFormModal({ isOpen, combo, onClose, onSave, activeProviders, combo
   const [manualModelError, setManualModelError] = useState("");
   const [builderComboRefName, setBuilderComboRefName] = useState("");
   const [builderError, setBuilderError] = useState("");
-  const [builderStage, setBuilderStage] = useState<string>(COMBO_BUILDER_STAGES[0]);
+  const [builderStage, setBuilderStage] = useState<ComboBuilderStage>(COMBO_BUILDER_STAGES[0]);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [config, setConfig] = useState(sanitizeComboRuntimeConfig(combo?.config));
   // Validate persisted enum; ensure reset on combo change not just first mount.

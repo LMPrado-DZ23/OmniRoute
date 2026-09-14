@@ -222,7 +222,7 @@ export function ActivityHeatmap({ activityMap }) {
           {t("activitySummary", {
             active: Object.keys(activityMap || {}).length,
             tokens: fmt(
-              Object.values(activityMap || {}).reduce((a: number, b: number) => a + b, 0)
+              Object.values<number>(activityMap || {}).reduce((a: number, b: number) => a + b, 0)
             ),
             days: 365,
           })}

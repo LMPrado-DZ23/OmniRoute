@@ -118,7 +118,7 @@ test("buildHealthPayload reports Codex persisted parents through aggregate child
     circuitBreakers: [],
     rateLimitStatus: {},
     learnedLimits: {},
-    lockouts: {},
+    lockouts: [],
     localProviders: {},
     inflightRequests: 0,
     quotaMonitorSummary: {
@@ -161,7 +161,18 @@ test("buildHealthPayload keeps legacy aliases and adds session/quota observabili
       { name: "test-ignore", state: "OPEN", failureCount: 9, lastFailureTime: null },
     ],
     rateLimitStatus: { codex: { blocked: 1 } },
-    lockouts: { codex: { "conn-1": { until: "2026-04-12T13:00:00Z" } } },
+    lockouts: [
+      {
+        provider: "codex",
+        connectionId: "conn-1",
+        model: "gpt-5-codex",
+        reason: "rate_limited",
+        remainingMs: 3_600_000,
+        failureCount: 1,
+        lockedAt: "2026-04-12T12:00:00.000Z",
+        until: Date.parse("2026-04-12T13:00:00.000Z"),
+      },
+    ],
     localProviders: { ollama: { ok: true } },
     inflightRequests: 4,
     quotaMonitorSummary: {
@@ -228,6 +239,12 @@ test("buildHealthPayload keeps legacy aliases and adds session/quota observabili
   assert.equal(payload.quotaMonitor.monitors[0].provider, "codex");
   assert.equal(payload.setupComplete, true);
   assert.equal(payload.adaptiveAdmission, null);
+  // The health route passes getAllModelLockouts() through unchanged: an array of lockouts,
+  // each carrying its own provider/model. Consumers must not key it like a map.
+  assert.ok(Array.isArray(payload.lockouts), "lockouts must stay an array");
+  assert.equal(payload.lockouts.length, 1);
+  assert.equal(payload.lockouts[0].provider, "codex");
+  assert.equal(payload.lockouts[0].model, "gpt-5-codex");
 });
 
 test("buildHealthPayload projects allowlisted adaptiveAdmission aggregates only", () => {
@@ -276,7 +293,7 @@ test("buildHealthPayload projects allowlisted adaptiveAdmission aggregates only"
     circuitBreakers: [],
     rateLimitStatus: {},
     learnedLimits: {},
-    lockouts: {},
+    lockouts: [],
     localProviders: {},
     inflightRequests: 0,
     quotaMonitorSummary: {
@@ -371,7 +388,7 @@ test("buildHealthPayload projects allowlisted structural chatAdmission fields on
     circuitBreakers: [],
     rateLimitStatus: {},
     learnedLimits: {},
-    lockouts: {},
+    lockouts: [],
     localProviders: {},
     inflightRequests: 0,
     quotaMonitorSummary: {

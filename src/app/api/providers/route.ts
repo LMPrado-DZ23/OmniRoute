@@ -60,12 +60,14 @@ import { isAutoFetchModelsEnabled } from "@/lib/providerModels/modelDiscovery";
 import { testSingleConnection } from "./[id]/test/route";
 import { rejectRetiredCommonChatGptWebProvider } from "@/lib/providers/chatgptWebRetirementResponse";
 
+type CodexChildProjection = ReturnType<typeof projectCodexAccountPool>["children"][number];
+
 function projectCodexAccountPoolWithRoutingQuota(
   connection: Parameters<typeof projectCodexAccountPool>[0],
   now: number
 ) {
   const projection = projectCodexAccountPool(connection, now);
-  const children = projection.children.map((child) => {
+  const withRoutingQuota = (child: CodexChildProjection): CodexChildProjection => {
     const fiveHourWindow = child.key.scope === "spark" ? CODEX_SPARK_QUOTA_SESSION : "session";
     const weeklyWindow = child.key.scope === "spark" ? CODEX_SPARK_QUOTA_WEEKLY : "weekly";
     const fiveHour = getQuotaWindowObservation(connection.id, fiveHourWindow);
@@ -97,9 +99,17 @@ function projectCodexAccountPoolWithRoutingQuota(
         },
       },
     };
-  }) as typeof projection.children;
+  };
+  const children: typeof projection.children = [
+    withRoutingQuota(projection.children[0]),
+    withRoutingQuota(projection.children[1]),
+  ];
 
   return { ...projection, children };
+}
+
+function isPlainRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 // GET /api/providers - List all connections
@@ -140,9 +150,11 @@ export async function GET(request: Request) {
           ? {
               codexAccountPool: projectCodexAccountPoolWithRoutingQuota(
                 {
-                  id: c.id,
+                  id: String(c.id),
                   provider: c.provider,
-                  providerSpecificData: c.providerSpecificData ?? {},
+                  providerSpecificData: isPlainRecord(c.providerSpecificData)
+                    ? c.providerSpecificData
+                    : {},
                 },
                 Date.now()
               ),
@@ -325,7 +337,7 @@ export async function POST(request: Request) {
           ...(cookieHeader ? { cookie: cookieHeader } : {}),
           ...buildModelSyncInternalHeaders(),
         };
-        const syncUrl = `${internalOrigin}/api/providers/${encodeURIComponent(newConnection.id)}/sync-models?mode=import`;
+        const syncUrl = `${internalOrigin}/api/providers/${encodeURIComponent(String(newConnection.id))}/sync-models?mode=import`;
         // Intentionally not awaited: this is async/non-blocking work.
         void fetchModelSyncInternal(syncUrl, {
           method: "POST",
@@ -362,7 +374,7 @@ export async function POST(request: Request) {
     // seconds (OAuth refresh, upstream round-trip) and must not block the
     // 201 response. testSingleConnection() persists testStatus/lastError/etc.
     // itself, so nothing further is needed here beyond logging failures.
-    void testSingleConnection(newConnection.id).catch((testError: unknown) => {
+    void testSingleConnection(String(newConnection.id)).catch((testError: unknown) => {
       console.log(
         `[providers] Auto-test failed for ${newConnection.id}:`,
         (testError as { message?: string })?.message || testError
@@ -444,7 +456,9 @@ export async function PATCH(request: Request) {
       const requestedIds = new Set(ids);
       const requestedConnections = (
         await getProviderConnections({}, undefined, undefined, ["id", "provider"])
-      ).filter((connection) => requestedIds.has(connection.id));
+      ).filter(
+        (connection) => typeof connection.id === "string" && requestedIds.has(connection.id)
+      );
       for (const connection of requestedConnections) {
         const retirementResponse = rejectRetiredCommonChatGptWebProvider(connection.provider);
         if (retirementResponse) return retirementResponse;

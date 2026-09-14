@@ -115,8 +115,15 @@ describe("tierConfig DB module", () => {
       const result = loadTierConfigFromDb();
       assert.equal(result, null);
       assert.ok(warnSpy.mock.calls.length > 0);
-      const payload = warnSpy.mock.calls[0].arguments[0] as Record<string, unknown>;
-      const preview = typeof payload.value === "string" ? payload.value : "";
+      const [tag, message, payload] = warnSpy.mock.calls[0].arguments as [
+        unknown,
+        unknown,
+        Record<string, unknown> | undefined,
+      ];
+      assert.equal(tag, "TIER_CONFIG", "the logger's first argument is its tag");
+      assert.match(String(message), /JSON\.parse failed/);
+      const preview = typeof payload?.value === "string" ? payload.value : "";
+      assert.ok(preview.length > 0, "the corrupted value preview must reach the log metadata");
       assert.ok(
         preview.length <= 250,
         `warning preview should be truncated, got length=${preview.length}`

@@ -5,6 +5,7 @@ import { getComboByName, getCombos } from "@/lib/db/combos";
 import { pickApiKeyForInternalUse } from "@/lib/db/apiKeys";
 import { getRuntimePorts } from "@/lib/runtime/ports";
 import { resolveNestedComboTargets } from "@omniroute/open-sse/services/combo.ts";
+import { toComboLike } from "@omniroute/open-sse/services/combo/comboStructure.ts";
 import { testComboSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import { requireManagementAuth } from "@/lib/api/requireManagementAuth";
@@ -17,7 +18,15 @@ async function getInternalApiKey(): Promise<string | null> {
   return pickApiKeyForInternalUse("combo-health-check");
 }
 
-function buildComboTestResult(target, partial = {}) {
+type ComboTestOutcome = {
+  status: "ok" | "error";
+  latencyMs: number;
+  statusCode?: number;
+  error?: string;
+  responseText?: string;
+};
+
+function buildComboTestResult(target, partial: ComboTestOutcome) {
   return {
     model: target.modelStr,
     provider: target.provider,
@@ -160,7 +169,7 @@ export async function POST(request) {
     }
 
     const allCombos = await getCombos();
-    const targets = resolveNestedComboTargets(combo, allCombos);
+    const targets = resolveNestedComboTargets(toComboLike(combo), allCombos);
 
     if (targets.length === 0) {
       return NextResponse.json({ error: "Combo has no models" }, { status: 400 });

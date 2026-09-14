@@ -27,6 +27,14 @@ const { GET, POST, DELETE } = await import("../../src/app/api/cli-tools/letta-se
 
 let tmpHome: string;
 let origHome: string | undefined;
+let origUserProfile: string | undefined;
+
+// os.homedir() reads HOME on POSIX and USERPROFILE on Windows. Both must point at the temporary
+// home, or the route writes Letta's config into the real one (finding F-9).
+function restoreEnv(name: "HOME" | "USERPROFILE", value: string | undefined) {
+  if (value === undefined) delete process.env[name];
+  else process.env[name] = value;
+}
 
 function getAuthPath() {
   return path.join(tmpHome, ".letta", "lc-local-backend", "providers", "auth.json");
@@ -52,11 +60,15 @@ test.beforeEach(async () => {
   await resetStorage();
   tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "letta-settings-home-"));
   origHome = process.env.HOME;
+  origUserProfile = process.env.USERPROFILE;
   process.env.HOME = tmpHome;
+  process.env.USERPROFILE = tmpHome;
+  assert.equal(os.homedir(), tmpHome, "the route must see the temporary home");
 });
 
 test.afterEach(() => {
-  process.env.HOME = origHome;
+  restoreEnv("HOME", origHome);
+  restoreEnv("USERPROFILE", origUserProfile);
   fs.rmSync(tmpHome, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 });
 

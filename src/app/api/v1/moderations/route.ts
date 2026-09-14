@@ -11,6 +11,8 @@ import { enforceApiKeyPolicy } from "@/shared/utils/apiKeyPolicy";
 import { v1ModerationSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import {
+  expiredProviderResponse,
+  isAllExpiredCredentials,
   isAllRateLimitedCredentials,
   rateLimitedProviderResponse,
 } from "@/app/api/v1/_shared/rateLimit";
@@ -64,6 +66,9 @@ async function postHandler(request, context) {
   }
   if (isAllRateLimitedCredentials(credentials)) {
     return rateLimitedProviderResponse(resolvedProvider, credentials);
+  }
+  if (isAllExpiredCredentials(credentials)) {
+    return expiredProviderResponse(resolvedProvider, credentials);
   }
 
   const response = await handleModeration({ body: { ...body, model }, credentials });

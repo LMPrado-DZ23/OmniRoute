@@ -32,8 +32,11 @@ import {
   SEARCH_CACHE_DEFAULT_TTL_MS,
 } from "@omniroute/open-sse/services/searchCache.ts";
 import {
+  expiredProviderResponse,
+  isAllExpiredCredentials,
   isAllRateLimitedCredentials,
   rateLimitedProviderResponse,
+  type ExpiredCredentials,
   type RateLimitedCredentials,
 } from "@/app/api/v1/_shared/rateLimit";
 import { getSettings } from "@/lib/db/settings";
@@ -75,17 +78,28 @@ export async function GET() {
 }
 
 type SearchCredentials = Record<string, any>;
-type SearchCredentialLookup = SearchCredentials | RateLimitedCredentials | null;
+type SearchCredentialLookup =
+  SearchCredentials | RateLimitedCredentials | ExpiredCredentials | null;
 
 async function resolveSearchCredentials(providerId: string): Promise<SearchCredentialLookup> {
   const credentials = await getProviderCredentialsWithQuotaPreflight(providerId).catch(() => null);
-  if (credentials && !isAllRateLimitedCredentials(credentials)) return credentials;
+  if (
+    credentials &&
+    !isAllRateLimitedCredentials(credentials) &&
+    !isAllExpiredCredentials(credentials)
+  ) {
+    return credentials;
+  }
 
   for (const fallbackId of getSearchCredentialFallbacks(providerId)) {
     const fallbackCredentials = await getProviderCredentialsWithQuotaPreflight(fallbackId).catch(
       () => null
     );
-    if (fallbackCredentials && !isAllRateLimitedCredentials(fallbackCredentials)) {
+    if (
+      fallbackCredentials &&
+      !isAllRateLimitedCredentials(fallbackCredentials) &&
+      !isAllExpiredCredentials(fallbackCredentials)
+    ) {
       return fallbackCredentials;
     }
     if (fallbackCredentials) return fallbackCredentials;
@@ -192,12 +206,17 @@ async function postHandler(request: Request, context: unknown) {
     providerId: string;
     credentials: RateLimitedCredentials;
   } | null = null;
+  let firstExpiredCredentials: { providerId: string; credentials: ExpiredCredentials } | null =
+    null;
 
   if (body.provider) {
     // Explicit provider — single credential lookup (with fallback)
     const explicitCredentials = await resolveSearchExecutionCredentials(providerConfig);
     if (isAllRateLimitedCredentials(explicitCredentials)) {
       return rateLimitedProviderResponse(providerConfig.id, explicitCredentials);
+    }
+    if (isAllExpiredCredentials(explicitCredentials)) {
+      return expiredProviderResponse(providerConfig.id, explicitCredentials);
     }
     credentials = explicitCredentials;
     if (!credentials) {
@@ -211,6 +230,11 @@ async function postHandler(request: Request, context: unknown) {
     const selectedCredentials = await resolveSearchExecutionCredentials(providerConfig);
     if (isAllRateLimitedCredentials(selectedCredentials)) {
       firstRateLimitedCredentials = {
+        providerId: providerConfig.id,
+        credentials: selectedCredentials,
+      };
+    } else if (isAllExpiredCredentials(selectedCredentials)) {
+      firstExpiredCredentials = {
         providerId: providerConfig.id,
         credentials: selectedCredentials,
       };
@@ -237,6 +261,10 @@ async function postHandler(request: Request, context: unknown) {
         const altCreds = altConfig ? await resolveSearchExecutionCredentials(altConfig) : null;
         if (isAllRateLimitedCredentials(altCreds)) {
           firstRateLimitedCredentials ??= { providerId: pid, credentials: altCreds };
+          continue;
+        }
+        if (isAllExpiredCredentials(altCreds)) {
+          firstExpiredCredentials ??= { providerId: pid, credentials: altCreds };
           continue;
         }
         if (altConfig && altCreds) {
@@ -267,7 +295,9 @@ async function postHandler(request: Request, context: unknown) {
           break;
         }
         const fallbackCreds = await resolveSearchCredentials(fallbackProvider.id);
-        if (isAllRateLimitedCredentials(fallbackCreds)) continue;
+        if (isAllRateLimitedCredentials(fallbackCreds) || isAllExpiredCredentials(fallbackCreds)) {
+          continue;
+        }
         if (fallbackCreds) {
           credentials = fallbackCreds;
           break;
@@ -280,6 +310,12 @@ async function postHandler(request: Request, context: unknown) {
         return rateLimitedProviderResponse(
           firstRateLimitedCredentials.providerId,
           firstRateLimitedCredentials.credentials
+        );
+      }
+      if (firstExpiredCredentials) {
+        return expiredProviderResponse(
+          firstExpiredCredentials.providerId,
+          firstExpiredCredentials.credentials
         );
       }
       return errorResponse(
@@ -301,7 +337,7 @@ async function postHandler(request: Request, context: unknown) {
     for (const pid of otherIds) {
       const altConfig = getSearchProvider(pid);
       const creds = altConfig ? await resolveSearchExecutionCredentials(altConfig) : null;
-      if (isAllRateLimitedCredentials(creds)) continue;
+      if (isAllRateLimitedCredentials(creds) || isAllExpiredCredentials(creds)) continue;
       if (creds) {
         alternateProviderId = pid;
         alternateCredentials = creds;
@@ -318,7 +354,11 @@ async function postHandler(request: Request, context: unknown) {
         if (isUnconfiguredLoopbackSearchProvider(provider)) continue;
         if (!supportsSearchType(provider, body.search_type)) continue;
         const fallbackCreds = await resolveSearchExecutionCredentials(provider);
-        if (fallbackCreds && !isAllRateLimitedCredentials(fallbackCreds)) {
+        if (
+          fallbackCreds &&
+          !isAllRateLimitedCredentials(fallbackCreds) &&
+          !isAllExpiredCredentials(fallbackCreds)
+        ) {
           alternateProviderId = provider.id;
           alternateCredentials = fallbackCreds;
           break;

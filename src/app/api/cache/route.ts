@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
       getCacheTrend(trendHours),
       getCachedSettings().catch(() => ({})),
     ]);
+    const settingsRecord: Record<string, unknown> = settings;
 
     return NextResponse.json({
       semanticCache: cacheStats,
@@ -43,7 +44,7 @@ export async function GET(req: NextRequest) {
       trend,
       idempotency: idempotencyStats,
       config: {
-        semanticCacheEnabled: settings.semanticCacheEnabled !== false,
+        semanticCacheEnabled: settingsRecord.semanticCacheEnabled !== false,
       },
     });
   } catch (error) {

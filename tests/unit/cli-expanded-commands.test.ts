@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { redirectHome } from "../helpers/tempHome.ts";
 
 test("logs.mjs pode ser importado com novas flags", async () => {
   const mod = await import("../../bin/cli/commands/logs.mjs");
@@ -71,14 +72,17 @@ test("backup.mjs exporta runBackupAutoEnableCommand/Disable/Status", async () =>
 
 test("backup auto status sem arquivo retorna 0", async () => {
   const { runBackupAutoStatusCommand } = await import("../../bin/cli/commands/backup.mjs");
+  const { mkdtempSync, rmSync } = await import("node:fs");
   const { tmpdir } = await import("node:os");
-  const orig = process.env.HOME;
-  process.env.HOME = tmpdir();
+  const { join } = await import("node:path");
+  const home = mkdtempSync(join(tmpdir(), "omniroute-backup-status-home-"));
+  const restoreHome = redirectHome(home);
   try {
     const code = await runBackupAutoStatusCommand();
     assert.ok(code === 0 || code === 1);
   } finally {
-    process.env.HOME = orig;
+    restoreHome();
+    rmSync(home, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 });
 

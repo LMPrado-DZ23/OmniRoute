@@ -6,7 +6,7 @@ import CliStatusBadge from "./CliStatusBadge";
 import { useTranslations } from "next-intl";
 
 import ProviderIcon from "@/shared/components/ProviderIcon";
-import { normalizeCodexBaseUrl } from "@/shared/utils/codexBaseUrl";
+import { normalizeCodexBaseUrl, type CodexWireApi } from "@/shared/utils/codexBaseUrl";
 import { isApplyDisabled, isResetDisabled } from "./codexButtonState";
 import { CODEX_DEFAULT_MODELS } from "./codexToolOptions";
 
@@ -162,9 +162,12 @@ export default function CodexToolCard({
   // Use batch status as fallback when card hasn't been expanded yet
   const effectiveConfigStatus = configStatus || batchStatus?.configStatus || null;
 
-  const getEffectiveBaseUrl = () => normalizeCodexBaseUrl(customBaseUrl || baseUrl, wireApi);
+  // normalizeCodexBaseUrl only branches on "responses"; any other value behaves as "chat".
+  const urlWireApi: CodexWireApi = wireApi === "responses" ? "responses" : "chat";
 
-  const getDisplayUrl = () => normalizeCodexBaseUrl(customBaseUrl || baseUrl, wireApi);
+  const getEffectiveBaseUrl = () => normalizeCodexBaseUrl(customBaseUrl || baseUrl, urlWireApi);
+
+  const getDisplayUrl = () => normalizeCodexBaseUrl(customBaseUrl || baseUrl, urlWireApi);
 
   const handleApplySettings = async () => {
     setApplying(true);
@@ -537,15 +540,16 @@ openai_base_url = "${getEffectiveBaseUrl()}"
                     placeholder={t("baseUrlPlaceholder")}
                     className="flex-1 px-2 py-1.5 bg-surface rounded border border-border text-xs focus:outline-none focus:ring-1 focus:ring-primary/50"
                   />
-                  {customBaseUrl && getDisplayUrl() !== normalizeCodexBaseUrl(baseUrl, wireApi) && (
-                    <button
-                      onClick={() => setCustomBaseUrl("")}
-                      className="p-1 text-text-muted hover:text-primary rounded transition-colors"
-                      title={t("resetToDefault")}
-                    >
-                      <span className="material-symbols-outlined text-[14px]">restart_alt</span>
-                    </button>
-                  )}
+                  {customBaseUrl &&
+                    getDisplayUrl() !== normalizeCodexBaseUrl(baseUrl, urlWireApi) && (
+                      <button
+                        onClick={() => setCustomBaseUrl("")}
+                        className="p-1 text-text-muted hover:text-primary rounded transition-colors"
+                        title={t("resetToDefault")}
+                      >
+                        <span className="material-symbols-outlined text-[14px]">restart_alt</span>
+                      </button>
+                    )}
                 </div>
 
                 {/* API Key */}

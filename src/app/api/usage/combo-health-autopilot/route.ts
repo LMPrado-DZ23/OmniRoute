@@ -14,11 +14,11 @@ const querySchema = z.object({
   includeHealthy: z
     .enum(["true", "false"])
     .transform((value) => value === "true")
-    .default("false"),
+    .default(false),
   includeActions: z
     .enum(["true", "false"])
     .transform((value) => value === "true")
-    .default("true"),
+    .default(true),
 });
 
 export async function GET(request: Request) {
