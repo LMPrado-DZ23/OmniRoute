@@ -23,7 +23,7 @@
  * account-wide block, confirmed on retry.
  *
  * Environment:
- *   OMNIROUTE_API_KEY  — required (else test skips)
+ *   OMNIROUTE_API_KEY  — required, with RUN_LIVE_TESTS=1 (else test skips)
  *   OMNIROUTE_URL      — defaults to http://localhost:3000
  */
 import test from "node:test";

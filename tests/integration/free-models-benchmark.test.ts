@@ -11,7 +11,7 @@
  * every model (the harness itself broken) fails the test.
  *
  * Environment:
- *   OMNIROUTE_API_KEY  — required (else test skips)
+ *   OMNIROUTE_API_KEY  — required, with RUN_LIVE_TESTS=1 (else test skips)
  *   OMNIROUTE_URL      — defaults to http://localhost:3000
  *
  * Models benchmarked are restricted to providers with an active connection

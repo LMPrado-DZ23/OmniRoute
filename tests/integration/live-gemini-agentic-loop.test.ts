@@ -34,7 +34,7 @@
  * treats an `event: error` frame exactly like a leaked 429/503 status: both
  * are the same regression (comboCooldownWait giving up instead of waiting).
  *
- * Env vars: same as liveGeminiShared.ts (OMNIROUTE_API_KEY required).
+ * Env vars: same as liveGeminiShared.ts (OMNIROUTE_API_KEY and RUN_LIVE_TESTS=1 required).
  */
 import test from "node:test";
 import assert from "node:assert/strict";
