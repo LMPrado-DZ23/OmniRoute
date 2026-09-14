@@ -23,6 +23,42 @@ interface GetModelsDependencies {
   createCapabilitySnapshot?: typeof createModelCapabilityResolutionSnapshot;
 }
 
+type ConnectionRow = Record<string, unknown>;
+
+/** Index connection rows under their provider id and that provider's alias. */
+function groupConnectionsByProviderKey<T extends ConnectionRow>(rows: T[]): Map<string, T[]> {
+  const byKey = new Map<string, T[]>();
+  const add = (key: string | null | undefined, row: T) => {
+    if (!key) return;
+    const existing = byKey.get(key) || [];
+    existing.push(row);
+    byKey.set(key, existing);
+  };
+  for (const row of rows) {
+    // Connection rows are Record<string, unknown>; provider is a text column.
+    const provider = typeof row.provider === "string" ? row.provider : null;
+    add(provider, row);
+    add(provider ? PROVIDER_ID_TO_ALIAS[provider] : null, row);
+  }
+  return byKey;
+}
+
+/** Connections registered under any of `keys`, each connection id at most once. */
+function collectConnectionsForKeys<T extends ConnectionRow>(
+  byKey: Map<string, T[]>,
+  keys: Array<string | null | undefined>
+): T[] {
+  const seen = new Set<string>();
+  const collected: T[] = [];
+  for (const row of keys.flatMap((key) => (key ? byKey.get(key) || [] : []))) {
+    const id = typeof row.id === "string" ? row.id : null;
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    collected.push(row);
+  }
+  return collected;
+}
+
 // GET /api/models - Get models with aliases (only from active providers by default)
 export async function handleGetModels(request: Request, dependencies: GetModelsDependencies = {}) {
   try {
@@ -48,42 +84,13 @@ export async function handleGetModels(request: Request, dependencies: GetModelsD
           const alias = PROVIDER_ID_TO_ALIAS[pId];
           if (alias) activeProviders.add(alias);
         }
-        const connectionsByProvider = new Map<string, typeof active>();
-        const registerConnectionKey = (
-          key: string | null | undefined,
-          connection: (typeof active)[number]
-        ) => {
-          if (!key) return;
-          const existing = connectionsByProvider.get(key) || [];
-          existing.push(connection);
-          connectionsByProvider.set(key, existing);
-        };
-        for (const connection of active) {
-          // Connection rows are Record<string, unknown>; provider is a text column.
-          const provider = typeof connection.provider === "string" ? connection.provider : null;
-          registerConnectionKey(provider, connection);
-          registerConnectionKey(provider ? PROVIDER_ID_TO_ALIAS[provider] : null, connection);
-        }
-        const getConnectionsForProvider = (...keys: Array<string | null | undefined>) => {
-          const seen = new Set<string>();
-          const collected: typeof active = [];
-          for (const key of keys) {
-            if (!key) continue;
-            for (const connection of connectionsByProvider.get(key) || []) {
-              const connectionId = typeof connection?.id === "string" ? connection.id : null;
-              if (!connectionId || seen.has(connectionId)) continue;
-              seen.add(connectionId);
-              collected.push(connection);
-            }
-          }
-          return collected;
-        };
+        const connectionsByProvider = groupConnectionsByProviderKey(active);
 
         activeProviders = new Set(
           AI_MODELS.flatMap((model: any) => {
             const providerKeys = [model.provider, PROVIDER_ID_TO_ALIAS[model.provider]];
             return hasEligibleConnectionForModel(
-              getConnectionsForProvider(...providerKeys),
+              collectConnectionsForKeys(connectionsByProvider, providerKeys),
               model.model
             )
               ? providerKeys.filter(Boolean)
