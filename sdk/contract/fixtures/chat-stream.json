@@ -1,0 +1,129 @@
+{
+  "description": "POST /api/v1/chat/completions with stream=true: SSE chunks, [DONE], keep-alive comments, error events and pre-stream HTTP errors.",
+  "cases": [
+    {
+      "name": "stream yields every chunk, skips comments and stops at [DONE]",
+      "operation": "chatCompletionsStream",
+      "client": {
+        "apiKey": "sk-contract-key",
+        "requestId": "req-contract-1",
+        "retry": { "maxRetries": 0 }
+      },
+      "input": { "model": "auto", "messages": [{ "role": "user", "content": "Hello" }] },
+      "expectedRequests": [
+        {
+          "method": "POST",
+          "path": "/api/v1/chat/completions",
+          "headers": {
+            "authorization": "Bearer sk-contract-key",
+            "accept": "text/event-stream",
+            "content-type": "application/json",
+            "x-request-id": "req-contract-1"
+          },
+          "body": {
+            "model": "auto",
+            "messages": [{ "role": "user", "content": "Hello" }],
+            "stream": true
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": { "content-type": "text/event-stream", "x-request-id": "srv-stream-1" },
+          "sse": "data: {\"id\":\"chatcmpl-s1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"Hi\"},\"finish_reason\":null}]}\n\n: keep-alive\n\ndata: {\"id\":\"chatcmpl-s1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\" there\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n"
+        }
+      ],
+      "expected": {
+        "result": {
+          "status": 200,
+          "requestId": "srv-stream-1",
+          "clientRequestId": "req-contract-1"
+        },
+        "chunks": [
+          {
+            "id": "chatcmpl-s1",
+            "object": "chat.completion.chunk",
+            "choices": [
+              {
+                "index": 0,
+                "delta": { "role": "assistant", "content": "Hi" },
+                "finish_reason": null
+              }
+            ]
+          },
+          {
+            "id": "chatcmpl-s1",
+            "object": "chat.completion.chunk",
+            "choices": [{ "index": 0, "delta": { "content": " there" }, "finish_reason": "stop" }]
+          }
+        ]
+      }
+    },
+    {
+      "name": "an error event mid-stream raises after the chunks already received and is not retried",
+      "operation": "chatCompletionsStream",
+      "client": {
+        "apiKey": "sk-contract-key",
+        "requestId": "req-contract-1",
+        "retry": { "maxRetries": 3, "baseDelayMs": 0 }
+      },
+      "input": { "model": "auto", "messages": [{ "role": "user", "content": "Hello" }] },
+      "expectedRequests": [{ "method": "POST", "path": "/api/v1/chat/completions" }],
+      "responses": [
+        {
+          "status": 200,
+          "headers": { "content-type": "text/event-stream", "x-request-id": "srv-stream-2" },
+          "sse": "data: {\"id\":\"chatcmpl-s2\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Par\"}}]}\n\ndata: {\"error\":{\"message\":\"Upstream stream failed\",\"type\":\"server_error\",\"code\":\"stream_failed\"}}\n\n"
+        }
+      ],
+      "expected": {
+        "chunks": [
+          {
+            "id": "chatcmpl-s2",
+            "object": "chat.completion.chunk",
+            "choices": [{ "index": 0, "delta": { "content": "Par" } }]
+          }
+        ],
+        "error": {
+          "status": 200,
+          "message": "Upstream stream failed",
+          "type": "server_error",
+          "code": "stream_failed",
+          "requestId": "srv-stream-2"
+        }
+      }
+    },
+    {
+      "name": "an HTTP error before the stream starts uses the management envelope requestId",
+      "operation": "chatCompletionsStream",
+      "client": {
+        "apiKey": "sk-contract-key",
+        "requestId": "req-contract-1",
+        "retry": { "maxRetries": 0 }
+      },
+      "input": { "model": "auto", "messages": [{ "role": "user", "content": "Hello" }] },
+      "expectedRequests": [{ "method": "POST", "path": "/api/v1/chat/completions" }],
+      "responses": [
+        {
+          "status": 401,
+          "headers": { "content-type": "application/json" },
+          "json": {
+            "error": { "message": "Invalid API key", "type": "invalid_request" },
+            "requestId": "3f9f6f5a-509a-4b35-b0a7-2d2d99d73a01"
+          }
+        }
+      ],
+      "expected": {
+        "chunks": [],
+        "error": {
+          "status": 401,
+          "message": "Invalid API key",
+          "type": "invalid_request",
+          "code": null,
+          "requestId": "3f9f6f5a-509a-4b35-b0a7-2d2d99d73a01"
+        }
+      }
+    }
+  ]
+}
