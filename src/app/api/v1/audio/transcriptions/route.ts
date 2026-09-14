@@ -19,10 +19,8 @@ import { errorResponse } from "@omniroute/open-sse/utils/error.ts";
 import { HTTP_STATUS } from "@omniroute/open-sse/config/constants.ts";
 import { enforceApiKeyPolicy } from "@/shared/utils/apiKeyPolicy";
 import {
-  expiredProviderResponse,
-  isAllExpiredCredentials,
-  isAllRateLimitedCredentials,
-  rateLimitedProviderResponse,
+  credentialVerdictResponse,
+  isUsableCredentialSelection,
 } from "@/app/api/v1/_shared/rateLimit";
 import { attachOmniRouteMetaToResponse } from "@/domain/omnirouteResponseMeta";
 import { generateRequestId } from "@/shared/utils/requestId";
@@ -111,11 +109,7 @@ async function transcribeWithModel(
         const alternateCredentials = await getProviderCredentialsWithQuotaPreflight(
           alternate.provider
         );
-        if (
-          alternateCredentials &&
-          !isAllRateLimitedCredentials(alternateCredentials) &&
-          !isAllExpiredCredentials(alternateCredentials)
-        ) {
+        if (isUsableCredentialSelection(alternateCredentials)) {
           provider = alternate.provider;
           resolvedModel = alternate.model;
           providerConfig = alternate.config;
@@ -133,12 +127,8 @@ async function transcribeWithModel(
         )
       );
     }
-    if (isAllRateLimitedCredentials(credentials)) {
-      return rateLimitedProviderResponse(provider, credentials);
-    }
-    if (isAllExpiredCredentials(credentials)) {
-      return expiredProviderResponse(provider, credentials);
-    }
+    const verdict = credentialVerdictResponse(provider, credentials);
+    if (verdict) return verdict;
   }
 
   let response = await handleAudioTranscription({

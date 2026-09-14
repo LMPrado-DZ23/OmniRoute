@@ -43,6 +43,25 @@ export function isAllExpiredCredentials(value: unknown): value is ExpiredCredent
   );
 }
 
+/** True when a credential selection holds credentials rather than a rate-limited or expired verdict. */
+export function isUsableCredentialSelection(value: unknown): boolean {
+  return !!value && !isAllRateLimitedCredentials(value) && !isAllExpiredCredentials(value);
+}
+
+/**
+ * The response for a credential-selection verdict (all rate limited, or all expired), or null when
+ * the selection holds credentials.
+ */
+export function credentialVerdictResponse(provider: string, credentials: unknown): Response | null {
+  if (isAllRateLimitedCredentials(credentials)) {
+    return rateLimitedProviderResponse(provider, credentials);
+  }
+  if (isAllExpiredCredentials(credentials)) {
+    return expiredProviderResponse(provider, credentials);
+  }
+  return null;
+}
+
 /**
  * Same answer as the chat path (src/sse/handlers/chatHelpers.ts): expired or banned accounts are a
  * 401 with a reconnect hint, while credits_exhausted is quota, not invalid credentials, so it is a

@@ -1,11 +1,6 @@
 import { handleImageGeneration } from "@omniroute/open-sse/handlers/imageGeneration.ts";
 import { errorResponse } from "@omniroute/open-sse/utils/error.ts";
-import {
-  expiredProviderResponse,
-  isAllExpiredCredentials,
-  isAllRateLimitedCredentials,
-  rateLimitedProviderResponse,
-} from "@/app/api/v1/_shared/rateLimit";
+import { credentialVerdictResponse } from "@/app/api/v1/_shared/rateLimit";
 import { HTTP_STATUS } from "@omniroute/open-sse/config/constants.ts";
 import {
   getProviderCredentialsWithQuotaPreflight,
@@ -94,13 +89,9 @@ export async function POST(request, { params }) {
       `No credentials for image provider: ${rawProvider}`
     );
   }
-  if (isAllRateLimitedCredentials(credentials)) {
-    return rateLimitedProviderResponse(rawProvider, credentials);
-  }
-  // #F-6: an all-expired pool is a verdict, not credentials — answer like the chat path.
-  if (isAllExpiredCredentials(credentials)) {
-    return expiredProviderResponse(rawProvider, credentials);
-  }
+  // #F-6: rate-limited and all-expired pools are verdicts, not credentials — answer like chat.
+  const verdict = credentialVerdictResponse(rawProvider, credentials);
+  if (verdict) return verdict;
 
   const execution = await executeImageWithCredentialFallback({
     provider: rawProvider,
