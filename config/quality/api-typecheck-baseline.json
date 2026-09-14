@@ -104,13 +104,6 @@
   "src/app/api/providers/free-onboarding/route.ts": {
     "TS2345": 1
   },
-  "src/app/api/providers/route.ts": {
-    "TS2322": 2,
-    "TS2345": 3
-  },
-  "src/app/api/providers/test-batch/route.ts": {
-    "TS2345": 4
-  },
   "src/app/api/settings/cache-config/route.ts": {
     "TS2339": 1,
     "TS2322": 1
