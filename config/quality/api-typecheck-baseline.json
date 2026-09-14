@@ -57,28 +57,11 @@
   "src/app/api/omniroute/route/preview/route.ts": {
     "TS2345": 1
   },
-  "src/app/api/provider-nodes/validate/route.ts": {
-    "TS2339": 2
-  },
   "src/app/api/providers/[id]/models/route.ts": {
     "TS2345": 3
   },
   "src/app/api/providers/[id]/refresh-cursor/route.ts": {
     "TS2352": 1
-  },
-  "src/app/api/providers/[id]/refresh/route.ts": {
-    "TS2345": 1,
-    "TS2698": 1
-  },
-  "src/app/api/providers/[id]/sync-models/route.ts": {
-    "TS2345": 1
-  },
-  "src/app/api/providers/[id]/test/route.ts": {
-    "TS2362": 1,
-    "TS2698": 1
-  },
-  "src/app/api/providers/free-onboarding/route.ts": {
-    "TS2345": 1
   },
   "src/app/api/settings/cache-config/route.ts": {
     "TS2339": 1,
@@ -127,10 +110,6 @@
   },
   "src/app/api/v1/rerank/route.ts": {
     "TS2339": 2
-  },
-  "src/app/api/v1beta/models/route.ts": {
-    "TS2345": 1,
-    "TS2538": 1
   },
   "src/app/api/webhooks/[id]/test/route.ts": {
     "TS2352": 2

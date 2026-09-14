@@ -30,14 +30,14 @@ export interface ExistingProviderConnection {
   provider?: unknown;
 }
 
-export interface FreeProviderConnectionInput {
+export type FreeProviderConnectionInput = {
   provider: string;
   authType: "no-auth";
   name: string;
   isActive: true;
   testStatus: "unknown";
   defaultModel?: string;
-}
+};
 
 export type FreeProviderSetupResult =
   | { providerId: string; status: "created"; connectionId: string }

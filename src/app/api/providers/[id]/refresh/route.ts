@@ -37,6 +37,10 @@ type RefreshResult = {
  *
  * T12 — Manual Token Refresh UI
  */
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -113,6 +117,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     if (
       (provider === "github" || provider === "ghe-copilot") &&
       !connection.refreshToken &&
+      typeof connection.accessToken === "string" &&
       connection.accessToken
     ) {
       const copilotResult = await refreshCopilotToken(
@@ -128,7 +133,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       }
 
       const refreshedProviderSpecificData = {
-        ...(connection.providerSpecificData || {}),
+        ...(isObjectRecord(connection.providerSpecificData) ? connection.providerSpecificData : {}),
         copilotToken: copilotResult.token,
         copilotTokenExpiresAt: copilotResult.expiresAt,
       };

@@ -182,7 +182,7 @@ async function refreshOAuthToken(connection: any) {
         update.expiresAt = refreshed.expiresAt;
         update.tokenExpiresAt = refreshed.expiresAt;
       } else if (refreshed.expiresIn) {
-        const expiresAt = new Date(Date.now() + refreshed.expiresIn * 1000).toISOString();
+        const expiresAt = new Date(Date.now() + Number(refreshed.expiresIn) * 1000).toISOString();
         update.expiresAt = expiresAt;
         update.tokenExpiresAt = expiresAt;
       } else {
@@ -198,7 +198,7 @@ async function refreshOAuthToken(connection: any) {
       if (refreshed.providerSpecificData) {
         update.providerSpecificData = {
           ...(connection.providerSpecificData || {}),
-          ...refreshed.providerSpecificData,
+          ...(isObjectRecord(refreshed.providerSpecificData) ? refreshed.providerSpecificData : {}),
         };
       }
       await updateProviderConnection(connection.id, update);
@@ -1144,6 +1144,10 @@ export async function testSingleConnection(connectionId: string, validationModel
     runtime: publicRuntime,
     testedAt: now,
   };
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
