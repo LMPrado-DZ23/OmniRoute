@@ -60,12 +60,14 @@ import { isAutoFetchModelsEnabled } from "@/lib/providerModels/modelDiscovery";
 import { testSingleConnection } from "./[id]/test/route";
 import { rejectRetiredCommonChatGptWebProvider } from "@/lib/providers/chatgptWebRetirementResponse";
 
+type CodexChildProjection = ReturnType<typeof projectCodexAccountPool>["children"][number];
+
 function projectCodexAccountPoolWithRoutingQuota(
   connection: Parameters<typeof projectCodexAccountPool>[0],
   now: number
 ) {
   const projection = projectCodexAccountPool(connection, now);
-  const children = projection.children.map((child) => {
+  const withRoutingQuota = (child: CodexChildProjection): CodexChildProjection => {
     const fiveHourWindow = child.key.scope === "spark" ? CODEX_SPARK_QUOTA_SESSION : "session";
     const weeklyWindow = child.key.scope === "spark" ? CODEX_SPARK_QUOTA_WEEKLY : "weekly";
     const fiveHour = getQuotaWindowObservation(connection.id, fiveHourWindow);
@@ -97,7 +99,11 @@ function projectCodexAccountPoolWithRoutingQuota(
         },
       },
     };
-  }) as typeof projection.children;
+  };
+  const children: typeof projection.children = [
+    withRoutingQuota(projection.children[0]),
+    withRoutingQuota(projection.children[1]),
+  ];
 
   return { ...projection, children };
 }
