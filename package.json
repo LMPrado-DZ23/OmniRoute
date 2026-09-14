@@ -192,6 +192,7 @@
     "check:fetch-targets": "node scripts/check/check-fetch-targets.mjs",
     "check:openapi-routes": "node scripts/check/check-openapi-routes.mjs",
     "check:api-docs-refs": "node scripts/check/check-api-docs-refs.mjs",
+    "check:api-governance": "node scripts/check/check-api-governance.mjs",
     "check:openapi-breaking": "node scripts/check/check-openapi-breaking.mjs",
     "check:deps": "node scripts/check/check-deps.mjs",
     "check:file-size": "node scripts/check/check-file-size.mjs",
