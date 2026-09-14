@@ -161,6 +161,8 @@ vscode-extension/
 
 # Empty/dangling files
 typescript
+# ...but the experimental TypeScript SDK directory is real source (docs/reference/SDKS.md).
+!sdk/typescript/
 /MAX
 
 # Gemini Antigravity agent data
