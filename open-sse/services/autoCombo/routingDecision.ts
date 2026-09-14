@@ -286,3 +286,38 @@ export function previewRoutingDecision(
     clock
   );
 }
+
+/** A decision reduced to counts and ids, safe for structured logs. */
+export interface RoutingDecisionSummary {
+  decisionId: string;
+  requestId: string;
+  policyVersion: string;
+  strategy?: string;
+  selectionMode?: RoutingDecision["selectionMode"];
+  selected: string | null;
+  candidateCount: number;
+  eligibleCount: number;
+  exclusions: Partial<Record<RoutingExclusionReason, number>>;
+}
+
+export function summarizeRoutingDecision(decision: RoutingDecision): RoutingDecisionSummary {
+  const exclusions: Partial<Record<RoutingExclusionReason, number>> = {};
+  for (const candidate of decision.candidates) {
+    for (const reason of candidate.exclusionReasons) {
+      exclusions[reason] = (exclusions[reason] ?? 0) + 1;
+    }
+  }
+  return {
+    decisionId: decision.decisionId,
+    requestId: decision.requestId,
+    policyVersion: decision.policyVersion,
+    strategy: decision.strategy,
+    selectionMode: decision.selectionMode,
+    selected: decision.selected
+      ? `${decision.selected.providerId}/${decision.selected.modelId}`
+      : null,
+    candidateCount: decision.candidates.length,
+    eligibleCount: decision.candidates.filter((candidate) => candidate.eligible).length,
+    exclusions,
+  };
+}
