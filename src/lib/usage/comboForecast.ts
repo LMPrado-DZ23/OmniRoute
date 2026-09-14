@@ -3,7 +3,7 @@ import { getCombos, getComboById } from "@/lib/db/combos";
 import { getPricingForModel } from "@/lib/db/settings";
 import { getQuotaSnapshots } from "@/lib/db/quotaSnapshots";
 import { computeCostFromPricing, normalizeModelName } from "@/lib/usage/costCalculator";
-import { resolveNestedComboTargets } from "@omniroute/open-sse/services/combo.ts";
+import { resolveNestedComboTargets, toComboLike } from "@omniroute/open-sse/services/combo.ts";
 import type {
   ComboRecord,
   ComboForecastHorizon,
@@ -265,7 +265,10 @@ async function buildComboForecast(
   const comboName = typeof combo.name === "string" ? combo.name : "";
   if (!comboId || !comboName) return null;
 
-  const targets = resolveNestedComboTargets(combo, allCombos) as ResolvedComboTargetView[];
+  const targets = resolveNestedComboTargets(
+    toComboLike(combo),
+    allCombos
+  ) as ResolvedComboTargetView[];
   const rowsByTarget = groupRowsByExecutionKey(rows);
   const totalRequests = rows.reduce((sum, row) => sum + row.requests, 0);
   const totalCostUsd = rows.reduce((sum, row) => sum + row.costUsd, 0);

@@ -62,7 +62,11 @@ function toTrimmedString(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
-function toComboLike(combo: ComboInput): ComboLike {
+/**
+ * Normalize a stored combo (database row or loosely typed record) into the ComboLike shape the
+ * resolvers read: trimmed id/name, models array, config/autoConfig records or null.
+ */
+export function toComboLike(combo: ComboInput): ComboLike {
   return {
     ...combo,
     id: toTrimmedString(combo.id) || undefined,

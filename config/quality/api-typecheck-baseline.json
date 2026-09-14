@@ -1,8 +1,4 @@
 {
-  "src/app/api/combos/test/route.ts": {
-    "TS2345": 1,
-    "TS2339": 1
-  },
   "src/app/api/providers/[id]/refresh-cursor/route.ts": {
     "TS2352": 1
   },
@@ -28,11 +24,5 @@
   },
   "src/app/api/webhooks/[id]/test/route.ts": {
     "TS2352": 2
-  },
-  "src/lib/usage/comboForecast.ts": {
-    "TS2345": 1
-  },
-  "src/lib/usage/comboHealth.ts": {
-    "TS2345": 1
   }
 }
