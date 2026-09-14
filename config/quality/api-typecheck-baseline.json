@@ -138,10 +138,6 @@
   "src/lib/db/tierConfig.ts": {
     "TS2345": 2
   },
-  "src/lib/monitoring/comboHealthAutopilot.ts": {
-    "TS2305": 1,
-    "TS2345": 1
-  },
   "src/lib/quota/quotaAnalytics.ts": {
     "TS2769": 1
   },
