@@ -58,7 +58,7 @@ export default function ToolsBuilder({ toolsBuilder }: ToolsBuilderProps) {
     };
 
     const result = add(tool);
-    if (!result.ok) {
+    if (result.ok === false) {
       setFormError(result.error);
       return;
     }

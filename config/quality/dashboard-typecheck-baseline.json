@@ -9,32 +9,8 @@
   "src/app/(dashboard)/dashboard/cache/components/CachePerformance.tsx": {
     "TS2339": 1
   },
-  "src/app/(dashboard)/dashboard/cli-code/components/ClaudeToolCard.tsx": {
-    "TS2339": 2
-  },
-  "src/app/(dashboard)/dashboard/cli-code/components/CodexToolCard.tsx": {
-    "TS2345": 3
-  },
-  "src/app/(dashboard)/dashboard/cli-code/components/CustomCliCard.tsx": {
-    "TS2345": 1
-  },
-  "src/app/(dashboard)/dashboard/cli-code/components/DroidToolCard.tsx": {
-    "TS2554": 2
-  },
-  "src/app/(dashboard)/dashboard/compression/studio/EncoderComparisonTable.tsx": {
-    "TS2322": 1
-  },
-  "src/app/(dashboard)/dashboard/HomePageClient.tsx": {
-    "TS2339": 3
-  },
   "src/app/(dashboard)/dashboard/memory/components/tabs/MemoriesTab.tsx": {
     "TS2322": 1
-  },
-  "src/app/(dashboard)/dashboard/playground/components/PresetPicker.tsx": {
-    "TS2352": 1
-  },
-  "src/app/(dashboard)/dashboard/playground/components/ToolsBuilder.tsx": {
-    "TS2339": 1
   },
   "src/app/(dashboard)/dashboard/providers/[id]/__tests__/phase1e.test.tsx": {
     "TS2741": 2
@@ -54,9 +30,6 @@
   "src/app/(dashboard)/dashboard/providers/providerPageUtils.ts": {
     "TS2345": 1
   },
-  "src/app/(dashboard)/dashboard/quota/page.tsx": {
-    "TS2339": 4
-  },
   "src/app/(dashboard)/dashboard/runtime/RuntimePageClient.tsx": {
     "TS2304": 1
   },
@@ -65,15 +38,6 @@
   },
   "src/app/(dashboard)/dashboard/tools/traffic-inspector/components/tabs/ResponseBodyTab.tsx": {
     "TS2339": 5
-  },
-  "src/app/(dashboard)/dashboard/translator/components/advanced/StreamTransformerAccordion.tsx": {
-    "TS2345": 1
-  },
-  "src/app/(dashboard)/dashboard/translator/components/MonitorTab.tsx": {
-    "TS2345": 1
-  },
-  "src/app/(dashboard)/dashboard/usage/components/ProviderLimits/index.tsx": {
-    "TS2339": 2
   },
   "src/lib/combos/builderDraft.ts": {
     "TS2741": 1

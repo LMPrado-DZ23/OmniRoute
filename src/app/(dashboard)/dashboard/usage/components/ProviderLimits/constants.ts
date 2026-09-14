@@ -40,7 +40,7 @@ export const PROVIDER_ORDER: Record<string, number> = {
   "grok-cli": 17,
 };
 
-export const TIER_FILTERS = [
+export const TIER_FILTERS: Array<{ key: string; labelKey: string; label?: string }> = [
   { key: "all", labelKey: "tierAll" },
   { key: "enterprise", labelKey: "tierEnterprise" },
   { key: "team", labelKey: "tierTeam" },
