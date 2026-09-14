@@ -43,9 +43,5 @@
   },
   "src/lib/usage/comboHealth.ts": {
     "TS2345": 1
-  },
-  "src/lib/usage/comboScoringInspector.ts": {
-    "TS2352": 1,
-    "TS2741": 1
   }
 }
