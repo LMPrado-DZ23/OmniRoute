@@ -20,6 +20,24 @@ import {
 // before it's parsed.
 const CHUNK_LOG_TIMESTAMP_PREFIX = /^\[\d{2}:\d{2}:\d{2}\.\d{3}\]\s*/;
 
+/** Detail synthesized from the in-memory completed cache (no persisted row). */
+type InMemoryCallLogDetail = {
+  id: string;
+  timestamp: string;
+  path: string;
+  status: number;
+  model: string;
+  provider: string;
+  connectionId: string;
+  duration: number;
+  detailState: "in-memory";
+  active: boolean;
+  error: string | null;
+  pipelinePayloads: Record<string, unknown>;
+  hasPipelineDetails: boolean;
+  apiKeyId?: null;
+};
+
 type ManagementStreamChunks = {
   provider?: string[];
   openai?: string[];
@@ -138,7 +156,8 @@ export async function GET(
     }
 
     // Next, try persistent call log by id
-    let persistedRequest = await getCallLogById(id);
+    let persistedRequest: Awaited<ReturnType<typeof getCallLogById>> | InMemoryCallLogDetail =
+      await getCallLogById(id);
 
     // If persistent call log doesn't have payloads, try the in-memory completedDetails cache
     if (
@@ -158,7 +177,7 @@ export async function GET(
             streamChunks: safeStreamChunks,
           };
 
-          const minimal = {
+          const minimal: InMemoryCallLogDetail = {
             id: inMem.id,
             timestamp: new Date(inMem.startedAt).toISOString(),
             path: inMem.clientEndpoint || "",

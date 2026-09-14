@@ -9,9 +9,6 @@
   "src/app/api/keys/[id]/route.ts": {
     "TS2339": 1
   },
-  "src/app/api/logs/[id]/route.ts": {
-    "TS2322": 1
-  },
   "src/app/api/oauth/cursor/login/poll/route.ts": {
     "TS2554": 1
   },
@@ -71,8 +68,5 @@
   "src/lib/usage/comboScoringInspector.ts": {
     "TS2352": 1,
     "TS2741": 1
-  },
-  "src/lib/vscode/modelPresentation.ts": {
-    "TS2554": 1
   }
 }
