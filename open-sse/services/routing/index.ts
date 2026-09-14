@@ -33,6 +33,7 @@ import {
   type ProviderQuality,
 } from "./quality.ts";
 import { isRoutingOtelEnabled, OtlpHttpsEventSink } from "./otel.ts";
+import { routingMetrics } from "./metricsSink.ts";
 
 const memoryStore = new MemoryRoutingEventStore(500);
 
@@ -61,6 +62,8 @@ export function initRoutingObservability(env: NodeJS.ProcessEnv = process.env): 
 
   registerRoutingEventSink(memoryStore);
   registerRoutingEventSink(qualitySink);
+  // Bounded-cardinality counters/histograms behind GET /api/metrics + SLO evaluation.
+  registerRoutingEventSink(routingMetrics);
 
   if (isRoutingOtelEnabled(env)) {
     const endpoint = (env.OMNIROUTE_OTEL_ENDPOINT ?? env.OTEL_EXPORTER_OTLP_ENDPOINT ?? "").trim();
@@ -122,6 +125,7 @@ export function resetRoutingObservability(): void {
   clearRoutingEventSinks();
   memoryStore.clear();
   resetQualityTracker();
+  routingMetrics.reset();
   if (otelSink) {
     otelSink.stop();
     otelSink = null;
