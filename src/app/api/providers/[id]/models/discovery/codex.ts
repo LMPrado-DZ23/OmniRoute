@@ -388,9 +388,6 @@ export function mergeCodexLiveModelsWithLocalCatalog<T extends CodexCatalogInput
   return Array.from(merged.values());
 }
 
-/** Return true to KEEP the model. */
-export type CodexDiscoveryModelFilter = (model: CodexDiscoveryModel) => boolean;
-
 /**
  * Apply policy filters after discovery merge. Default denylist runs first;
  * extraFilters are additional keep-predicates (all must pass).
