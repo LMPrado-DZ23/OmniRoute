@@ -131,3 +131,4 @@ export function resetRoutingObservability(): void {
 
 export type { RoutingEvent, RoutingOutcome, RoutingEventSink } from "./events.ts";
 export { createRoutingEvent, outcomeFromStatus } from "./events.ts";
+export { isRetryableAttemptStatus } from "./attemptPolicy.ts";
