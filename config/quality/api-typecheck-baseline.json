@@ -38,12 +38,6 @@
   "src/app/api/webhooks/[id]/test/route.ts": {
     "TS2352": 2
   },
-  "src/lib/quota/quotaAnalytics.ts": {
-    "TS2769": 1
-  },
-  "src/lib/quota/quotaResetTimers.ts": {
-    "TS2769": 2
-  },
   "src/lib/usage/comboForecast.ts": {
     "TS2345": 1
   },
