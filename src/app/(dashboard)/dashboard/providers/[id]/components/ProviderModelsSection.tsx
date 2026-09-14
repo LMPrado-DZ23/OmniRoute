@@ -264,6 +264,7 @@ export default function ProviderModelsSection({
           {clearAllButton}
         </div>
         <CompatibleModelsSection
+          providerId={providerId}
           providerStorageAlias={providerStorageAlias}
           providerDisplayAlias={providerDisplayAlias}
           modelAliases={modelAliases}
