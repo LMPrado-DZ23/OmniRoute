@@ -1034,8 +1034,7 @@ export function getDbInstance(): SqliteDatabase {
         driver: "sql.js",
         open: true,
         name: ":memory:",
-        // Generic like SqliteAdapter.prepare<Row>(): the annotated no-op results
-        // fit any declared Row with or without strictNullChecks.
+        // Generic like SqliteAdapter.prepare<Row>(): no-op results fit any declared Row.
         prepare: <Row = unknown>(): PreparedStatement<Row> => ({
           run: () => ({ changes: 0, lastInsertRowid: 0 }),
           get: (): Row | undefined => undefined,
