@@ -6,12 +6,6 @@
   "src/app/api/providers/[id]/refresh-cursor/route.ts": {
     "TS2352": 1
   },
-  "src/app/api/settings/cache-config/route.ts": {
-    "TS2339": 1
-  },
-  "src/app/api/settings/models-dev/route.ts": {
-    "TS2339": 1
-  },
   "src/app/api/v1/images/edits/route.ts": {
     "TS2322": 2
   },
