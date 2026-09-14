@@ -14,6 +14,7 @@ import { validateApiKeyRoutingTarget } from "@/shared/utils/apiKeyPolicy";
 import { getModelInfo } from "@/sse/services/model";
 import { resolveCodexWsModelInfo } from "@/app/api/internal/codex-responses-ws/modelResolution";
 import { isSuccessFailure } from "@/shared/utils/resultGuards";
+import type { ReasoningSourceEffort } from "@/lib/db/reasoningRoutingRules";
 
 async function resolveSimulationSourceModels(model: string, transport: string, combo: unknown) {
   if (combo) return { normalized: model, aliases: [] };
@@ -48,7 +49,7 @@ async function readPermissionError(targetRejection: Response | null): Promise<st
 
 async function resolveSimulationDecision(
   model: string,
-  effort: string,
+  effort: ReasoningSourceEffort | "signal",
   thinkingBudgetTokens: number | undefined,
   apiKey: { id?: string } | null,
   requestTags: string[],

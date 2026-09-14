@@ -11,7 +11,8 @@ import { createErrorResponse } from "@/lib/api/errorResponse";
 import { globalTrafficBuffer } from "@/mitm/inspector/buffer";
 import type { AgentId } from "@/mitm/types";
 
-const VALID_IDS = new Set<AgentId>([
+// Includes bridge tags without an AgentId target yet ("windsurf", "jules").
+const VALID_IDS = new Set<string>([
   "antigravity",
   "kiro",
   "copilot",
@@ -30,7 +31,7 @@ type Params = { params: Promise<{ id: string }> };
 export async function GET(_request: Request, { params }: Params): Promise<Response> {
   const { id } = await params;
 
-  if (!VALID_IDS.has(id as AgentId)) {
+  if (!VALID_IDS.has(id)) {
     return createErrorResponse({ status: 404, message: `Unknown agent id: ${id}` });
   }
 

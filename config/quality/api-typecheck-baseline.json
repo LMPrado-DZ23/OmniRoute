@@ -1,7 +1,4 @@
 {
-  "src/app/api/combos/auto/route.ts": {
-    "TS2322": 1
-  },
   "src/app/api/combos/test/route.ts": {
     "TS2345": 1,
     "TS2339": 1
@@ -18,9 +15,6 @@
   "src/app/api/oauth/cursor/login/poll/route.ts": {
     "TS2554": 1
   },
-  "src/app/api/oauth/kiro/auto-import/route.ts": {
-    "TS2345": 1
-  },
   "src/app/api/omniroute/route/preview/route.ts": {
     "TS2345": 1
   },
@@ -35,12 +29,6 @@
   },
   "src/app/api/settings/models-dev/route.ts": {
     "TS2339": 1
-  },
-  "src/app/api/settings/reasoning-routing-rules/simulate/route.ts": {
-    "TS2322": 1
-  },
-  "src/app/api/tools/agent-bridge/agents/[id]/detected-models/route.ts": {
-    "TS2769": 1
   },
   "src/app/api/usage/combo-health-autopilot/route.ts": {
     "TS2769": 2
@@ -57,9 +45,6 @@
     "TS2345": 1
   },
   "src/app/api/v1/ocr/route.ts": {
-    "TS2345": 1
-  },
-  "src/app/api/v1/provider-plugin-manifest/route.ts": {
     "TS2345": 1
   },
   "src/app/api/v1/providers/[provider]/embeddings/route.ts": {
@@ -92,8 +77,5 @@
   },
   "src/lib/vscode/modelPresentation.ts": {
     "TS2554": 1
-  },
-  "src/mitm/detection/index.ts": {
-    "TS2741": 1
   }
 }
