@@ -57,12 +57,6 @@
   "src/app/api/keys/[id]/route.ts": {
     "TS2339": 1
   },
-  "src/app/api/local/redis/start/route.ts": {
-    "TS2339": 1
-  },
-  "src/app/api/local/redis/stop/route.ts": {
-    "TS2339": 1
-  },
   "src/app/api/logs/[id]/route.ts": {
     "TS2322": 1
   },
@@ -74,9 +68,6 @@
   },
   "src/app/api/omniroute/route/preview/route.ts": {
     "TS2345": 1
-  },
-  "src/app/api/playground/presets/[id]/route.ts": {
-    "TS2339": 3
   },
   "src/app/api/provider-nodes/validate/route.ts": {
     "TS2339": 2
@@ -144,9 +135,6 @@
   "src/app/api/usage/combo-health-autopilot/route.ts": {
     "TS2769": 2
   },
-  "src/app/api/v1/batches/route.ts": {
-    "TS2339": 1
-  },
   "src/app/api/v1/files/[id]/content/route.ts": {
     "TS2345": 1
   },
@@ -182,21 +170,9 @@
   "src/app/api/v1/text-to-speech/[voiceId]/route.ts": {
     "TS2353": 1
   },
-  "src/app/api/v1/web/fetch/route.ts": {
-    "TS2339": 1
-  },
   "src/app/api/v1beta/models/route.ts": {
     "TS2345": 1,
     "TS2538": 1
-  },
-  "src/app/api/version-manager/restart/route.ts": {
-    "TS2339": 1
-  },
-  "src/app/api/version-manager/start/route.ts": {
-    "TS2339": 1
-  },
-  "src/app/api/version-manager/stop/route.ts": {
-    "TS2339": 1
   },
   "src/app/api/webhooks/[id]/test/route.ts": {
     "TS2352": 2

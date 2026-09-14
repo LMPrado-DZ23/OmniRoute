@@ -40,7 +40,15 @@
  *     allow-list validation (no shell:true, no string concatenation)
  *   - log the invocation via the audit channel so misuse is detectable
  */
-export function isLocalRequestAllowed(): { allowed: true } | { allowed: false; reason: string } {
+export type LocalRequestGuard = { allowed: true } | { allowed: false; reason: string };
+
+export function isLocalRequestDenied(
+  guard: LocalRequestGuard
+): guard is Extract<LocalRequestGuard, { allowed: false }> {
+  return guard.allowed === false;
+}
+
+export function isLocalRequestAllowed(): LocalRequestGuard {
   const headers = (globalThis as { __omniRequestHeaders?: Headers }).__omniRequestHeaders;
   if (headers) {
     // 1. Bearer token path (desktop app trust)
@@ -57,7 +65,8 @@ export function isLocalRequestAllowed(): { allowed: true } | { allowed: false; r
     // Accept the bracketed IPv6 host form browsers send in the Host header
     // (`[::1]:20128`) alongside bare `::1`, `localhost`, and `127.0.0.1`.
     const isLoopbackHost = /^(localhost|127\.0\.0\.1|::1|\[::1\])(:\d+)?$/.test(host);
-    const isLoopbackFwd = fwd === "" || /^127\.|^::1$|^localhost$/.test(fwd.split(",")[0]?.trim() ?? "");
+    const isLoopbackFwd =
+      fwd === "" || /^127\.|^::1$|^localhost$/.test(fwd.split(",")[0]?.trim() ?? "");
     if (isLoopbackHost && isLoopbackFwd) {
       return { allowed: true };
     }
@@ -65,7 +74,10 @@ export function isLocalRequestAllowed(): { allowed: true } | { allowed: false; r
   }
 
   // Production opt-in
-  if (process.env.NODE_ENV === "production" && process.env.OMNIROUTE_LOCAL_ENDPOINTS_ENABLED !== "1") {
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.OMNIROUTE_LOCAL_ENDPOINTS_ENABLED !== "1"
+  ) {
     return { allowed: false, reason: "disabled in production" };
   }
 

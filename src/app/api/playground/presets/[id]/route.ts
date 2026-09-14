@@ -44,7 +44,15 @@ async function checkAuth(request: Request): Promise<Response | null> {
   return null;
 }
 
-function validateId(id: unknown): { valid: true; id: string } | { valid: false; error: Response } {
+type IdValidation = { valid: true; id: string } | { valid: false; error: Response };
+
+function isInvalidId(
+  validation: IdValidation
+): validation is Extract<IdValidation, { valid: false }> {
+  return validation.valid === false;
+}
+
+function validateId(id: unknown): IdValidation {
   const result = z.string().uuid().safeParse(id);
   if (!result.success) {
     return {
@@ -72,7 +80,7 @@ export async function GET(
 
   const { id: rawId } = await params;
   const validation = validateId(rawId);
-  if (!validation.valid) return validation.error;
+  if (isInvalidId(validation)) return validation.error;
   const { id } = validation;
 
   try {
@@ -106,7 +114,7 @@ export async function PUT(
 
   const { id: rawId } = await params;
   const validation = validateId(rawId);
-  if (!validation.valid) return validation.error;
+  if (isInvalidId(validation)) return validation.error;
   const { id } = validation;
 
   // Parse JSON body
@@ -166,7 +174,7 @@ export async function DELETE(
 
   const { id: rawId } = await params;
   const validation = validateId(rawId);
-  if (!validation.valid) return validation.error;
+  if (isInvalidId(validation)) return validation.error;
   const { id } = validation;
 
   try {
