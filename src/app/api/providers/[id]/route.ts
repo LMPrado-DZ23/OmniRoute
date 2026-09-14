@@ -21,7 +21,8 @@ import {
   isClaudeExtraUsageBlockEnabled,
 } from "@/lib/providers/claudeExtraUsage";
 import { requireManagementAuth } from "@/lib/api/requireManagementAuth";
-import { isApiKeyRevealEnabled, maskStoredApiKey } from "@/lib/apiKeyExposure";
+import { isProviderCredentialRevealAllowed, maskStoredApiKey } from "@/lib/apiKeyExposure";
+import { logAdminAuditEvent } from "@/lib/compliance/adminAuditActor";
 import { cleanupProviderModelsAfterConnectionDelete } from "@/lib/db/models";
 import { canUpdateProviderApiKey } from "@/shared/providers/webSessionCredentials";
 import {
@@ -73,12 +74,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Connection not found" }, { status: 404 });
     }
 
-    const revealKeys = isApiKeyRevealEnabled();
+    const revealKeys = isProviderCredentialRevealAllowed(request);
 
     // Hide or mask sensitive fields
     const result: Record<string, any> = { ...connection };
     if (!revealKeys) {
       result.apiKey = result.apiKey ? maskStoredApiKey(result.apiKey) : undefined;
+    } else if (result.apiKey) {
+      logAdminAuditEvent(request, {
+        action: "provider.credentials.revealed",
+        target: id,
+        resourceType: "provider_credentials",
+        metadata: { provider: connection.provider, connectionIds: [id] },
+      });
     }
     delete result.accessToken;
     delete result.refreshToken;

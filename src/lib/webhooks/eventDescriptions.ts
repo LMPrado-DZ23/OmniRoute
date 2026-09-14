@@ -1,9 +1,15 @@
-export type WebhookEvent = "request.completed" | "request.failed" | "quota.exceeded" | "test.ping";
+export type WebhookEvent =
+  | "request.completed"
+  | "request.failed"
+  | "quota.exceeded"
+  | "budget.threshold_reached"
+  | "test.ping";
 
 export const WEBHOOK_EVENT_VALUES = [
   "request.completed",
   "request.failed",
   "quota.exceeded",
+  "budget.threshold_reached",
   "test.ping",
 ] as const;
 
@@ -43,6 +49,22 @@ export const EVENT_DESCRIPTIONS: Record<WebhookEvent, EventDescription> = {
     emoji: "📊",
     description: "A usage threshold (e.g. 95% of quota) was reached.",
     exampleData: { quota: "daily_tokens", used: 950000, limit: 1000000, pct: 95 },
+  },
+  "budget.threshold_reached": {
+    label: "Budget Threshold Reached",
+    emoji: "💰",
+    description:
+      "An API key's internal OmniRoute budget crossed its warning threshold (once per budget period). Not an upstream provider quota.",
+    exampleData: {
+      source: "internal_budget",
+      apiKeyId: "key_123",
+      resetInterval: "daily",
+      projectedSpendUsd: 8.1,
+      limitUsd: 10,
+      percent: 81,
+      warningThreshold: 0.8,
+      nextResetAt: "2026-01-02T00:00:00.000Z",
+    },
   },
   "test.ping": {
     label: "Test Ping",
