@@ -70,7 +70,9 @@ Failures without an HTTP response use `status` 0 and a client code: `network_err
 - Backoff is exponential (`baseDelayMs * 2^attempt`), capped by `maxDelayMs`, then jittered down by up to half, so a delay `d` becomes a value in `(d/2, d]` and never exceeds `maxDelayMs`. The jitter source is injectable (`random` option in both SDKs) for deterministic tests. A `Retry-After` header, in delta-seconds or HTTP-date form, replaces the computed delay without jitter and is also capped by `maxDelayMs`. The final error exposes `retryAfterMs`.
 - Pass `retry: false` (TypeScript) or `retry=False` (Python) to disable retries, per client or per call.
 - Retries happen only before a successful response is returned. Once a stream has started, nothing is retried: a mid-stream failure raises immediately.
-- The timeout (`timeoutMs` / `timeout_ms`, default 60000) applies to each attempt. For streams in TypeScript it covers the time until response headers arrive. In Python it is the socket timeout of each read.
+- The timeout (`timeoutMs` / `timeout_ms`, default 60000) applies to each attempt, but it does not measure the same thing in the two SDKs:
+  - **TypeScript** — a wall-clock deadline for the whole attempt. For JSON calls it covers connecting, sending, the response headers and reading the full body. For streams it covers the time until the response headers arrive; after that the stream has no timeout (use `abort()` or an `AbortSignal`).
+  - **Python** — the `urllib` socket timeout. It bounds the connection and each individual blocking socket operation, not the total time: a response that keeps sending some bytes more often than `timeout_ms` can take longer in total. For streams it keeps applying to every read, so a stream that stays silent for longer than `timeout_ms` raises `stream_error`.
 
 ## Streaming
 
