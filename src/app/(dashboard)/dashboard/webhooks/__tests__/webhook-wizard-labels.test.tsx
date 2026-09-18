@@ -11,6 +11,8 @@ import { DiscordConfigForm } from "../components/steps/integrations/DiscordConfi
 import { TelegramConfigForm } from "../components/steps/integrations/TelegramConfigForm";
 import { CustomConfigForm } from "../components/steps/integrations/CustomConfigForm";
 import { Step3EventsAndTest } from "../components/steps/Step3EventsAndTest";
+import { HmacRecipeBlock } from "../components/shared/HmacRecipeBlock";
+import { PayloadPreview } from "../components/shared/PayloadPreview";
 
 const t = (key: string): string => `label:${key}`;
 
@@ -84,5 +86,19 @@ describe("webhook wizard inputs have accessible names", () => {
     );
     expect(labelTextsOf(c)).toEqual(["label:name"]);
     expect(c.querySelector('[role="group"]')?.getAttribute("aria-label")).toBe("label:events");
+  });
+});
+
+describe("webhook code blocks are keyboard-scrollable (axe scrollable-region-focusable)", () => {
+  it("HMAC recipe and payload preview <pre> are focusable", () => {
+    const c = render(
+      <div>
+        <HmacRecipeBlock title="Verify" snippets={[{ label: "Node.js", code: "const x = 1;" }]} />
+        <PayloadPreview payload={{ event: "test.ping" }} label="Payload" />
+      </div>
+    );
+    const pres = Array.from(c.querySelectorAll("pre"));
+    expect(pres).toHaveLength(2);
+    for (const pre of pres) expect(pre.getAttribute("tabindex")).toBe("0");
   });
 });
