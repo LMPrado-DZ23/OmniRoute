@@ -9,8 +9,9 @@ import time
 import urllib.error
 import urllib.request
 import uuid
+from urllib.parse import urlsplit
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Iterator, Mapping, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterator, List, Mapping, Optional, Tuple, Union
 
 from ._sse import iter_sse_data
 from .errors import OmniRouteError, client_error, error_from_body, error_from_http, parse_retry_after_ms
@@ -36,6 +37,32 @@ _NETWORK_ERRORS = (OSError, http.client.HTTPException)
 def redact_headers(headers: Mapping[str, str]) -> Dict[str, str]:
     """Copy of ``headers`` with credentials replaced by ``[REDACTED]``."""
     return {k: ("[REDACTED]" if k.lower() in _SENSITIVE_HEADERS else v) for k, v in headers.items()}
+
+
+def _origin(url: str) -> Tuple[str, str, Optional[int]]:
+    parts = urlsplit(url)
+    scheme = parts.scheme.lower()
+    return scheme, (parts.hostname or "").lower(), parts.port or {"http": 80, "https": 443}.get(scheme)
+
+
+class _CredentialSafeRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Follows redirects like urllib, but never forwards credentials to another origin.
+
+    The stock handler copies every header (``Authorization`` included) to any redirect target.
+    Here an ``https`` -> ``http`` downgrade is refused (raised as the redirect's own HTTP error)
+    and a change of scheme, host or port drops every credential-bearing header.
+    """
+
+    def redirect_request(self, req: urllib.request.Request, fp: Any, code: int, msg: str, headers: Any, newurl: str) -> Optional[urllib.request.Request]:
+        source, target = _origin(req.full_url), _origin(newurl)
+        if source[0] == "https" and target[0] != "https":
+            raise urllib.error.HTTPError(req.full_url, code, "Refusing a redirect from https to a non-https URL", headers, fp)
+        redirected = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if redirected is not None and target != source:
+            for name, _ in list(redirected.header_items()):
+                if name.lower() in _SENSITIVE_HEADERS:
+                    redirected.remove_header(name)
+        return redirected
 
 
 @dataclass(frozen=True)
@@ -173,7 +200,9 @@ class OmniRouteClient:
         self._default_headers = {k.lower(): v for k, v in (headers or {}).items()}
         self._on_request = on_request
         self._sleep = sleep or time.sleep
-        handlers = [] if use_env_proxies else [urllib.request.ProxyHandler({})]
+        handlers: List[urllib.request.BaseHandler] = [_CredentialSafeRedirectHandler()]
+        if not use_env_proxies:
+            handlers.append(urllib.request.ProxyHandler({}))
         self._opener = urllib.request.build_opener(*handlers)
 
     def __repr__(self) -> str:

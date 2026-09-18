@@ -74,6 +74,11 @@ class FakeOmniRoute:
         host, port = self._server.server_address[:2]
         return f"http://{host}:{port}"
 
+    def enqueue(self, *responses: Dict[str, Any]) -> None:
+        """Queue more responses (e.g. a redirect whose Location needs ``base_url``)."""
+        with self._lock:
+            self._responses.extend(responses)
+
     def record(self, request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         with self._lock:
             self.requests.append(request)

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import socket
 import unittest
+import urllib.error
+import urllib.request
 from email.utils import formatdate
 from typing import Any, Dict, List
 
@@ -113,6 +115,50 @@ class ClientBehaviourTest(unittest.TestCase):
         self.assertEqual(OmniRouteClient("http://gateway.test/omniroute///").base_url, "http://gateway.test/omniroute")
         with self.assertRaises(ValueError):
             OmniRouteClient("gateway.test")
+
+
+class RedirectCredentialTest(unittest.TestCase):
+    """A redirect must never carry the API key (or any credential header) to another origin."""
+
+    def test_cross_origin_redirect_drops_credentials(self) -> None:
+        with FakeOmniRoute([{"status": 200, "json": {"object": "list", "data": []}}]) as target:
+            redirect = {"status": 302, "headers": {"location": f"{target.base_url}/elsewhere"}, "text": ""}
+            with FakeOmniRoute([redirect]) as origin:
+                client = OmniRouteClient(
+                    origin.base_url,
+                    "sk-redirect-secret",
+                    headers={"X-Api-Key": "sk-extra-secret", "Cookie": "session=secret", "X-Trace": "kept"},
+                    retry=False,
+                    use_env_proxies=False,
+                )
+                self.assertEqual(client.list_models().status, 200)
+                self.assertEqual(origin.requests[0]["headers"]["authorization"], "Bearer sk-redirect-secret")
+        self.assertEqual(len(target.requests), 1)
+        received = target.requests[0]["headers"]
+        for name in ("authorization", "x-api-key", "cookie"):
+            self.assertNotIn(name, received)
+        self.assertEqual(received["x-trace"], "kept")
+        self.assertNotIn("secret", repr(received))
+
+    def test_same_origin_redirect_keeps_credentials(self) -> None:
+        with FakeOmniRoute([]) as server:
+            server.enqueue(
+                {"status": 307, "headers": {"location": f"{server.base_url}/api/v1/models/"}, "text": ""},
+                {"status": 200, "json": {"object": "list", "data": []}},
+            )
+            client = OmniRouteClient(server.base_url, "sk-same-origin", retry=False, use_env_proxies=False)
+            self.assertEqual(client.list_models().status, 200)
+            self.assertEqual([r["path"] for r in server.requests], ["/api/v1/models", "/api/v1/models/"])
+            self.assertEqual(server.requests[1]["headers"].get("authorization"), "Bearer sk-same-origin")
+
+    def test_https_to_http_redirect_is_refused(self) -> None:
+        client = OmniRouteClient("https://gateway.test", "sk-downgrade", use_env_proxies=False)
+        handler = next(h for h in client._opener.handlers if isinstance(h, urllib.request.HTTPRedirectHandler))
+        request = urllib.request.Request("https://gateway.test/api/v1/models", headers={"Authorization": "Bearer sk-downgrade"})
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            handler.redirect_request(request, None, 302, "Found", {}, "http://gateway.test/api/v1/models")
+        self.assertEqual(ctx.exception.code, 302)
+        ctx.exception.close()
 
 
 class HelpersTest(unittest.TestCase):

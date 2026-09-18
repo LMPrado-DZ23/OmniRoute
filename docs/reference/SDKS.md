@@ -1,6 +1,6 @@
 ---
 title: "SDKs (experimental)"
-lastUpdated: 2026-09-14
+lastUpdated: 2026-09-18
 ---
 
 # SDKs (experimental)
@@ -33,6 +33,8 @@ Sources for each route: `src/app/api/v1/chat/completions/route.ts`, `src/app/api
 ## Authentication
 
 Credentials are sent as `Authorization: Bearer` headers. Debug hooks (`onRequest` / `on_request`) receive a header snapshot with `authorization`, `x-api-key`, `cookie` and `proxy-authorization` replaced by `[REDACTED]`. The TypeScript client stores keys in private class fields and the Python client redacts them from `repr()`.
+
+Redirects never carry credentials to another origin. The Python client follows redirects like `urllib`, but it drops every credential header when the scheme, host or port changes, and it refuses an `https` to `http` redirect with an `OmniRouteError` that carries the redirect status. The TypeScript client relies on `fetch`, which removes `Authorization` on a cross-origin redirect.
 
 ## Request IDs
 
