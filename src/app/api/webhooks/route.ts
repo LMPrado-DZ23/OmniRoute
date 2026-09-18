@@ -27,6 +27,9 @@ const createWebhookSchema = z
     description: z.string().max(1000).optional().default(""),
     kind: z.enum(WEBHOOK_KINDS).optional().default("custom"),
     metadata: z.record(z.string(), z.string()).optional(),
+    // Optional, defaults to enabled. The dashboard wizard creates the webhook disabled while
+    // the user is still configuring it and enables it on Finish (audit C H1).
+    enabled: z.boolean().optional().default(true),
   })
   .superRefine((data, ctx) => {
     if (data.kind === "telegram") return;
@@ -92,6 +95,7 @@ export async function POST(request: Request) {
       description: data.description,
       kind: data.kind,
       metadataEncrypted,
+      enabled: data.enabled,
     });
 
     return NextResponse.json({ webhook }, { status: 201 });

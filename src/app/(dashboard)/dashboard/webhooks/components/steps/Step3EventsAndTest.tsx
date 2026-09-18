@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { EventChecklist } from "../shared/EventChecklist";
 import { PayloadPreview } from "../shared/PayloadPreview";
+import { describeWebhookApiError } from "../shared/webhookApiError";
 
 interface Step3Props {
   webhookId?: string;
@@ -45,7 +46,7 @@ export function Step3EventsAndTest({
       const res = await fetch(`/api/webhooks/${webhookId}/test`, { method: "POST" });
       const data: TestResult & { error?: string } = await res.json().catch(() => ({}));
       if (!res.ok || data.delivered === false) {
-        throw new Error(data.error || t("testFailed"));
+        throw new Error(describeWebhookApiError(data, t("testFailed"), res.status));
       }
       setTestResult(data);
       setTestState("ok");

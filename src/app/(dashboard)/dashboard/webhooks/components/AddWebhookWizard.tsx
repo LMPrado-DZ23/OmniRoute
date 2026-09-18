@@ -12,6 +12,7 @@ import {
 } from "./steps/Step2ConfigureIntegration";
 import { Step3EventsAndTest } from "./steps/Step3EventsAndTest";
 import { HowItWorksSidebar } from "./HowItWorksSidebar";
+import { describeWebhookApiError } from "./shared/webhookApiError";
 import type { WebhookItem } from "./WebhookCard";
 import type { WebhookKind } from "./shared/IntegrationCard";
 
@@ -76,6 +77,27 @@ function step2Valid(state: WizardState, isEditing: boolean): boolean {
   return false;
 }
 
+/**
+ * fetch + JSON with readable failures: a non-2xx response throws an Error whose message is
+ * the server's headline plus any per-field validation detail (never `[object Object]`).
+ */
+async function sendWebhookRequest(
+  url: string,
+  method: "POST" | "PUT" | "DELETE",
+  body: Record<string, unknown> | undefined,
+  fallback: string
+): Promise<{ webhook?: { id?: string } }> {
+  const res = await fetch(url, {
+    method,
+    ...(body
+      ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+      : {}),
+  });
+  const data: unknown = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(describeWebhookApiError(data, fallback, res.status));
+  return data && typeof data === "object" ? (data as { webhook?: { id?: string } }) : {};
+}
+
 export function AddWebhookWizard({
   isOpen,
   onClose,
@@ -89,6 +111,8 @@ export function AddWebhookWizard({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
+  // Id of a webhook this wizard session created as a disabled draft; discarded on Cancel.
+  const [draftId, setDraftId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -98,16 +122,28 @@ export function AddWebhookWizard({
       setState(stateFromWebhook(editingWebhook));
       setError(null);
       setCreatedId(editingWebhook?.id ?? null);
+      setDraftId(null);
     })();
   }, [editingWebhook, isOpen]);
 
-  const handleClose = () => {
-    if (saving) return;
+  const resetAndClose = () => {
     setStep(1);
     setState(INITIAL);
     setError(null);
     setCreatedId(null);
+    setDraftId(null);
     onClose();
+  };
+
+  // Cancel / dismiss: a draft created by this session (disabled, never finished) is deleted so
+  // abandoning the wizard leaves nothing behind (audit C H1). Best effort: if the delete fails
+  // the draft stays disabled, so it never delivers events.
+  const handleClose = () => {
+    if (saving) return;
+    if (draftId) {
+      void fetch(`/api/webhooks/${draftId}`, { method: "DELETE" }).catch(() => undefined);
+    }
+    resetAndClose();
   };
 
   // Builds the config payload (URL + kind + metadata) — sent when entering step 3.
@@ -127,29 +163,30 @@ export function AddWebhookWizard({
     return payload;
   };
 
-  // Called when Next is clicked on step 2: create (or update) the webhook so the
-  // test button is available at step 3 before the user clicks Finish.
+  // Called when Next is clicked on step 2: create (or update) the webhook so the test button
+  // is available at step 3 before the user clicks Finish. A new webhook is created DISABLED;
+  // it is only enabled (if the user keeps "Enabled" on) by Finish.
   const handleNextFromStep2 = async () => {
     setSaving(true);
     setError(null);
     try {
       if (createdId) {
-        const res = await fetch(`/api/webhooks/${createdId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(buildConfigPayload()),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || t("saveFailed"));
+        await sendWebhookRequest(
+          `/api/webhooks/${createdId}`,
+          "PUT",
+          buildConfigPayload(),
+          t("saveFailed")
+        );
       } else {
-        const res = await fetch("/api/webhooks", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(buildConfigPayload()),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || t("saveFailed"));
-        setCreatedId(data.webhook?.id ?? null);
+        const data = await sendWebhookRequest(
+          "/api/webhooks",
+          "POST",
+          { ...buildConfigPayload(), events: state.events, enabled: false },
+          t("saveFailed")
+        );
+        const id = data.webhook?.id ?? null;
+        setCreatedId(id);
+        setDraftId(id);
       }
       setStep(3);
     } catch (err) {
@@ -165,20 +202,19 @@ export function AddWebhookWizard({
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch(`/api/webhooks/${createdId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      await sendWebhookRequest(
+        `/api/webhooks/${createdId}`,
+        "PUT",
+        {
           ...buildConfigPayload(),
           events: state.events,
           enabled: state.enabled,
           description: state.description,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || t("saveFailed"));
+        },
+        t("saveFailed")
+      );
       onCreated();
-      handleClose();
+      resetAndClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("saveFailed"));
     } finally {
@@ -264,7 +300,10 @@ export function AddWebhookWizard({
       <div className="flex gap-6">
         <div className="min-w-0 flex-1">
           {error && (
-            <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-300">
+            <div
+              role="alert"
+              className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-300"
+            >
               {error}
             </div>
           )}
