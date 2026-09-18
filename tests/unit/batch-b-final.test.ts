@@ -305,6 +305,11 @@ describe("responsiveSpecs", () => {
     assert.equal(VIEWPORTS.tablet.width, 768);
   });
 
+  it("should cover the intermediate widths where the layout used to overflow (C-09)", () => {
+    const widths = Object.values(VIEWPORTS).map((viewport) => viewport.width);
+    assert.deepEqual(widths, [375, 768, 900, 1024, 1280, 1440]);
+  });
+
   it("should define pages to test", () => {
     assert.ok(PAGES.length >= 4);
     assert.ok(PAGES.some((p) => p.path === "/login"));
@@ -313,7 +318,7 @@ describe("responsiveSpecs", () => {
 
   it("should generate test matrix", () => {
     const matrix = generateTestMatrix();
-    assert.equal(matrix.length, 3 * PAGES.length); // 3 viewports × n pages
+    assert.equal(matrix.length, 6 * PAGES.length); // 6 viewports × n pages
     assert.ok(matrix[0].testName);
     assert.ok(matrix[0].viewport);
     assert.ok(matrix[0].page);
@@ -321,7 +326,7 @@ describe("responsiveSpecs", () => {
 
   it("should get viewport names", () => {
     const names = getViewportNames();
-    assert.deepEqual(names, ["mobile", "tablet", "desktop"]);
+    assert.deepEqual(names, ["mobile", "tablet", "smallLaptop", "laptop", "desktop", "wide"]);
   });
 
   it("should separate executable and manual accessibility checks", () => {

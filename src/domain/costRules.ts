@@ -26,6 +26,7 @@ import {
   resetSpendBatchWriterForTests,
   spendBatchWriter,
 } from "@/lib/spend/batchWriter";
+import { notifyBudgetThresholdReached } from "@/lib/usage/budgetAlerts";
 
 export type BudgetResetInterval = "daily" | "weekly" | "monthly";
 
@@ -274,6 +275,14 @@ function emitBudgetWarning(
   console.warn(
     `[BudgetWarning] ${apiKeyId} reached ${percentage}% of ${budget.resetInterval} budget ($${projectedTotal.toFixed(4)} / $${activeLimitUsd.toFixed(2)}) — next reset ${new Date(nextResetAt).toISOString()}`
   );
+  notifyBudgetThresholdReached({
+    apiKeyId,
+    resetInterval: budget.resetInterval,
+    projectedSpendUsd: projectedTotal,
+    limitUsd: activeLimitUsd,
+    warningThreshold: budget.warningThreshold,
+    nextResetAt,
+  });
 }
 
 function syncBudgetSchedule(

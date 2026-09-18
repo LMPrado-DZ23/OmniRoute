@@ -3,6 +3,7 @@
 import { useEffect, useRef, useId } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/shared/utils/cn";
+import { useDialogFocus } from "@/shared/hooks/useDialogFocus";
 import Button, { type ButtonVariant } from "./Button";
 
 // #6265 — preset for content-heavy modals: caps height on the OUTERMOST dialog
@@ -55,8 +56,7 @@ export default function Modal({
 }: ModalProps) {
   const t = useTranslations("common");
   const titleId = useId();
-  const dialogRef = useRef(null);
-  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   const sizes = {
     sm: "max-w-sm",
@@ -78,71 +78,9 @@ export default function Modal({
     };
   }, [isOpen]);
 
-  // Handle escape key
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
-      }
-    };
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, onClose]);
-
-  // Return keyboard users to the control that opened the dialog.
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const activeElement = document.activeElement;
-    previouslyFocusedRef.current = activeElement instanceof HTMLElement ? activeElement : null;
-
-    return () => {
-      const previouslyFocused = previouslyFocusedRef.current;
-      previouslyFocusedRef.current = null;
-      if (previouslyFocused?.isConnected) {
-        previouslyFocused.focus();
-      }
-    };
-  }, [isOpen]);
-
-  // Focus trap
-  useEffect(() => {
-    if (!isOpen || !dialogRef.current) return;
-
-    const dialog = dialogRef.current;
-    const focusableSelector =
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-
-    // Focus first focusable element
-    const firstFocusable = dialog.querySelector(focusableSelector);
-    const focusTimer = firstFocusable
-      ? window.setTimeout(() => firstFocusable.focus(), 50)
-      : undefined;
-
-    const handleTab = (e) => {
-      if (e.key !== "Tab") return;
-
-      const focusable = [...dialog.querySelectorAll(focusableSelector)];
-      if (focusable.length === 0) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-
-    dialog.addEventListener("keydown", handleTab);
-    return () => {
-      if (focusTimer !== undefined) window.clearTimeout(focusTimer);
-      dialog.removeEventListener("keydown", handleTab);
-    };
-  }, [isOpen]);
+  // Escape to close, initial focus, Tab trap (skipping disabled controls) and focus
+  // restore to the opener — shared with the slide-over drawers.
+  useDialogFocus(dialogRef, isOpen, onClose);
 
   if (!isOpen) return null;
 

@@ -92,7 +92,7 @@ export default function CheaperInferenceSponsorBanner() {
               open_in_new
             </span>
           </a>
-          <span className="text-[9px] text-text-muted/70">{t("partnerLinkNote")}</span>
+          <span className="text-[9px] text-text-muted">{t("partnerLinkNote")}</span>
         </div>
         <button
           type="button"

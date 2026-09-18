@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireManagementAuth } from "@/lib/api/requireManagementAuth";
 import { explainRouteByRequestId } from "@/lib/usage/routeExplain";
+import { getRoutingDecision } from "@omniroute/open-sse/services/routing/decisionStore.ts";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -14,7 +15,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Routing decision not found" }, { status: 404 });
     }
 
-    return NextResponse.json(explanation);
+    // Additive: the live routing decision recorded under this request id, when still retained.
+    const decision = getRoutingDecision(id);
+    const routingDecision = decision?.requestId === id ? decision : null;
+    return NextResponse.json({ ...explanation, routingDecision });
   } catch (error) {
     console.error("[API ERROR] /api/usage/route-explain/[id] failed:", error);
     return NextResponse.json({ error: "Failed to explain route" }, { status: 500 });

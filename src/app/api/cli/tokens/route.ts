@@ -4,6 +4,7 @@ import { requireManagementAuth } from "@/lib/api/requireManagementAuth";
 import { createAccessToken, listAccessTokens } from "@/lib/db/accessTokens";
 import { ACCESS_SCOPES } from "@/lib/accessTokens/scopes";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
+import { logAdminAuditEvent } from "@/lib/compliance/adminAuditActor";
 
 /**
  * /api/cli/tokens — manage scoped CLI access tokens. Admin-only: the path is in
@@ -45,6 +46,13 @@ export async function POST(request: Request) {
       : null;
 
   const { record, secret } = createAccessToken({ name, scope: scope ?? "read", expiresAt });
+  // Identifiers only: never the secret, its hash or its display prefix.
+  logAdminAuditEvent(request, {
+    action: "accessToken.create",
+    target: record.id,
+    resourceType: "cli_access_token",
+    metadata: { name: record.name, scope: record.scope, expiresAt: record.expiresAt },
+  });
 
   // `token` (the plaintext secret) is returned ONCE here and never again.
   return NextResponse.json({

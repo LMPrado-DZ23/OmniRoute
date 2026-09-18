@@ -6,6 +6,8 @@ import { useState, useEffect } from "react";
 import { Button, Input } from "@/shared/components";
 import { useRouter } from "next/navigation";
 
+const PASSWORD_INPUT_ID = "login-password";
+
 export default function LoginPage() {
   const t = useTranslations("auth");
   const [password, setPassword] = useState("");
@@ -103,7 +105,12 @@ export default function LoginPage() {
         <div className="bg-red-950/60 border-2 border-red-500/40 rounded-2xl p-6 shadow-lg shadow-red-900/20 backdrop-blur-sm">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <span className="material-symbols-outlined text-red-400 text-[28px]">error</span>
+              <span
+                className="material-symbols-outlined text-red-400 text-[28px]"
+                aria-hidden="true"
+              >
+                error
+              </span>
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-base font-bold text-red-300 mb-1">
@@ -114,13 +121,17 @@ export default function LoginPage() {
               </p>
               <div className="bg-black/40 rounded-lg px-4 py-3 font-mono text-sm border border-red-500/20">
                 <div className="flex items-center gap-2 text-red-300/60 mb-1">
-                  <span className="material-symbols-outlined text-[14px]">terminal</span>
+                  <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
+                    terminal
+                  </span>
                   <span className="text-xs">{t("nodeIncompatibleFixLabel")}</span>
                 </div>
                 <code className="text-amber-300">nvm install 22 && nvm use 22</code>
               </div>
               <p className="text-xs text-red-300/50 mt-3 flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[14px]">info</span>
+                <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
+                  info
+                </span>
                 {t("nodeIncompatibleHint")}
               </p>
             </div>
@@ -137,8 +148,8 @@ export default function LoginPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6">
         {nodeWarningBanner}
-        <div className="flex flex-col items-center gap-3">
-          <div className="relative">
+        <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
+          <div className="relative" aria-hidden="true">
             <div className="w-10 h-10 border-2 border-primary/20 rounded-full"></div>
             <div className="absolute inset-0 w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
@@ -157,7 +168,10 @@ export default function LoginPage() {
         >
           <div className="text-center mb-10">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 mb-6">
-              <span className="material-symbols-outlined text-primary text-[40px]">
+              <span
+                className="material-symbols-outlined text-primary text-[40px]"
+                aria-hidden="true"
+              >
                 rocket_launch
               </span>
             </div>
@@ -195,7 +209,10 @@ export default function LoginPage() {
         >
           <div className="text-center mb-10">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-amber-500/10 to-amber-500/5 border border-amber-500/10 mb-6">
-              <span className="material-symbols-outlined text-amber-500 text-[40px]">
+              <span
+                className="material-symbols-outlined text-amber-500 text-[40px]"
+                aria-hidden="true"
+              >
                 shield_person
               </span>
             </div>
@@ -239,7 +256,12 @@ export default function LoginPage() {
             <div className="mb-10">
               <div className="flex items-center gap-3 mb-8">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary-hover flex items-center justify-center">
-                  <span className="material-symbols-outlined text-white text-[20px]">hub</span>
+                  <span
+                    className="material-symbols-outlined text-white text-[20px]"
+                    aria-hidden="true"
+                  >
+                    hub
+                  </span>
                 </div>
                 <span className="text-xl font-semibold text-text-main tracking-tight">
                   OmniRoute
@@ -261,7 +283,9 @@ export default function LoginPage() {
                   className="w-full h-11 text-sm font-medium flex items-center justify-center gap-2"
                   onClick={() => (window.location.href = "/api/auth/oidc/login")}
                 >
-                  <span className="material-symbols-outlined text-lg">login</span>
+                  <span className="material-symbols-outlined text-lg" aria-hidden="true">
+                    login
+                  </span>
                   {t("continueWithOidc")}
                 </Button>
               </div>
@@ -269,8 +293,14 @@ export default function LoginPage() {
               <>
                 <form onSubmit={handleLogin} className="space-y-5 w-full">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-text-main">{t("password")}</label>
+                    <label
+                      htmlFor={PASSWORD_INPUT_ID}
+                      className="text-sm font-medium text-text-main"
+                    >
+                      {t("password")}
+                    </label>
                     <Input
+                      id={PASSWORD_INPUT_ID}
                       type="password"
                       placeholder={t("enterPassword")}
                       value={password}
@@ -280,8 +310,13 @@ export default function LoginPage() {
                       className="h-11"
                     />
                     {error && (
-                      <p className="text-sm text-red-500 flex items-center gap-1.5 pt-1">
-                        <span className="material-symbols-outlined text-base">error</span>
+                      <p
+                        role="alert"
+                        className="text-sm text-red-500 flex items-center gap-1.5 pt-1"
+                      >
+                        <span className="material-symbols-outlined text-base" aria-hidden="true">
+                          error
+                        </span>
                         {error}
                       </p>
                     )}
@@ -316,7 +351,9 @@ export default function LoginPage() {
                       className="w-full h-11 text-sm font-medium flex items-center justify-center gap-2"
                       onClick={() => (window.location.href = "/api/auth/oidc/login")}
                     >
-                      <span className="material-symbols-outlined text-lg">login</span>
+                      <span className="material-symbols-outlined text-lg" aria-hidden="true">
+                        login
+                      </span>
                       {t("continueWithOidc")}
                     </Button>
                   </div>
@@ -370,7 +407,10 @@ export default function LoginPage() {
                     className="flex items-start gap-4 p-4 rounded-xl bg-surface/50 border border-border"
                   >
                     <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <span className="material-symbols-outlined text-primary text-[20px]">
+                      <span
+                        className="material-symbols-outlined text-primary text-[20px]"
+                        aria-hidden="true"
+                      >
                         {item.icon}
                       </span>
                     </div>

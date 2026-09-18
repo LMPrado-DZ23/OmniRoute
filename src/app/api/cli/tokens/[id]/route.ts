@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireManagementAuth } from "@/lib/api/requireManagementAuth";
 import { revokeAccessToken } from "@/lib/db/accessTokens";
+import { logAdminAuditEvent } from "@/lib/compliance/adminAuditActor";
 
 /**
  * DELETE /api/cli/tokens/:id — revoke an access token (by id or display prefix).
@@ -19,5 +20,10 @@ export async function DELETE(
   if (!revoked) {
     return NextResponse.json({ error: "Token not found or already revoked" }, { status: 404 });
   }
+  logAdminAuditEvent(request, {
+    action: "accessToken.revoke",
+    target: id,
+    resourceType: "cli_access_token",
+  });
   return NextResponse.json({ success: true, id });
 }
