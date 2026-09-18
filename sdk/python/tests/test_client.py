@@ -111,6 +111,34 @@ class ClientBehaviourTest(unittest.TestCase):
         self.assertNotIn("sk-super-secret", dump)
         self.assertNotIn("mgmt-super-secret", dump)
 
+    def test_debug_hook_redacts_every_credential_header_variant(self) -> None:
+        credential_headers = {
+            "Authorization": "Bearer sk-a",
+            "Proxy-Authorization": "Basic sk-b",
+            "Cookie": "session=sk-c",
+            "X-Api-Key": "sk-d",
+            "X-Goog-Api-Key": "sk-e",
+            "X-OmniRoute-Cli-Token": "sk-f",
+            "X-Custom-Secret": "sk-g",
+        }
+        seen: List[Dict[str, Any]] = []
+        with FakeOmniRoute([{"status": 200, "json": {"object": "list", "data": []}}]) as server:
+            client = OmniRouteClient(
+                server.base_url,
+                "sk-h",
+                headers={**credential_headers, "X-Trace": "visible"},
+                on_request=seen.append,
+                retry=False,
+                use_env_proxies=False,
+            )
+            client.list_models()
+        snapshot = seen[0]["headers"]
+        for name in credential_headers:
+            self.assertEqual(snapshot[name.lower()], "[REDACTED]", name)
+        self.assertEqual(snapshot["x-trace"], "visible")
+        self.assertEqual(snapshot["x-request-id"], seen[0]["client_request_id"])
+        self.assertNotIn("sk-", repr(seen))
+
     def test_base_url_is_validated_and_normalized(self) -> None:
         self.assertEqual(OmniRouteClient("http://gateway.test/omniroute///").base_url, "http://gateway.test/omniroute")
         with self.assertRaises(ValueError):

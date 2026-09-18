@@ -299,6 +299,34 @@ describe("OmniRouteClient request shaping", () => {
     assert.ok(!dump.includes("mgmt-super-secret"), "management key leaked");
   });
 
+  it("redacts every credential header variant in the debug hook", async () => {
+    const credentialHeaders: Record<string, string> = {
+      authorization: "Bearer sk-a",
+      "proxy-authorization": "Basic sk-b",
+      cookie: "session=sk-c",
+      "x-api-key": "sk-d",
+      "x-goog-api-key": "sk-e",
+      "x-omniroute-cli-token": "sk-f",
+      "x-custom-secret": "sk-g",
+    };
+    const seen: RequestDebugInfo[] = [];
+    const client = new OmniRouteClient({
+      apiKey: "sk-h",
+      headers: { ...credentialHeaders, "x-trace": "visible" },
+      fetch: async () => jsonResponse({ object: "list", data: [] }),
+      onRequest: (info) => seen.push(info),
+      retry: false,
+    });
+    await client.models.list();
+    const snapshot = seen[0]?.headers ?? {};
+    for (const name of Object.keys(credentialHeaders)) {
+      assert.equal(snapshot[name], "[REDACTED]", name);
+    }
+    assert.equal(snapshot["x-trace"], "visible");
+    assert.equal(snapshot["x-request-id"], seen[0]?.clientRequestId);
+    assert.ok(!JSON.stringify(seen).includes("sk-"), "a credential leaked into the debug hook");
+  });
+
   it("normalizes the base URL, honours a per-call request id and generates UUIDs by default", async () => {
     const urls: string[] = [];
     const ids: Array<string | null> = [];

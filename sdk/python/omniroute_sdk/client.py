@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import http.client
 import json
+import re
 import socket
 import time
 import urllib.error
@@ -30,13 +31,24 @@ OPERATIONS: Dict[str, Tuple[str, str, str]] = {
     "routePreview": ("POST", "/api/omniroute/route/preview", "management"),
 }
 
-_SENSITIVE_HEADERS = frozenset({"authorization", "x-api-key", "cookie", "proxy-authorization"})
+#: Every credential header the server accepts (``Authorization: Bearer`` also carries the
+#: management key). Any other header whose name looks credential-like is covered by the pattern.
+_SENSITIVE_HEADERS = frozenset(
+    {"authorization", "proxy-authorization", "cookie", "x-api-key", "x-goog-api-key", "x-omniroute-cli-token"}
+)
+_SENSITIVE_HEADER_PATTERN = re.compile(r"auth|key|token|secret|cookie|session|password")
 _NETWORK_ERRORS = (OSError, http.client.HTTPException)
+
+
+def is_sensitive_header(name: str) -> bool:
+    """True for a header that may carry a credential (redacted in debug output, dropped on redirects)."""
+    lowered = name.lower()
+    return lowered in _SENSITIVE_HEADERS or _SENSITIVE_HEADER_PATTERN.search(lowered) is not None
 
 
 def redact_headers(headers: Mapping[str, str]) -> Dict[str, str]:
     """Copy of ``headers`` with credentials replaced by ``[REDACTED]``."""
-    return {k: ("[REDACTED]" if k.lower() in _SENSITIVE_HEADERS else v) for k, v in headers.items()}
+    return {k: ("[REDACTED]" if is_sensitive_header(k) else v) for k, v in headers.items()}
 
 
 def _origin(url: str) -> Tuple[str, str, Optional[int]]:
@@ -60,7 +72,7 @@ class _CredentialSafeRedirectHandler(urllib.request.HTTPRedirectHandler):
         redirected = super().redirect_request(req, fp, code, msg, headers, newurl)
         if redirected is not None and target != source:
             for name, _ in list(redirected.header_items()):
-                if name.lower() in _SENSITIVE_HEADERS:
+                if is_sensitive_header(name):
                     redirected.remove_header(name)
         return redirected
 

@@ -104,12 +104,30 @@ export interface RequestOptions {
   headers?: Record<string, string>;
 }
 
-const SENSITIVE_HEADERS = new Set(["authorization", "x-api-key", "cookie", "proxy-authorization"]);
+/**
+ * Every credential header the server accepts (`Authorization: Bearer` also carries the management
+ * key). Any other header whose name looks credential-like is covered by the pattern.
+ */
+const SENSITIVE_HEADERS: ReadonlySet<string> = new Set([
+  "authorization",
+  "proxy-authorization",
+  "cookie",
+  "x-api-key",
+  "x-goog-api-key",
+  "x-omniroute-cli-token",
+]);
+const SENSITIVE_HEADER_PATTERN = /auth|key|token|secret|cookie|session|password/;
+
+/** True for a header that may carry a credential. */
+function isSensitiveHeader(name: string): boolean {
+  const lowered = name.toLowerCase();
+  return SENSITIVE_HEADERS.has(lowered) || SENSITIVE_HEADER_PATTERN.test(lowered);
+}
 
 export function redactHeaders(headers: Headers): Record<string, string> {
   const out: Record<string, string> = {};
   headers.forEach((value, key) => {
-    out[key] = SENSITIVE_HEADERS.has(key.toLowerCase()) ? "[REDACTED]" : value;
+    out[key] = isSensitiveHeader(key) ? "[REDACTED]" : value;
   });
   return out;
 }
@@ -170,7 +188,10 @@ interface Established {
 }
 
 export interface ChatCompletionsResource {
-  create(request: ChatCompletionRequest, options?: RequestOptions): Promise<ApiResponse<ChatCompletion>>;
+  create(
+    request: ChatCompletionRequest,
+    options?: RequestOptions
+  ): Promise<ApiResponse<ChatCompletion>>;
   stream(request: ChatCompletionRequest, options?: RequestOptions): Promise<ChatCompletionStream>;
 }
 
@@ -179,7 +200,10 @@ export class OmniRouteClient {
   readonly chat: { readonly completions: ChatCompletionsResource };
   readonly models: { list(options?: RequestOptions): Promise<ApiResponse<ModelList>> };
   readonly routing: {
-    preview(request: RoutePreviewRequest, options?: RequestOptions): Promise<ApiResponse<RoutePreviewResult>>;
+    preview(
+      request: RoutePreviewRequest,
+      options?: RequestOptions
+    ): Promise<ApiResponse<RoutePreviewResult>>;
   };
   readonly #apiKey: string | undefined;
   readonly #managementKey: string | undefined;
@@ -316,7 +340,13 @@ export class OmniRouteClient {
       }
       const text = await response.text().catch(() => "");
       attempt.dispose();
-      throw errorFromHttpResponse(response.status, text, response.headers, clientRequestId, retryAfterMs);
+      throw errorFromHttpResponse(
+        response.status,
+        text,
+        response.headers,
+        clientRequestId,
+        retryAfterMs
+      );
     }
   }
 
@@ -352,7 +382,8 @@ export class OmniRouteClient {
       text = await response.text();
     } catch (cause) {
       if (attempt.abortedByCaller) throw abortedError(clientRequestId, cause);
-      if (attempt.timedOut) throw timeoutError(nonNegative(options.timeoutMs, this.#timeoutMs), clientRequestId, cause);
+      if (attempt.timedOut)
+        throw timeoutError(nonNegative(options.timeoutMs, this.#timeoutMs), clientRequestId, cause);
       throw networkError(clientRequestId, cause);
     } finally {
       attempt.dispose();
