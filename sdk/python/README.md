@@ -12,10 +12,12 @@ client = OmniRouteClient(
     retry=RetryConfig(max_retries=2, base_delay_ms=500),
 )
 
-completion = client.chat_completions({"model": "auto", "messages": [{"role": "user", "content": "Hello"}]})
+MODEL = "<provider>/<model>"  # a model id from list_models(); see the note below
+
+completion = client.chat_completions({"model": MODEL, "messages": [{"role": "user", "content": "Hello"}]})
 print(completion.data["choices"][0]["message"]["content"], completion.request_id)
 
-with client.stream_chat_completions({"model": "auto", "messages": [{"role": "user", "content": "Count to 3"}]}) as stream:
+with client.stream_chat_completions({"model": MODEL, "messages": [{"role": "user", "content": "Count to 3"}]}) as stream:
     for chunk in stream:
         print(chunk["choices"][0]["delta"].get("content", ""), end="")
 
@@ -24,6 +26,8 @@ try:
 except OmniRouteError as error:
     print(error.status, error.code, error.request_id)
 ```
+
+Replace `<provider>/<model>` with a model id you configured, as listed by `GET /v1/models` (`list_models()`). Avoid `auto` until you have configured providers: `auto` routes to any enabled provider, including built-in keyless third-party free tiers (currently the OpenCode free tier, `oc/*`, allow-listed in `open-sse/services/autoCombo/virtualFactory.ts`). On a fresh install with no provider configured, an `auto` prompt is therefore sent to an external service you never set up. To keep it out of `auto`, add the provider to `blockedProviders` in the dashboard settings or disable its card on the Providers page.
 
 Surface: `chat_completions`, `stream_chat_completions`, `list_models`, `health`, `quota`, `route_preview`, `OmniRouteError`.
 

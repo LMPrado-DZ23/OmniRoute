@@ -12,14 +12,16 @@ const client = new OmniRouteClient({
   retry: { maxRetries: 2, baseDelayMs: 500 },
 });
 
+const MODEL = "<provider>/<model>"; // a model id from client.models.list(); see the note below
+
 const completion = await client.chat.completions.create({
-  model: "auto",
+  model: MODEL,
   messages: [{ role: "user", content: "Hello" }],
 });
 console.log(completion.data.choices[0]?.message.content, completion.requestId);
 
 const stream = await client.chat.completions.stream({
-  model: "auto",
+  model: MODEL,
   messages: [{ role: "user", content: "Count to 3" }],
 });
 for await (const chunk of stream) process.stdout.write(chunk.choices[0]?.delta.content ?? "");
@@ -30,6 +32,8 @@ try {
   if (error instanceof OmniRouteError) console.error(error.status, error.code, error.requestId);
 }
 ```
+
+Replace `<provider>/<model>` with a model id you configured, as listed by `GET /v1/models` (`models.list()`). Avoid `auto` until you have configured providers: `auto` routes to any enabled provider, including built-in keyless third-party free tiers (currently the OpenCode free tier, `oc/*`, allow-listed in `open-sse/services/autoCombo/virtualFactory.ts`). On a fresh install with no provider configured, an `auto` prompt is therefore sent to an external service you never set up. To keep it out of `auto`, add the provider to `blockedProviders` in the dashboard settings or disable its card on the Providers page.
 
 Surface: `chat.completions.create`, `chat.completions.stream`, `models.list`, `health`, `quota`, `routing.preview`, `OmniRouteError`.
 
