@@ -674,7 +674,7 @@
     "addAtLeastOneProvider": "Thêm ít nhất một nhà cung cấp",
     "reasonSeparator": "Dấu phân cách lý do",
     "zedImporting": "Đang nhập Zed",
-    "confirmPasswordPlaceholder": "Văn bản gợi ý xác nhận mật khẩu",
+    "confirmPasswordPlaceholder": "Xác nhận mật khẩu",
     "whatYouGet": "Bạn nhận được gì",
     "signatureSession": "Phiên chữ ký",
     "errorCountNoCode": "Số lỗi không có mã",
@@ -5064,7 +5064,102 @@
         "skipped": "đã được cấu hình",
         "failed": "thất bại"
       }
-    }
+    },
+    "errorGuide": {
+      "whyLabel": "Nguyên nhân",
+      "fixLabel": "Cách khắc phục",
+      "retryPossible": "Bạn có thể thử lại.",
+      "retryAfterFix": "Thử lại sẽ không có tác dụng cho đến khi nguyên nhân ở trên được khắc phục.",
+      "docsLink": "Mở hướng dẫn",
+      "network": {
+        "why": "Bảng điều khiển không thể kết nối tới máy chủ OmniRoute.",
+        "fix": "Kiểm tra OmniRoute vẫn đang chạy (terminal hoặc container Docker) và trang này dùng đúng địa chỉ, sau đó thử lại."
+      },
+      "timeout": {
+        "why": "Yêu cầu mất nhiều thời gian hơn mức trình hướng dẫn chờ.",
+        "fix": "Nhà cung cấp hoặc mạng của bạn đang chậm. Hãy thử lại; nếu vẫn hết thời gian chờ, kiểm tra URL nhà cung cấp và cấu hình proxy."
+      },
+      "unreachable": {
+        "why": "OmniRoute không thể mở kết nối tới máy chủ của nhà cung cấp.",
+        "fix": "Kiểm tra URL nhà cung cấp (để trống URL tùy chỉnh để dùng mặc định), kết nối internet, tường lửa và cấu hình proxy."
+      },
+      "tls": {
+        "why": "Kết nối bảo mật (TLS) tới nhà cung cấp thất bại, thường do chứng chỉ không hợp lệ hoặc proxy chặn HTTPS.",
+        "fix": "Đảm bảo URL tùy chỉnh dùng https với chứng chỉ hợp lệ, hoặc cấu hình proxy và chứng chỉ CA mà OmniRoute cần tin cậy."
+      },
+      "credential": {
+        "why": "Nhà cung cấp từ chối thông tin xác thực: khóa không hợp lệ, đã hết hạn, bị thu hồi hoặc không có quyền truy cập API này.",
+        "fix": "Tạo hoặc sao chép một khóa hợp lệ trong bảng điều khiển của nhà cung cấp, sau đó quay lại bước nhà cung cấp và thêm lại."
+      },
+      "rateLimited": {
+        "why": "Nhà cung cấp đang giới hạn yêu cầu cho khóa này (giới hạn tốc độ hoặc hết hạn mức).",
+        "fix": "Đợi một phút rồi thử lại, hoặc kiểm tra gói dịch vụ và hạn mức trong bảng điều khiển của nhà cung cấp."
+      },
+      "providerDown": {
+        "why": "Nhà cung cấp trả về lỗi máy chủ; sự cố nằm ở phía nhà cung cấp.",
+        "fix": "Thử lại sau vài phút hoặc xem trang trạng thái của nhà cung cấp."
+      },
+      "invalidInput": {
+        "why": "Máy chủ không chấp nhận dữ liệu đã gửi.",
+        "fix": "Xem lại các trường của bước này (thông báo ở trên nêu rõ vấn đề) rồi gửi lại."
+      },
+      "sessionExpired": {
+        "why": "Phiên đăng nhập bảng điều khiển không có hoặc đã hết hạn nên máy chủ từ chối yêu cầu.",
+        "fix": "Đăng nhập lại tại /login, sau đó mở lại trình hướng dẫn thiết lập."
+      },
+      "server": {
+        "why": "OmniRoute gặp lỗi nội bộ khi xử lý yêu cầu.",
+        "fix": "Hãy thử lại. Nếu lỗi lặp lại, tìm lỗi trong nhật ký máy chủ OmniRoute (terminal hoặc docker logs)."
+      },
+      "noConnection": {
+        "why": "Chưa có kết nối nhà cung cấp nào để kiểm tra.",
+        "fix": "Quay lại bước nhà cung cấp để thêm một nhà cung cấp, hoặc thêm sau trong mục Nhà cung cấp."
+      },
+      "noModels": {
+        "why": "Nhà cung cấp không trả về mô hình chat nào cho thông tin xác thực này.",
+        "fix": "Nhập ID của một mô hình mà nhà cung cấp này phục vụ, hoặc kiểm tra quyền truy cập của khóa trong bảng điều khiển của nhà cung cấp."
+      },
+      "paidModelBlocked": {
+        "why": "Cài đặt \"ẩn mô hình trả phí\" đang bật nên OmniRoute từ chối kiểm tra mô hình trả phí.",
+        "fix": "Chọn một mô hình miễn phí, hoặc tắt \"ẩn mô hình trả phí\" trong Cài đặt."
+      },
+      "unknown": {
+        "why": "Máy chủ không cho biết lý do thất bại.",
+        "fix": "Hãy thử lại. Nếu vẫn thất bại, kiểm tra nhật ký máy chủ OmniRoute và hướng dẫn khắc phục sự cố."
+      }
+    },
+    "connectionLabel": "Kết nối cần kiểm tra",
+    "backToProvider": "Quay lại nhà cung cấp",
+    "chooseModelTitle": "Chọn một mô hình",
+    "chooseModelDesc": "Các mô hình mà nhà cung cấp liệt kê cho thông tin xác thực này. Chọn một mô hình để gửi một yêu cầu kiểm tra ngắn.",
+    "loadingModels": "Đang tải mô hình…",
+    "modelLabel": "Mô hình",
+    "modelIdManualPlaceholder": "ID mô hình, ví dụ: gpt-4o-mini",
+    "failedLoadModels": "Không thể tải danh sách mô hình.",
+    "noModelsListed": "Nhà cung cấp không liệt kê mô hình chat nào.",
+    "sendTestRequest": "Gửi yêu cầu kiểm tra",
+    "sendingTestRequest": "Đang gửi yêu cầu kiểm tra…",
+    "testRequestOk": "Mô hình đã phản hồi trong {ms} ms.",
+    "testRequestFailed": "Yêu cầu kiểm tra thất bại.",
+    "clientConfigTitle": "Cấu hình máy khách",
+    "clientConfigDesc": "Dùng các thiết lập này trong bất kỳ công cụ tương thích OpenAI nào (SDK, tiện ích IDE, tác tử CLI).",
+    "apiKeyLabel": "Khóa API",
+    "apiKeyHint": "Thay phần giữ chỗ bằng khóa API OmniRoute được tạo trong Trình quản lý API. Đây không phải khóa của nhà cung cấp.",
+    "copyConfig": "Sao chép cấu hình",
+    "copied": "Đã sao chép!",
+    "copyFailed": "Không thể tự động sao chép. Hãy chọn văn bản ở trên và sao chép thủ công.",
+    "openApiManager": "Tạo khóa API",
+    "openEndpoints": "Thêm cấu hình máy khách",
+    "firstRequestTitle": "Yêu cầu đầu tiên của bạn",
+    "firstRequestLoading": "Đang tìm yêu cầu đầu tiên của bạn…",
+    "firstRequestFound": "Yêu cầu gần nhất: {model} (trạng thái {status}).",
+    "firstRequestNone": "Chưa có yêu cầu nào được ghi lại. Hãy gửi một yêu cầu với cấu hình ở trên; yêu cầu sẽ xuất hiện trong nhật ký yêu cầu.",
+    "firstRequestFailedLoad": "Hiện không thể đọc nhật ký yêu cầu.",
+    "refreshRequests": "Kiểm tra lại",
+    "openLogs": "Mở nhật ký yêu cầu",
+    "firstStepsGuide": "Hướng dẫn: 10 phút đầu tiên của bạn",
+    "passwordAlreadySet": "Mật khẩu bảng điều khiển đã được đặt (ví dụ qua INITIAL_PASSWORD). Giữ nguyên, hoặc nhập mật khẩu mới bên dưới để thay thế.",
+    "keepPassword": "Giữ mật khẩu hiện tại"
   },
   "providers": {
     "title": "Nhà cung cấp",
@@ -5851,22 +5946,22 @@
     "featureFlagNewApiAggregatorBalanceDescription": "Bật tính năng phát hiện số dư cho các node tương thích với bộ tổng hợp New-API / One-API / Sub2API",
     "cpaModeDisabledTitle": "Chế độ tương thích CLIProxyAPI đã bị tắt",
     "cpaModeEnabledTitle": "Chế độ tương thích CLIProxyAPI đã được bật",
-    "customUserAgentHint": "Gợi ý User Agent tùy chỉnh",
-    "customUserAgentLabel": "Nhãn User Agent tùy chỉnh",
+    "customUserAgentHint": "Giá trị tùy chọn gửi lên nhà cung cấp làm tiêu đề User-Agent của kết nối này.",
+    "customUserAgentLabel": "User-Agent tùy chỉnh",
     "databricksBaseUrlHint": "Gợi ý URL cơ sở của Databricks",
     "defaultThinkingStrengthHint": "Được sử dụng khi một yêu cầu không chỉ định mức độ suy luận.",
     "defaultThinkingStrengthLabel": "Mức độ suy luận mặc định",
     "deleteAllExtraApiKeys": "Xóa tất cả",
-    "excludedModelsHint": "Gợi ý các mô hình bị loại trừ",
-    "excludedModelsLabel": "Nhãn các mô hình bị loại trừ",
-    "excludedModelsPlaceholder": "Nhập các mô hình bị loại trừ",
+    "excludedModelsHint": "Các mẫu wildcard phân tách bằng dấu phẩy. Kết nối này sẽ bị bỏ qua với các mô hình khớp mẫu.",
+    "excludedModelsLabel": "Mô hình bị loại trừ",
+    "excludedModelsPlaceholder": "gpt-5*, claude-opus-*, gemini-*-pro*",
     "expirationBannerExpired": "{count, plural, one {# kết nối đã hết hạn} other {# kết nối đã hết hạn}}",
     "expirationBannerExpiredDesc": "Cần xử lý ngay. Các kết nối đã hết hạn sẽ liên tục thất bại cho đến khi được xác thực lại.",
     "expirationBannerExpiringSoon": "{count, plural, one {# kết nối sắp hết hạn} other {# kết nối sắp hết hạn}}",
     "expirationBannerExpiringSoonDesc": "Hãy kiểm tra và gia hạn các kết nối sắp hết hạn để tránh gián đoạn.",
     "extraApiKeyMasked": "Khóa {index}: {prefix}••••{suffix}",
-    "extraApiKeysHint": "Gợi ý API key bổ sung",
-    "extraApiKeysLabel": "Nhãn các API key bổ sung",
+    "extraApiKeysHint": "không bắt buộc, xoay vòng lần lượt",
+    "extraApiKeysLabel": "Khóa API bổ sung",
     "apiKeyHealthLabel": "Tình trạng API key",
     "apiKeyStatusActive": "Hoạt động",
     "apiKeyStatusWarning": "Cảnh báo ({count} lần thất bại)",
@@ -5894,7 +5989,7 @@
     "embeddingRerankProviders": "Nhúng & xếp hạng lại",
     "imagesShortLabel": "Nhãn ngắn cho hình ảnh",
     "llmProviders": "Nhà cung cấp LLM",
-    "localProviderApiKeyOptionalHint": "Gợi ý tùy chọn API key của nhà cung cấp cục bộ",
+    "localProviderApiKeyOptionalHint": "Không bắt buộc với {provider}: để trống nếu máy chủ cục bộ của bạn không yêu cầu khóa API.",
     "localProviderBaseUrlHint": "Gợi ý URL cơ sở của nhà cung cấp cục bộ",
     "localProviders": "Nhà cung cấp cục bộ",
     "maxConcurrentWholeNumberError": "Lỗi số nguyên cho số lượng đồng thời tối đa",
@@ -5941,13 +6036,13 @@
     "regionHint": "Gợi ý vùng",
     "regionLabel": "Nhãn vùng",
     "removeThisKey": "Xóa khóa này",
-    "routingTagsHint": "Gợi ý thẻ định tuyến",
-    "routingTagsLabel": "Nhãn thẻ định tuyến",
-    "routingTagsPlaceholder": "Nhập thẻ định tuyến...",
+    "routingTagsHint": "Các thẻ phân tách bằng dấu phẩy, được so khớp với metadata.tags của yêu cầu để định tuyến theo thẻ.",
+    "routingTagsLabel": "Thẻ định tuyến",
+    "routingTagsPlaceholder": "fast, cheap, eu-region",
     "search": "Tìm kiếm",
-    "searchEngineIdHint": "Gợi ý ID công cụ tìm kiếm",
-    "searchEngineIdLabel": "Nhãn ID công cụ tìm kiếm",
-    "searchEngineIdRequired": "Yêu cầu ID công cụ tìm kiếm",
+    "searchEngineIdHint": "Bắt buộc. Xem trong phần tổng quan của Programmable Search Engine của bạn.",
+    "searchEngineIdLabel": "ID công cụ tìm kiếm (cx)",
+    "searchEngineIdRequired": "Bắt buộc phải có ID (cx) của Programmable Search Engine.",
     "searchProvider": "Nhà cung cấp tìm kiếm",
     "searchProviderDesc": "Mô tả nhà cung cấp tìm kiếm",
     "searchProviders": "Các nhà cung cấp tìm kiếm",
@@ -5963,9 +6058,9 @@
     "supportedEndpointEmbeddings": "Phần nhúng",
     "supportedEndpointImages": "Hình ảnh",
     "supportedEndpointsLabel": "Nhãn các endpoint được hỗ trợ",
-    "tagGroupHint": "Gợi ý nhóm thẻ",
-    "tagGroupLabel": "Nhãn nhóm thẻ",
-    "tagGroupPlaceholder": "Nhập nhóm thẻ...",
+    "tagGroupHint": "Dùng để nhóm các tài khoản trong giao diện nhà cung cấp.",
+    "tagGroupLabel": "Thẻ / nhóm",
+    "tagGroupPlaceholder": "ví dụ: personal, work, team-a",
     "testModel": "Kiểm tra mô hình",
     "testingModel": "Đang kiểm tra mô hình",
     "modelTestQuotaTooltip": "Đã hết hạn mức — sẽ được đặt lại vào ngày mai hoặc cần nạp thêm",
@@ -9893,7 +9988,7 @@
     "waitingForQoderAuthorization": "Đang chờ cấp quyền qua Qoder...",
     "exchangingCodeForTokens": "Đang đổi mã lấy token...",
     "nodeIncompatibleTitle": "Phiên bản Node.js không tương thích",
-    "nodeIncompatibleDesc": "Bạn đang chạy Node.js {version}, phiên bản này nằm ngoài chính sách môi trường chạy an toàn được hỗ trợ của OmniRoute. Vui lòng sử dụng bản phát hành Node.js 20.x hoặc 22.x LTS đã được vá.",
+    "nodeIncompatibleDesc": "Bạn đang chạy Node.js {version}, phiên bản này nằm ngoài chính sách môi trường chạy an toàn được hỗ trợ của OmniRoute. Vui lòng sử dụng bản phát hành Node.js 22.x hoặc 24.x LTS đã được vá.",
     "nodeIncompatibleFixLabel": "Khắc phục: cài đặt bản phát hành Node.js 22 LTS đã được vá",
     "nodeIncompatibleHint": "OmniRoute yêu cầu Node.js 22.22.2+ (22.x LTS) hoặc 24.0.0+ (24.x LTS). Khuyến nghị sử dụng Node 24 LTS.",
     "resetViaAppDataTitle": "Đặt lại bằng dữ liệu ứng dụng",
