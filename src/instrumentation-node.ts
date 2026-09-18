@@ -448,6 +448,9 @@ export async function registerNodejs(): Promise<void> {
     const { initBatchProcessor } = await import("@omniroute/open-sse/services/batchProcessor");
     initBatchProcessor();
     console.log("[STARTUP] Batch processor started");
+    const { startSloAlertLoop } = await import("@/lib/monitoring/sloAlerts");
+    startSloAlertLoop();
+    console.log("[STARTUP] SLO alert evaluator started (60s interval, settings.slo)");
   }
 
   try {

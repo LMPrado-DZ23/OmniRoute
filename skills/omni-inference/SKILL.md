@@ -145,6 +145,15 @@ curl -X POST https://localhost:20128/api/v1/responses \
   -d '{}'
 ```
 
+### GET /api/v1/embeddings
+
+GET embeddings
+
+```bash
+curl https://localhost:20128/api/v1/embeddings \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN"
+```
+
 ### POST /api/v1/embeddings
 
 Create embeddings
@@ -187,6 +196,15 @@ curl -X POST https://localhost:20128/api/v1/providers/{provider}/embeddings \
   -H "Authorization: Bearer $OMNIROUTE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{}'
+```
+
+### GET /api/v1/images/generations
+
+GET images › generations
+
+```bash
+curl https://localhost:20128/api/v1/images/generations \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN"
 ```
 
 ### POST /api/v1/images/generations
@@ -510,6 +528,15 @@ DELETE <omnirouteCatchAll>
 
 ```bash
 curl -X DELETE https://localhost:20128/api/v1/{omnirouteCatchAll} \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN"
+```
+
+### HEAD /api/v1/{omnirouteCatchAll}
+
+HEAD <omnirouteCatchAll>
+
+```bash
+curl -X HEAD https://localhost:20128/api/v1/{omnirouteCatchAll} \
   -H "Authorization: Bearer $OMNIROUTE_TOKEN"
 ```
 

@@ -165,3 +165,28 @@ test("POST /api/context/combos/default is deprecated and rejects writes (not 200
   assert.notEqual(res.status, 200, "POST must no longer succeed — the route is read-only");
   assert.ok(res.status >= 400, `expected a 4xx deprecation status, got ${res.status}`);
 });
+
+// RFC 9745 / RFC 8594: deprecated writes announce the deprecation and sunset dates. The
+// Sunset date must stay in lockstep with `x-sunset` in docs/openapi.yaml.
+for (const method of ["PUT", "POST"] as const) {
+  test(`${method} /api/context/combos/default emits Deprecation, Sunset and Link headers`, async () => {
+    const req = await makeManagementSessionRequest("http://localhost/api/context/combos/default", {
+      method,
+      body: JSON.stringify({ engineId: "headroom", enabled: true }),
+    });
+    const res = await defaultRoute[method](req);
+    assert.equal(res.status, 410);
+    assert.equal(res.headers.get("Deprecation"), `@${Date.UTC(2026, 5, 21) / 1000}`);
+    assert.equal(res.headers.get("Sunset"), "Thu, 31 Dec 2026 00:00:00 GMT");
+    const link = res.headers.get("Link") ?? "";
+    assert.match(link, /rel="deprecation"/);
+    assert.match(link, /rel="sunset"/);
+  });
+}
+
+test("GET /api/context/combos/default is not deprecated and carries no Deprecation header", async () => {
+  const req = await makeManagementSessionRequest("http://localhost/api/context/combos/default");
+  const res = await defaultRoute.GET(req);
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get("Deprecation"), null);
+});
