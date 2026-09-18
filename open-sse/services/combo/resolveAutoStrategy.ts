@@ -22,6 +22,7 @@ import { supportsToolCalling } from "../modelCapabilities.ts";
 import type { ResilienceSettings } from "../../../src/lib/resilience/settings";
 import { parseAutoConfig } from "./autoConfig.ts";
 import {
+  logRoutingDecision,
   orderTargetsByCostBudget,
   recordExplicitStrategyDecision,
   selectAutoProviderWithDecision,
@@ -406,7 +407,10 @@ export async function resolveAutoStrategyOrder(
         selectedConnectionId = decision.connectionId ?? null;
         selectionReason = decision.reason;
         autoUsedExplicitRouter = true;
-        recordExplicitStrategyDecision({ ...decisionContext, selection: decision });
+        logRoutingDecision(
+          log,
+          recordExplicitStrategyDecision({ ...decisionContext, selection: decision })
+        );
       } catch (err) {
         log.warn(
           "COMBO",
@@ -417,6 +421,7 @@ export async function resolveAutoStrategyOrder(
 
     if (!selectedProvider || !selectedModel) {
       const ruled = selectAutoProviderWithDecision(decisionContext);
+      logRoutingDecision(log, ruled.decision);
       // #3470: `budgetFallback: "strict"` refuses to select when every candidate
       // exceeds `budgetCap` — surface a clear cost-exceeds-budget response
       // instead of letting it propagate as an unhandled 500.
