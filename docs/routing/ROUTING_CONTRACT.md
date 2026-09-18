@@ -42,7 +42,9 @@ Candidates never carry connection or account identifiers, prompts or credentials
 ## Previewing a decision
 
 `POST /api/omniroute/route/preview` requires management authentication and never calls a
-provider.
+provider. The examples on this page read `OMNIROUTE_MANAGE_KEY`, an OmniRoute API key with the
+`manage` scope (a dashboard session works too), as in the
+[API use cases](../reference/API_USE_CASES.md).
 
 - `{ "candidates": [...] }` keeps the original adaptive what-if ranking and its response shape.
 - `{ "engine": "auto", "request"?, "policy"?, "candidates": [...] }` runs the live auto-combo engine
@@ -50,7 +52,7 @@ provider.
 
 ```bash
 curl -s -X POST http://localhost:20128/api/omniroute/route/preview \
-  -H "Authorization: Bearer $OMNIROUTE_TOKEN" \
+  -H "Authorization: Bearer $OMNIROUTE_MANAGE_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "engine": "auto",
@@ -65,7 +67,9 @@ curl -s -X POST http://localhost:20128/api/omniroute/route/preview \
 
 The answer contains `selected`, `candidates` and `decision` (with `policyVersion` and
 `liveRequestExecuted: false`), plus the `x-request-id` and `x-omniroute-decision-id` headers. A
-candidate without `quotaRemaining` is reported with `quota: "unknown"`.
+candidate without `quotaRemaining` is reported with `quota: "unknown"`. The top-level `selected`
+is only the provider id, kept for compatibility; `decision.selected` has the provider and the
+model. An invalid body gets a 400 whose `error` string lists the invalid fields.
 
 ## Explaining a live request
 
@@ -81,7 +85,7 @@ candidate without `quotaRemaining` is reported with `quota: "unknown"`.
 
 ```bash
 curl -s http://localhost:20128/api/omniroute/route/decisions/<request-id> \
-  -H "Authorization: Bearer $OMNIROUTE_TOKEN"
+  -H "Authorization: Bearer $OMNIROUTE_MANAGE_KEY"
 ```
 
 ## Diagnostic mode
