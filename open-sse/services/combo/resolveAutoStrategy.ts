@@ -366,7 +366,8 @@ export async function resolveAutoStrategyOrder(
     let selectedModel: string | null = null;
     let selectedConnectionId: string | null = null;
     let selectionReason = "";
-    let selectedByRulesEngine = false;
+    // The budget cap applies to the failover chain only when the scoring engine selected.
+    let failoverBudgetCap: number | null | undefined = null;
 
     const autoConfig: AutoComboConfig = {
       id: combo.id || combo.name,
@@ -433,7 +434,7 @@ export async function resolveAutoStrategyOrder(
       selectedProvider = selection.provider;
       selectedModel = selection.model;
       selectedConnectionId = selection.connectionId ?? null;
-      selectedByRulesEngine = true;
+      failoverBudgetCap = budgetCap;
       selectionReason = `score=${selection.score.toFixed(3)}${selection.isExploration ? " (exploration)" : ""}`;
     }
 
@@ -471,9 +472,12 @@ export async function resolveAutoStrategyOrder(
     // On the scoring-engine path the budget cap that bounded the first pick also bounds every
     // failover attempt. An explicit router strategy ignores budgetCap (as in v3.8.53): its pick
     // is attempted first, so the recorded decision and the log name the first target tried.
-    orderedTargets = selectedByRulesEngine
-      ? orderTargetsByCostBudget(failoverTargets, candidates, budgetCap, budgetFallback)
-      : failoverTargets;
+    orderedTargets = orderTargetsByCostBudget(
+      failoverTargets,
+      candidates,
+      failoverBudgetCap,
+      budgetFallback
+    );
 
     log.info(
       "COMBO",
