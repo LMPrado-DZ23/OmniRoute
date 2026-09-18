@@ -7741,6 +7741,10 @@ paths:
 
   /api/metrics:
     get:
+      x-stability: internal
+      x-owner: "@LMPrado-DZ23"
+      x-since: "3.8.54"
+      x-rate-limit: none
       tags: [System]
       summary: Routing metrics and SLO status (Prometheus text or JSON)
       description: >-
