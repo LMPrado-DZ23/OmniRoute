@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { buildTelemetryPayload } from "@/lib/monitoring/observability";
 import { getTelemetrySummary } from "@/shared/utils/requestTelemetry";
 import { sanitizeErrorMessage } from "@omniroute/open-sse/utils/error";
+import { routingMetrics } from "@omniroute/open-sse/services/routing/metricsSink.ts";
 
 export async function GET(request) {
   try {
@@ -17,14 +18,17 @@ export async function GET(request) {
       quotaMonitorSummary,
       activeSessions,
     });
-    const totalRequests = payload.totalRequests || 0;
+    // errorRate (%) = failed / (success + failed) routed requests in the same window.
+    // It previously divided quota-monitor poll errors by request count — two
+    // unrelated populations. Window is clamped to 1..60 minutes by the registry.
+    const routingWindow = routingMetrics.window(windowMs);
+    const routedRequests = routingWindow.success + routingWindow.failed;
     return NextResponse.json({
       ...payload,
       uptime: process.uptime(),
       memoryUsage: process.memoryUsage(),
       activeConnections: activeSessions.length,
-      errorRate:
-        totalRequests > 0 ? (quotaMonitorSummary.errors / Math.max(totalRequests, 1)) * 100 : 0,
+      errorRate: routedRequests > 0 ? (routingWindow.failed / routedRequests) * 100 : 0,
     });
   } catch (error) {
     return NextResponse.json({ error: sanitizeErrorMessage(error) }, { status: 500 });

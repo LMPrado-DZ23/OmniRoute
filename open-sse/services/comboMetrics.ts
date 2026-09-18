@@ -5,6 +5,7 @@
  */
 
 import { recordProviderUsage } from "./autoCombo/providerDiversity";
+import { routingMetrics } from "./routing/metricsSink.ts";
 
 interface ModelMetrics {
   requests: number;
@@ -258,6 +259,9 @@ export function recordComboRequest(
     target?: ComboRequestTargetMeta | null;
   }
 ): void {
+  // Aggregate (strategy-labelled, never combo-name-labelled) counters behind
+  // GET /api/metrics and the failover-success SLO. Cheap, no I/O.
+  routingMetrics.recordCombo({ strategy, success, fallbackCount });
   if (!metrics.has(comboName) && metrics.size >= MAX_METRICS_ENTRIES) {
     evictOldestMetric(metrics, { deletePairedShadow: true });
   }

@@ -154,6 +154,10 @@ export const ALWAYS_PROTECTED_API_PATHS: ReadonlyArray<string> = [
   // as the {claude,codex}-auth/apply-local pattern below; a plain path because
   // it carries no dynamic segment.
   "/api/providers/agy-auth/apply-local",
+  // Routing metrics + SLO status (Prometheus/JSON). Read-only, but it names the
+  // providers/models in use and their error rates — never anonymous, even under
+  // requireLogin=false. Scrapers authenticate with a manage-scoped API key.
+  "/api/metrics",
 ];
 
 /**

@@ -7739,6 +7739,48 @@ paths:
         "503":
           description: Compression stats unavailable
 
+  /api/metrics:
+    get:
+      tags: [System]
+      summary: Routing metrics and SLO status (Prometheus text or JSON)
+      description: >-
+        In-process routing metrics — request outcomes by provider/model/strategy/status
+        class, latency and TTFT histograms, tokens, estimated cost, attempts, retries,
+        combo fallbacks and failover outcomes, compression savings — plus scrape-time
+        gauges for circuit breakers, quota monitors and SLO objectives. Default response
+        is Prometheus text exposition format 0.0.4; `?format=json` returns a JSON summary
+        with p50/p95/p99 over the SLO window. Labels are bounded (top-N providers/models,
+        the rest collapsed into `other`) and never carry API keys, connection ids,
+        account ids, prompts or responses. Counters reset on process restart. Always
+        requires management auth, even when requireLogin is disabled.
+      x-always-protected: true
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [prometheus, json]
+          description: Response format (default `prometheus`)
+      responses:
+        "200":
+          description: Prometheus text exposition or JSON metrics summary
+          content:
+            text/plain:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: object
+        "401":
+          description: Management authentication required
+        "403":
+          description: Invalid management token
+        "500":
+          description: Metrics collection failed
+
   /api/rate-limits:
     get:
       x-stability: internal

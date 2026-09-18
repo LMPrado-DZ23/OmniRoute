@@ -39,6 +39,12 @@ const LATENCY_ALPHA = 0.1;
 const CONFIDENCE_FULL_SAMPLES = 50;
 /** Neutral score used for cold/unknown providers (midpoint, neither boosted nor penalized). */
 const NEUTRAL_SCORE = 0.5;
+/**
+ * Hard cap on tracked (provider, model) pairs. The key space comes from client
+ * supplied model ids, so without a cap it is unbounded. When full, the least
+ * recently updated pair is evicted (Map insertion order, refreshed on record).
+ */
+const MAX_TRACKED_KEYS = 2000;
 
 interface QualityState {
   /** EWMA of the success indicator (1 = good, 0 = bad). */
@@ -69,6 +75,10 @@ function keyOf(provider: string, model: string): string {
 function getOrCreate(key: string): QualityState {
   let state = states.get(key);
   if (!state) {
+    if (states.size >= MAX_TRACKED_KEYS) {
+      const oldest = states.keys().next().value;
+      if (oldest !== undefined) states.delete(oldest);
+    }
     state = {
       successEwma: 1,
       latencyEwma: 0,
@@ -122,6 +132,9 @@ export function recordQualityEvent(event: {
 }): void {
   const key = keyOf(event.provider || "unknown", event.model || "unknown");
   const state = getOrCreate(key);
+  // Refresh recency so eviction (MAX_TRACKED_KEYS) drops the least recently updated pair.
+  states.delete(key);
+  states.set(key, state);
 
   state.samples += 1;
   if (
@@ -310,4 +323,5 @@ export function resetQualityTracker(): void {
 export const QUALITY_WELL_KNOWN = {
   CONFIDENCE_FULL_SAMPLES,
   NEUTRAL_SCORE,
+  MAX_TRACKED_KEYS,
 } as const;

@@ -18,14 +18,20 @@ keep failing.
 
 ## Supported Events
 
-The `WebhookEvent` type (`src/lib/webhooks/eventDescriptions.ts`, consumed by `src/lib/webhookDispatcher.ts`) currently models exactly four events:
+The `WebhookEvent` type (`src/lib/webhooks/eventDescriptions.ts`, consumed by `src/lib/webhookDispatcher.ts`) currently models exactly seven events:
 
-| Event               | Fires when                                         |
-| ------------------- | -------------------------------------------------- |
-| `request.completed` | A proxied request completes successfully           |
-| `request.failed`    | A proxied request fails after all retries/fallback |
-| `quota.exceeded`    | An API key crosses a budget/quota threshold        |
-| `test.ping`         | Synthetic event used by the test endpoint          |
+| Event                   | Fires when                                                                 |
+| ----------------------- | -------------------------------------------------------------------------- |
+| `request.completed`     | A proxied request completes successfully                                   |
+| `request.failed`        | A proxied request fails after all retries/fallback                         |
+| `quota.exceeded`        | An API key crosses a budget/quota threshold                                |
+| `slo.breached`          | An SLO objective crosses its threshold (`src/lib/monitoring/sloAlerts.ts`) |
+| `slo.recovered`         | A breached SLO objective is back within its threshold                      |
+| `provider.circuit_open` | A provider circuit breaker newly transitions to OPEN                       |
+| `test.ping`             | Synthetic event used by the test endpoint                                  |
+
+SLO thresholds and the alert payloads are documented in
+[MONITORING_GUIDE.md](../ops/MONITORING_GUIDE.md#alert-events).
 
 Subscriptions accept the literal `"*"` to receive every event. Unknown event
 names in `events` are ignored at dispatch time.
