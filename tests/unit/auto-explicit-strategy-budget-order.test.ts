@@ -111,7 +111,13 @@ test("an explicit strategy's over-budget pick is still attempted first", async (
   assert.equal(orderedTargets[0].modelStr, "fast-model");
   assert.match(selection, /^Auto selection: fast-model .*strategy=latency/);
   assert.equal(orderedTargets.length, 2, "the explicit path does not drop targets by budget");
-  assert.equal(getRoutingDecision("req-explicit-budget")?.strategy, "latency");
+  const decision = getRoutingDecision("req-explicit-budget");
+  assert.equal(decision?.strategy, "latency");
+  assert.equal(
+    decision?.selected?.modelId,
+    orderedTargets[0].modelStr,
+    "the recorded selection is the first target attempted"
+  );
 });
 
 test("the rules path keeps its failover chain inside the budget cap", async () => {
