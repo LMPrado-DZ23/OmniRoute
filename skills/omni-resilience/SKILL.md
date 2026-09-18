@@ -25,6 +25,15 @@ curl https://localhost:20128/api/monitoring/health \
   -H "Authorization: Bearer $OMNIROUTE_TOKEN"
 ```
 
+### DELETE /api/monitoring/health
+
+DELETE monitoring › health
+
+```bash
+curl -X DELETE https://localhost:20128/api/monitoring/health \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN"
+```
+
 ### GET /api/monitoring/compression
 
 Get compression result-memo statistics

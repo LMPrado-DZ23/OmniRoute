@@ -34,6 +34,15 @@ curl -X POST https://localhost:20128/api/cli-tools/backups \
   -d '{}'
 ```
 
+### DELETE /api/cli-tools/backups
+
+DELETE cli tools › backups
+
+```bash
+curl -X DELETE https://localhost:20128/api/cli-tools/backups \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN"
+```
+
 ### GET /api/cli-tools/runtime/{toolId}
 
 Get runtime status for a CLI tool
@@ -50,6 +59,17 @@ Get guide settings for a tool
 ```bash
 curl https://localhost:20128/api/cli-tools/guide-settings/{toolId} \
   -H "Authorization: Bearer $OMNIROUTE_TOKEN"
+```
+
+### POST /api/cli-tools/guide-settings/{toolId}
+
+POST cli tools › guide settings › <toolId>
+
+```bash
+curl -X POST https://localhost:20128/api/cli-tools/guide-settings/{toolId} \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}'
 ```
 
 ### GET /api/cli-tools/antigravity-mitm
