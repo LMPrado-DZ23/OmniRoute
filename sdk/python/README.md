@@ -2,6 +2,15 @@
 
 Minimal, unpublished Python client for OmniRoute. It uses only the standard library (`urllib`) and needs Python 3.9 or newer. See `docs/reference/SDKS.md` for endpoints, error handling, retries and request IDs.
 
+The package is not on PyPI. Make it importable in one of these ways, from the repository root:
+
+```bash
+pip install -e sdk/python              # editable install into the active virtual environment
+PYTHONPATH=sdk/python python your_script.py   # or: no install, point Python at the package
+```
+
+Running a script from inside `sdk/python` also works without either step.
+
 ```python
 from omniroute_sdk import OmniRouteClient, OmniRouteError, RetryConfig
 

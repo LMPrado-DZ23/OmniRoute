@@ -41,5 +41,5 @@ Checks, from the repository root:
 
 ```bash
 npx tsc --noEmit -p sdk/typescript/tsconfig.json
-node --import tsx/esm --test tests/unit/sdk-*.test.ts
+node --import tsx/esm --import ./open-sse/utils/setupPolyfill.ts --import ./tests/_setup/isolateDataDir.ts --test --test-force-exit --test-concurrency=1 tests/unit/sdk-*.test.ts
 ```

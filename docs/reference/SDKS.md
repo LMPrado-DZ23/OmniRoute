@@ -14,6 +14,8 @@ OmniRoute ships two minimal client SDKs in the repository. Both are **experiment
 
 Both SDKs expose the same surface and are verified against the same contract fixtures in `sdk/contract/fixtures/`.
 
+Neither package is published. The TypeScript SDK is imported from source (`sdk/typescript/src/index.ts`). For Python, run `pip install -e sdk/python` in a virtual environment, or set `PYTHONPATH=sdk/python` (from the repository root), or run your script from inside `sdk/python`; otherwise `import omniroute_sdk` fails with `ModuleNotFoundError`.
+
 ## Endpoint coverage
 
 | Capability    | Method and path                     | TypeScript                  | Python                      | Credential                                 |
