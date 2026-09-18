@@ -3,7 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button, Card, Toggle } from "@/shared/components";
-import { resolveSloSettings } from "@/lib/monitoring/sloSettings";
+import { resolveSloSettings, type SloSettings } from "@/lib/monitoring/sloSettings";
 import { describeApiError } from "@/shared/utils/apiErrorPresentation";
 import {
   SLO_FIELDS,
@@ -34,6 +34,22 @@ async function loadSlo(): Promise<{ alertsEnabled: boolean; form: SloFormValues 
   const raw = data && typeof data === "object" && "slo" in data ? data.slo : undefined;
   const settings = resolveSloSettings(raw);
   return { alertsEnabled: settings.alertsEnabled, form: toSloForm(settings) };
+}
+
+/** Saves the complete `slo` object; returns a readable error, or null on success. */
+async function patchSlo(value: SloSettings, fallback: string): Promise<string | null> {
+  try {
+    const res = await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slo: value }),
+    });
+    if (res.ok) return null;
+    const body: unknown = await res.json().catch(() => ({}));
+    return describeApiError(body, fallback, res.status);
+  } catch (err) {
+    return err instanceof Error ? err.message : fallback;
+  }
 }
 
 /**
@@ -68,30 +84,17 @@ export default function SloSettingsCard() {
   const save = async () => {
     if (!form) return;
     const parsed = parseSloForm(form, alertsEnabled);
+    setInvalid(parsed.ok ? [] : parsed.invalid);
     if (!parsed.ok) {
-      setInvalid(parsed.invalid);
       setStatus({ kind: "error", message: t("sloInvalid") });
       return;
     }
-    setInvalid([]);
     setSaving(true);
-    try {
-      const res = await fetch("/api/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slo: parsed.value }),
-      });
-      const body: unknown = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(describeApiError(body, t("sloSaveFailed"), res.status));
-      setStatus({ kind: "saved", message: t("sloSaved") });
-    } catch (err) {
-      setStatus({
-        kind: "error",
-        message: err instanceof Error ? err.message : t("sloSaveFailed"),
-      });
-    } finally {
-      setSaving(false);
-    }
+    const error = await patchSlo(parsed.value, t("sloSaveFailed"));
+    setSaving(false);
+    setStatus(
+      error ? { kind: "error", message: error } : { kind: "saved", message: t("sloSaved") }
+    );
   };
 
   if (loadFailed) {

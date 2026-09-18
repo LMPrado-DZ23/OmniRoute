@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
+import { urlHintKey, type UrlState } from "./urlHint";
 
 export interface SlackConfig {
   webhookUrl: string;
@@ -11,8 +12,6 @@ interface SlackConfigFormProps {
   onChange: (v: SlackConfig) => void;
   t: (key: string) => string;
 }
-
-type UrlState = "idle" | "checking" | "ok" | "blocked" | "invalid";
 
 export function SlackConfigForm({ value, onChange, t }: SlackConfigFormProps) {
   const fieldId = useId();
@@ -47,16 +46,8 @@ export function SlackConfigForm({ value, onChange, t }: SlackConfigFormProps) {
     };
   }, [value.webhookUrl]);
 
-  const urlHint =
-    urlState === "checking"
-      ? t("validateUrl.checking")
-      : urlState === "ok"
-        ? t("validateUrl.ok")
-        : urlState === "blocked"
-          ? t("validateUrl.blockedPrivate")
-          : urlState === "invalid" && value.webhookUrl.trim()
-            ? t("validateUrl.invalidUrl")
-            : "";
+  const hintKey = urlHintKey(urlState, value.webhookUrl.trim().length > 0);
+  const urlHint = hintKey ? t(hintKey) : "";
 
   return (
     <div className="space-y-4">

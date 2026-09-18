@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
+import { urlHintKey, type UrlState } from "./urlHint";
 import { HmacRecipeBlock } from "../../shared/HmacRecipeBlock";
 
 export interface CustomConfig {
@@ -14,8 +15,6 @@ interface CustomConfigFormProps {
   t: (key: string) => string;
   isEditing?: boolean;
 }
-
-type UrlState = "idle" | "checking" | "ok" | "blocked" | "invalid";
 
 export function CustomConfigForm({ value, onChange, t, isEditing }: CustomConfigFormProps) {
   const fieldId = useId();
@@ -50,16 +49,8 @@ export function CustomConfigForm({ value, onChange, t, isEditing }: CustomConfig
     };
   }, [value.endpointUrl]);
 
-  const urlHint =
-    urlState === "checking"
-      ? t("validateUrl.checking")
-      : urlState === "ok"
-        ? t("validateUrl.ok")
-        : urlState === "blocked"
-          ? t("validateUrl.blockedPrivate")
-          : urlState === "invalid" && value.endpointUrl.trim()
-            ? t("validateUrl.invalidUrl")
-            : "";
+  const hintKey = urlHintKey(urlState, value.endpointUrl.trim().length > 0);
+  const urlHint = hintKey ? t(hintKey) : "";
 
   return (
     <div className="space-y-4">
