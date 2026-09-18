@@ -90,6 +90,30 @@
 - **feat(cli):** run `omniroute serve --tray` as a detached desktop process after server and tray readiness, with graphical login auto-start support.
 - **feat(routing):** add client-, provider-, and model-neutral exclusive managed session connection leases with API-key-bound generation fencing, durable SQLite ownership, explicit allowlist policy, and bounded 429 capacity retry semantics.
 
+## [3.8.54] — TBD
+
+_Evolution release of the `LMPrado-DZ23/OmniRoute` fork: the phased stabilization and evolution plan tracked in `docs/EVOLUTION_STATUS.md`. HTTP contracts are kept; new fields, headers and endpoints are additive, and behavior that could surprise an existing installation is opt-in._
+
+### ✨ New Features
+
+- **feat(routing):** shared router contract (`RoutingRequest`, `RoutingCandidate`, `RoutingDecision`, `ProviderAttempt`) with explainable decisions: score factors, explicit exclusion reasons, unknown quota distinct from exhausted, a policy version on every decision, and preview and live selection running the same engine without the preview touching routing state. `POST /api/omniroute/route/preview` gains an additive `engine: "auto"` mode. Failover keeps inside the request cost cap; permanent provider errors are never retried on the same candidate ([#30](https://github.com/LMPrado-DZ23/OmniRoute/pull/30))
+- **feat(observability):** bounded-cardinality routing metrics and `GET /api/metrics` (Prometheus text or JSON, management auth), configurable SLOs and opt-in `slo.breached` / `slo.recovered` / `provider.circuit_open` webhook alerts ([#33](https://github.com/LMPrado-DZ23/OmniRoute/pull/33))
+- **feat(api):** every OpenAPI operation classified with `x-stability`, `x-owner`, `x-since`, `x-rate-limit` and `x-contract-test`; OpenAPI coverage gate at 100%; `check:api-governance` gate; RFC 9745/8594 deprecation headers ([#26](https://github.com/LMPrado-DZ23/OmniRoute/pull/26))
+- **feat(sdk):** experimental, unpublished TypeScript and Python SDKs with shared contract fixtures and an OpenAPI drift test ([#29](https://github.com/LMPrado-DZ23/OmniRoute/pull/29))
+
+### 🐛 Bug Fixes
+
+- **fix:** 22 runtime bugs found while bringing the core, API, dashboard and open-sse typechecks to 0 errors, each with a red-first regression test — including `PATCH /api/keys/[id]` silently dropping `blockedModels` and `POST /api/omniroute/route/preview` failing for every valid request ([#24](https://github.com/LMPrado-DZ23/OmniRoute/pull/24))
+- **fix(telemetry):** `/api/telemetry/summary` `errorRate` is now failed / routed requests instead of quota-monitor errors / requests ([#33](https://github.com/LMPrado-DZ23/OmniRoute/pull/33))
+
+### 📝 Maintenance
+
+- **test:** live tests require `RUN_LIVE_TESTS=1`; `npm test` runs the serialized suite; the PR unit fast-path runs in 5 shards and keeps failure logs ([#25](https://github.com/LMPrado-DZ23/OmniRoute/pull/25))
+- **docs:** first 10 minutes, backup/restore, migration guide and compatibility matrix (with pt-BR versions); provider failure, docs, regression and compatibility issue forms ([#28](https://github.com/LMPrado-DZ23/OmniRoute/pull/28))
+- **security:** vulnerability register for the dependency audit (0 high/critical in production dependencies) and digest-pinned sidecar images ([#27](https://github.com/LMPrado-DZ23/OmniRoute/pull/27))
+
+---
+
 ## [3.8.53] — 2026-09-13
 
 _Patch release of the `LMPrado-DZ23/OmniRoute` fork. It ships the Windows desktop installer that v3.8.52 could not build._
