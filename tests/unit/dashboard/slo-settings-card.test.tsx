@@ -54,7 +54,7 @@ describe("sloForm", () => {
     expect(form.availabilityTarget).toBe("99");
     expect(form.errorRateMax).toBe("5");
     expect(form.windowMinutes).toBe("15");
-    expect(parseSloForm(form, false)).toEqual({ ok: true, value: defaults });
+    expect(parseSloForm(form, false)).toEqual({ status: "valid", value: defaults });
   });
 
   it("rejects out-of-range and non-integer values with the offending keys", () => {
@@ -64,7 +64,7 @@ describe("sloForm", () => {
     form.minSamples = "2.5";
     const result = parseSloForm(form, true);
     expect(result).toEqual({
-      ok: false,
+      status: "invalid",
       invalid: ["availabilityTarget", "windowMinutes", "minSamples"],
     });
   });
@@ -72,7 +72,7 @@ describe("sloForm", () => {
   it("accepts decimal percentages (99.5% → 0.995)", () => {
     const form = { ...toSloForm(resolveSloSettings(undefined)), availabilityTarget: "99.5" };
     const result = parseSloForm(form, true);
-    expect(result.ok && result.value.availabilityTarget).toBe(0.995);
+    expect(result.status === "valid" && result.value.availabilityTarget).toBe(0.995);
   });
 });
 

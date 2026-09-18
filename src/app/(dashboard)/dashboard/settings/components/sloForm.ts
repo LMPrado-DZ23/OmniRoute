@@ -67,8 +67,10 @@ function parseField(field: SloFieldSpec, raw: string): number | null {
   return field.percent ? Number((value / 100).toFixed(6)) : value;
 }
 
+// String discriminant: the dashboard typecheck runs without strictNullChecks, where a boolean
+// discriminant does not narrow.
 type SloFormResult =
-  { ok: true; value: SloSettings } | { ok: false; invalid: SloNumericKey[] };
+  { status: "valid"; value: SloSettings } | { status: "invalid"; invalid: SloNumericKey[] };
 
 /** Converts the form back to stored units and validates it against the API schema. */
 export function parseSloForm(form: SloFormValues, alertsEnabled: boolean): SloFormResult {
@@ -79,13 +81,16 @@ export function parseSloForm(form: SloFormValues, alertsEnabled: boolean): SloFo
     if (parsed === null) invalid.push(field.key);
     else numbers[field.key] = parsed;
   }
-  if (invalid.length > 0) return { ok: false, invalid };
+  if (invalid.length > 0) return { status: "invalid", invalid };
 
   const checked = sloSettingsSchema.safeParse({ alertsEnabled, ...numbers });
   if (!checked.success) {
     const keys = checked.error.issues.map((issue) => String(issue.path[0]));
-    return { ok: false, invalid: SLO_FIELDS.map((f) => f.key).filter((k) => keys.includes(k)) };
+    return {
+      status: "invalid",
+      invalid: SLO_FIELDS.map((f) => f.key).filter((k) => keys.includes(k)),
+    };
   }
   // Every field is present here, so resolving only normalises the type (no default is used).
-  return { ok: true, value: resolveSloSettings(checked.data) };
+  return { status: "valid", value: resolveSloSettings(checked.data) };
 }

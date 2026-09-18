@@ -84,11 +84,12 @@ export default function SloSettingsCard() {
   const save = async () => {
     if (!form) return;
     const parsed = parseSloForm(form, alertsEnabled);
-    setInvalid(parsed.ok ? [] : parsed.invalid);
-    if (!parsed.ok) {
+    if (parsed.status === "invalid") {
+      setInvalid(parsed.invalid);
       setStatus({ kind: "error", message: t("sloInvalid") });
       return;
     }
+    setInvalid([]);
     setSaving(true);
     const error = await patchSlo(parsed.value, t("sloSaveFailed"));
     setSaving(false);
