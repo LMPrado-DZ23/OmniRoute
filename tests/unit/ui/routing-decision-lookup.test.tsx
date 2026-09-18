@@ -2,14 +2,24 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
+const intl = vi.hoisted(() => ({
+  locale: "en",
+  messages: {} as Record<string, string>,
+}));
+
 vi.mock("next-intl", () => ({
+  useLocale: () => intl.locale,
   useTranslations: () => {
-    const t = (key: string) => key;
-    return Object.assign(t, { has: () => false });
+    const t = (key: string, values?: Record<string, unknown>) =>
+      (intl.messages[key] ?? key).replace(/\{(\w+)\}/g, (_, name: string) =>
+        String(values?.[name] ?? "")
+      );
+    return Object.assign(t, { has: (key: string) => key in intl.messages });
   },
 }));
 
 import RoutingDecisionLookup from "../../../src/app/(dashboard)/dashboard/analytics/RoutingDecisionLookup";
+import ptBR from "../../../src/i18n/messages/pt-BR.json";
 
 const decision = {
   decisionId: "rd_11111111-2222-3333-4444-555555555555",
@@ -62,7 +72,16 @@ const decision = {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  intl.locale = "en";
+  intl.messages = {};
 });
+
+async function lookUp(value = "req-ui-1") {
+  fireEvent.change(screen.getByLabelText(/Request id or decision id|ID da requisição/i), {
+    target: { value },
+  });
+  fireEvent.click(screen.getByRole("button", { name: /look up|consultar|buscar/i }));
+}
 
 describe("RoutingDecisionLookup", () => {
   it("looks up a decision by id and shows candidates with exclusion reasons", async () => {
@@ -83,6 +102,29 @@ describe("RoutingDecisionLookup", () => {
     expect(screen.getByText("circuit_open")).toBeTruthy();
     expect(screen.getByText("Selected: alpha/alpha-model", { exact: false })).toBeTruthy();
     expect(screen.getByRole("table")).toBeTruthy();
+  });
+
+  it("renders badges, enums and the timestamp in the active locale", async () => {
+    intl.locale = "pt-BR";
+    intl.messages = (ptBR as { analytics: Record<string, string> }).analytics;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ decision }))
+    );
+    render(<RoutingDecisionLookup />);
+    await lookUp();
+
+    await waitFor(() => expect(screen.getByRole("table")).toBeTruthy());
+    for (const english of ["selected", "eligible", "excluded", "live", "deterministic"]) {
+      expect(screen.queryByText(english)).toBeNull();
+    }
+    expect(screen.getByText("selecionado")).toBeTruthy();
+    expect(screen.getByText("excluído")).toBeTruthy();
+    expect(screen.getByText("circuito aberto")).toBeTruthy();
+    expect(screen.getByText("ao vivo")).toBeTruthy();
+    const time = document.querySelector("time");
+    expect(time?.getAttribute("dateTime")).toBe(decision.generatedAt);
+    expect(time?.textContent).not.toBe(decision.generatedAt);
   });
 
   it("says how many candidates a compact decision left out", async () => {

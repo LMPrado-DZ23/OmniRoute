@@ -1,10 +1,17 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Badge from "@/shared/components/Badge";
 import Card from "@/shared/components/Card";
-import type { RoutingCandidate, RoutingDecision } from "@/shared/contracts/routing";
+import type {
+  RoutingCandidate,
+  RoutingCircuitState,
+  RoutingDecision,
+  RoutingExclusionReason,
+  RoutingQuotaState,
+  RoutingSelectionMode,
+} from "@/shared/contracts/routing";
 
 type Translator = ((key: string, values?: Record<string, unknown>) => string) & {
   has?: (key: string) => boolean;
@@ -16,34 +23,94 @@ function label(t: Translator, key: string, fallback: string): string {
   return typeof t.has === "function" && t.has(key) ? t(key) : fallback;
 }
 
+/** Translation keys for the routing contract enums; a missing translation shows the raw value. */
+const QUOTA_KEYS: Record<RoutingQuotaState, string> = {
+  available: "routeDecisionQuotaAvailable",
+  low: "routeDecisionQuotaLow",
+  exhausted: "routeDecisionQuotaExhausted",
+  unknown: "routeDecisionQuotaUnknown",
+};
+
+const CIRCUIT_KEYS: Record<RoutingCircuitState, string> = {
+  closed: "routeDecisionCircuitClosed",
+  open: "routeDecisionCircuitOpen",
+  half_open: "routeDecisionCircuitHalfOpen",
+};
+
+const SELECTION_MODE_KEYS: Record<RoutingSelectionMode, string> = {
+  deterministic: "routeDecisionModeDeterministic",
+  rotation: "routeDecisionModeRotation",
+  exploration: "routeDecisionModeExploration",
+};
+
+const REASON_KEYS: Record<RoutingExclusionReason, string> = {
+  not_in_candidate_pool: "routeDecisionReasonNotInCandidatePool",
+  model_not_found: "routeDecisionReasonModelNotFound",
+  capability_missing: "routeDecisionReasonCapabilityMissing",
+  quota_exhausted: "routeDecisionReasonQuotaExhausted",
+  circuit_open: "routeDecisionReasonCircuitOpen",
+  self_healing_excluded: "routeDecisionReasonSelfHealingExcluded",
+  cost_over_budget: "routeDecisionReasonCostOverBudget",
+  latency_over_budget: "routeDecisionReasonLatencyOverBudget",
+};
+
+function enumLabel<T extends string>(t: Translator, keys: Record<T, string>, value: T): string {
+  const key = keys[value];
+  return key ? label(t, key, value) : value;
+}
+
 function formatCost(value: number | null): string {
   return value === null ? "—" : `$${value.toFixed(6)}`;
 }
 
-function CandidateRow({ candidate, selected }: { candidate: RoutingCandidate; selected: boolean }) {
+function formatGeneratedAt(iso: string, locale: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  try {
+    return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "medium" }).format(
+      date
+    );
+  } catch {
+    return iso;
+  }
+}
+
+function CandidateRow({
+  candidate,
+  selected,
+  t,
+}: {
+  candidate: RoutingCandidate;
+  selected: boolean;
+  t: Translator;
+}) {
   return (
     <tr className="border-t border-border/60 align-top">
       <td className="px-2 py-2 font-medium text-text-main">
         {candidate.providerId}/{candidate.modelId}
         {selected ? (
           <Badge variant="primary" className="ml-2">
-            selected
+            {label(t, "routeDecisionBadgeSelected", "selected")}
           </Badge>
         ) : null}
       </td>
       <td className="px-2 py-2 tabular-nums">{candidate.score.toFixed(3)}</td>
       <td className="px-2 py-2">
         <Badge variant={candidate.eligible ? "success" : "error"}>
-          {candidate.eligible ? "eligible" : "excluded"}
+          {candidate.eligible
+            ? label(t, "routeDecisionEligible", "eligible")
+            : label(t, "routeDecisionExcluded", "excluded")}
         </Badge>
         {candidate.exclusionReasons.length > 0 ? (
           <div className="mt-1 text-xs text-text-muted">
-            {candidate.exclusionReasons.join(", ")}
+            {candidate.exclusionReasons
+              .map((reason) => enumLabel(t, REASON_KEYS, reason))
+              .join(", ")}
           </div>
         ) : null}
       </td>
-      <td className="px-2 py-2">{candidate.quota}</td>
-      <td className="px-2 py-2">{candidate.circuit}</td>
+      <td className="px-2 py-2">{enumLabel(t, QUOTA_KEYS, candidate.quota)}</td>
+      <td className="px-2 py-2">{enumLabel(t, CIRCUIT_KEYS, candidate.circuit)}</td>
       <td className="px-2 py-2 tabular-nums">{formatCost(candidate.estimatedCostUsd)}</td>
       <td className="px-2 py-2 tabular-nums">
         {candidate.estimatedLatencyMs === null ? "—" : `${candidate.estimatedLatencyMs} ms`}
@@ -52,7 +119,15 @@ function CandidateRow({ candidate, selected }: { candidate: RoutingCandidate; se
   );
 }
 
-function DecisionDetails({ decision, t }: { decision: RoutingDecision; t: Translator }) {
+function DecisionDetails({
+  decision,
+  t,
+  locale,
+}: {
+  decision: RoutingDecision;
+  t: Translator;
+  locale: string;
+}) {
   const selectedKey = decision.selected
     ? `${decision.selected.providerId}/${decision.selected.modelId}`
     : null;
@@ -64,9 +139,15 @@ function DecisionDetails({ decision, t }: { decision: RoutingDecision; t: Transl
           {label(t, "routeDecisionPolicyVersion", "Policy")} {decision.policyVersion}
         </Badge>
         {decision.strategy ? <Badge variant="default">{decision.strategy}</Badge> : null}
-        {decision.selectionMode ? <Badge variant="default">{decision.selectionMode}</Badge> : null}
+        {decision.selectionMode ? (
+          <Badge variant="default">
+            {enumLabel(t, SELECTION_MODE_KEYS, decision.selectionMode)}
+          </Badge>
+        ) : null}
         <Badge variant={decision.liveRequestExecuted ? "primary" : "default"}>
-          {decision.liveRequestExecuted ? "live" : "preview"}
+          {decision.liveRequestExecuted
+            ? label(t, "routeDecisionLive", "live")
+            : label(t, "routeDecisionPreview", "preview")}
         </Badge>
       </div>
       <p className="text-sm text-text-muted">
@@ -74,7 +155,9 @@ function DecisionDetails({ decision, t }: { decision: RoutingDecision; t: Transl
           ? `${label(t, "routeDecisionSelected", "Selected")}: ${selectedKey}`
           : label(t, "routeDecisionNoneSelected", "No candidate was selected.")}
         {" · "}
-        {decision.generatedAt}
+        <time dateTime={decision.generatedAt}>
+          {formatGeneratedAt(decision.generatedAt, locale)}
+        </time>
       </p>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[640px] text-left text-sm">
@@ -95,6 +178,7 @@ function DecisionDetails({ decision, t }: { decision: RoutingDecision; t: Transl
                 key={`${candidate.providerId}/${candidate.modelId}`}
                 candidate={candidate}
                 selected={`${candidate.providerId}/${candidate.modelId}` === selectedKey}
+                t={t}
               />
             ))}
           </tbody>
@@ -116,6 +200,7 @@ function omittedLabel(t: Translator, count: number): string {
 /** Look up a recent live routing decision by request id or decision id. */
 export default function RoutingDecisionLookup() {
   const t = useTranslations("analytics") as Translator;
+  const locale = useLocale();
   const [query, setQuery] = useState("");
   const [decision, setDecision] = useState<RoutingDecision | null>(null);
   const [status, setStatus] = useState<LookupStatus>("idle");
@@ -189,7 +274,7 @@ export default function RoutingDecisionLookup() {
           ? label(t, "routeDecisionLookupFailed", "The decision could not be loaded. Try again.")
           : null}
       </div>
-      {decision ? <DecisionDetails decision={decision} t={t} /> : null}
+      {decision ? <DecisionDetails decision={decision} t={t} locale={locale} /> : null}
     </Card>
   );
 }
