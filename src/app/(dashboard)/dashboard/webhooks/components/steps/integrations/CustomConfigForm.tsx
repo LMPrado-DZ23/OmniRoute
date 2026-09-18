@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { HmacRecipeBlock } from "../../shared/HmacRecipeBlock";
 
 export interface CustomConfig {
@@ -18,6 +18,7 @@ interface CustomConfigFormProps {
 type UrlState = "idle" | "checking" | "ok" | "blocked" | "invalid";
 
 export function CustomConfigForm({ value, onChange, t, isEditing }: CustomConfigFormProps) {
+  const fieldId = useId();
   const [urlState, setUrlState] = useState<UrlState>("idle");
 
   useEffect(() => {
@@ -63,10 +64,14 @@ export function CustomConfigForm({ value, onChange, t, isEditing }: CustomConfig
   return (
     <div className="space-y-4">
       <div>
-        <label className="text-xs font-medium uppercase tracking-wider text-text-muted">
+        <label
+          htmlFor={`${fieldId}-endpoint-url`}
+          className="text-xs font-medium uppercase tracking-wider text-text-muted"
+        >
           {t("custom.endpointUrl")}
         </label>
         <input
+          id={`${fieldId}-endpoint-url`}
           value={value.endpointUrl}
           onChange={(e) => onChange({ ...value, endpointUrl: e.target.value })}
           placeholder={t("custom.endpointUrlPlaceholder")}
@@ -87,10 +92,14 @@ export function CustomConfigForm({ value, onChange, t, isEditing }: CustomConfig
         )}
       </div>
       <div>
-        <label className="text-xs font-medium uppercase tracking-wider text-text-muted">
+        <label
+          htmlFor={`${fieldId}-secret-key`}
+          className="text-xs font-medium uppercase tracking-wider text-text-muted"
+        >
           {t("custom.secretKey")}
         </label>
         <input
+          id={`${fieldId}-secret-key`}
           type="password"
           value={value.secretKey}
           onChange={(e) => onChange({ ...value, secretKey: e.target.value })}

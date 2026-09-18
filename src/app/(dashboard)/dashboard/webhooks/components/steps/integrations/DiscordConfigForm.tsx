@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 export interface DiscordConfig {
   webhookUrl: string;
@@ -15,6 +15,7 @@ interface DiscordConfigFormProps {
 type UrlState = "idle" | "checking" | "ok" | "blocked" | "invalid";
 
 export function DiscordConfigForm({ value, onChange, t }: DiscordConfigFormProps) {
+  const fieldId = useId();
   const [urlState, setUrlState] = useState<UrlState>("idle");
 
   useEffect(() => {
@@ -60,10 +61,14 @@ export function DiscordConfigForm({ value, onChange, t }: DiscordConfigFormProps
   return (
     <div className="space-y-4">
       <div>
-        <label className="text-xs font-medium uppercase tracking-wider text-text-muted">
+        <label
+          htmlFor={`${fieldId}-webhook-url`}
+          className="text-xs font-medium uppercase tracking-wider text-text-muted"
+        >
           {t("discord.webhookUrl")}
         </label>
         <input
+          id={`${fieldId}-webhook-url`}
           value={value.webhookUrl}
           onChange={(e) => onChange({ webhookUrl: e.target.value })}
           placeholder={t("discord.webhookUrlPlaceholder")}

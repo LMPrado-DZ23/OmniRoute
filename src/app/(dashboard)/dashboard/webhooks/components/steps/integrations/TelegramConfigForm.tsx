@@ -1,5 +1,7 @@
 "use client";
 
+import { useId } from "react";
+
 export interface TelegramConfig {
   botToken: string;
   chatId: string;
@@ -13,13 +15,18 @@ interface TelegramConfigFormProps {
 }
 
 export function TelegramConfigForm({ value, onChange, t, isEditing }: TelegramConfigFormProps) {
+  const fieldId = useId();
   return (
     <div className="space-y-4">
       <div>
-        <label className="text-xs font-medium uppercase tracking-wider text-text-muted">
+        <label
+          htmlFor={`${fieldId}-bot-token`}
+          className="text-xs font-medium uppercase tracking-wider text-text-muted"
+        >
           {t("telegram.botToken")}
         </label>
         <input
+          id={`${fieldId}-bot-token`}
           type="password"
           value={value.botToken}
           onChange={(e) => onChange({ ...value, botToken: e.target.value })}
@@ -30,10 +37,14 @@ export function TelegramConfigForm({ value, onChange, t, isEditing }: TelegramCo
         <p className="mt-1 text-xs text-text-muted">{t("telegram.botTokenHint")}</p>
       </div>
       <div>
-        <label className="text-xs font-medium uppercase tracking-wider text-text-muted">
+        <label
+          htmlFor={`${fieldId}-chat-id`}
+          className="text-xs font-medium uppercase tracking-wider text-text-muted"
+        >
           {t("telegram.chatId")}
         </label>
         <input
+          id={`${fieldId}-chat-id`}
           value={value.chatId}
           onChange={(e) => onChange({ ...value, chatId: e.target.value })}
           placeholder={t("telegram.chatIdPlaceholder")}

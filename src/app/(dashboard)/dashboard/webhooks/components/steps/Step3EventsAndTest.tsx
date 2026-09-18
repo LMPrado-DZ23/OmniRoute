@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { EventChecklist } from "../shared/EventChecklist";
 import { PayloadPreview } from "../shared/PayloadPreview";
 import { describeWebhookApiError } from "../shared/webhookApiError";
@@ -35,6 +35,7 @@ export function Step3EventsAndTest({
   onChangeDescription,
   t,
 }: Step3Props) {
+  const fieldId = useId();
   const [testState, setTestState] = useState<"idle" | "sending" | "ok" | "fail">("idle");
   const [testResult, setTestResult] = useState<TestResult | null>(null);
 
@@ -74,10 +75,14 @@ export function Step3EventsAndTest({
   return (
     <div className="space-y-5">
       <div>
-        <label className="text-xs font-medium uppercase tracking-wider text-text-muted">
+        <label
+          htmlFor={`${fieldId}-name`}
+          className="text-xs font-medium uppercase tracking-wider text-text-muted"
+        >
           {t("name")}
         </label>
         <input
+          id={`${fieldId}-name`}
           value={description}
           onChange={(e) => onChangeDescription(e.target.value)}
           placeholder={t("namePlaceholder")}
@@ -86,13 +91,14 @@ export function Step3EventsAndTest({
       </div>
 
       <div>
-        <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-text-muted">
+        <p className="mb-2 block text-xs font-medium uppercase tracking-wider text-text-muted">
           {t("events")}
-        </label>
+        </p>
         <EventChecklist
           selected={events}
           onChange={onChangeEvents}
           allEventsLabel={t("allEvents")}
+          groupLabel={t("events")}
         />
       </div>
 
