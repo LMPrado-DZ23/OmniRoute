@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import Badge from "@/shared/components/Badge";
 import Card from "@/shared/components/Card";
@@ -17,7 +17,7 @@ type Translator = ((key: string, values?: Record<string, unknown>) => string) & 
   has?: (key: string) => boolean;
 };
 
-type LookupStatus = "idle" | "loading" | "notFound" | "error";
+type LookupStatus = "idle" | "loading" | "found" | "notFound" | "unauthorized" | "error";
 
 function label(t: Translator, key: string, fallback: string): string {
   return typeof t.has === "function" && t.has(key) ? t(key) : fallback;
@@ -197,6 +197,58 @@ function omittedLabel(t: Translator, count: number): string {
   return `${count} lower-ranked candidates are not listed.`;
 }
 
+function foundMessage(t: Translator, decision: RoutingDecision | null): string {
+  const selected = decision?.selected;
+  if (!selected) {
+    return label(
+      t,
+      "routeDecisionLookupFoundNoSelection",
+      "Decision found. No candidate was selected."
+    );
+  }
+  const key = `${selected.providerId}/${selected.modelId}`;
+  if (typeof t.has === "function" && t.has("routeDecisionLookupFound")) {
+    return t("routeDecisionLookupFound", { selected: key });
+  }
+  return `Decision found: ${key} was chosen.`;
+}
+
+/** The text the live region announces for a lookup status. */
+function statusMessage(
+  t: Translator,
+  status: LookupStatus,
+  decision: RoutingDecision | null
+): string | null {
+  switch (status) {
+    case "loading":
+      return label(t, "routeDecisionLookupLoading", "Looking up…");
+    case "found":
+      return foundMessage(t, decision);
+    case "notFound":
+      return label(
+        t,
+        "routeDecisionLookupNotFound",
+        "No decision with that id in the last 30 minutes. Decisions are recorded for auto-combo routing."
+      );
+    case "unauthorized":
+      return label(
+        t,
+        "routeDecisionLookupUnauthorized",
+        "Your session has expired or does not allow this lookup. Sign in again with a management account."
+      );
+    case "error":
+      return label(t, "routeDecisionLookupFailed", "The decision could not be loaded. Try again.");
+    default:
+      return null;
+  }
+}
+
+function statusForResponse(response: Response): LookupStatus | null {
+  if (response.status === 404) return "notFound";
+  if (response.status === 401 || response.status === 403) return "unauthorized";
+  return response.ok ? null : "error";
+}
+
 /** Look up a recent live routing decision by request id or decision id. */
 export default function RoutingDecisionLookup() {
   const t = useTranslations("analytics") as Translator;
@@ -204,6 +256,12 @@ export default function RoutingDecisionLookup() {
   const [query, setQuery] = useState("");
   const [decision, setDecision] = useState<RoutingDecision | null>(null);
   const [status, setStatus] = useState<LookupStatus>("idle");
+  const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Move focus to the result once it loads, so keyboard and screen-reader users land on it.
+  useEffect(() => {
+    if (status === "found") resultsRef.current?.focus();
+  }, [status, decision]);
 
   async function lookup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -214,15 +272,15 @@ export default function RoutingDecisionLookup() {
       const response = await fetch(`/api/omniroute/route/decisions/${encodeURIComponent(id)}`, {
         cache: "no-store",
       });
-      if (response.status === 404) {
+      const failure = statusForResponse(response);
+      if (failure) {
         setDecision(null);
-        setStatus("notFound");
+        setStatus(failure);
         return;
       }
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const body = (await response.json()) as { decision: RoutingDecision };
       setDecision(body.decision);
-      setStatus("idle");
+      setStatus("found");
     } catch {
       setDecision(null);
       setStatus("error");
@@ -262,19 +320,18 @@ export default function RoutingDecisionLookup() {
         </button>
       </form>
       <div aria-live="polite" className="mt-2 text-sm text-text-muted">
-        {status === "loading" ? label(t, "routeDecisionLookupLoading", "Looking up…") : null}
-        {status === "notFound"
-          ? label(
-              t,
-              "routeDecisionLookupNotFound",
-              "No decision with that id in the last 30 minutes. Decisions are recorded for auto-combo routing."
-            )
-          : null}
-        {status === "error"
-          ? label(t, "routeDecisionLookupFailed", "The decision could not be loaded. Try again.")
-          : null}
+        {statusMessage(t, status, decision)}
       </div>
-      {decision ? <DecisionDetails decision={decision} t={t} locale={locale} /> : null}
+      {decision ? (
+        <div
+          ref={resultsRef}
+          tabIndex={-1}
+          aria-label={label(t, "routeDecisionResultsLabel", "Routing decision details")}
+          className="focus-ring rounded-lg"
+        >
+          <DecisionDetails decision={decision} t={t} locale={locale} />
+        </div>
+      ) : null}
     </Card>
   );
 }

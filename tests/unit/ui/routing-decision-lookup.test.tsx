@@ -127,6 +127,47 @@ describe("RoutingDecisionLookup", () => {
     expect(time?.textContent).not.toBe(decision.generatedAt);
   });
 
+  it("announces a found decision and moves focus to it", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ decision }))
+    );
+    render(<RoutingDecisionLookup />);
+    await lookUp();
+
+    await waitFor(() =>
+      expect(screen.getByText("Decision found: alpha/alpha-model was chosen.")).toBeTruthy()
+    );
+    const results = screen.getByLabelText("Routing decision details");
+    expect(document.activeElement).toBe(results);
+  });
+
+  for (const status of [401, 403]) {
+    it(`tells the user to sign in again on ${status}`, async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => Response.json({ error: "x" }, { status }))
+      );
+      render(<RoutingDecisionLookup />);
+      await lookUp();
+
+      await waitFor(() => expect(screen.getByText(/Sign in again/)).toBeTruthy());
+      expect(screen.queryByText(/Try again/)).toBeNull();
+      expect(screen.queryByRole("table")).toBeNull();
+    });
+  }
+
+  it("keeps the generic retry message for server errors", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ error: "x" }, { status: 500 }))
+    );
+    render(<RoutingDecisionLookup />);
+    await lookUp();
+
+    await waitFor(() => expect(screen.getByText(/Try again/)).toBeTruthy());
+  });
+
   it("says how many candidates a compact decision left out", async () => {
     vi.stubGlobal(
       "fetch",
