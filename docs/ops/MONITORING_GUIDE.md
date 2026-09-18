@@ -1,7 +1,7 @@
 ---
 title: "Monitoring & Observability Guide"
 version: 3.8.50
-lastUpdated: 2026-08-13
+lastUpdated: 2026-09-18
 ---
 
 # Monitoring & Observability Guide
@@ -421,6 +421,13 @@ previous alert state (no flapping on low traffic). Payloads never contain prompt
 responses, API keys, connection ids or account ids. Subscribe a webhook to these events
 (or `*`) in the dashboard. Alerts are off by default: set `slo.alertsEnabled = true` to start
 evaluation, so existing `*` subscribers do not receive new events after an upgrade.
+Turning alerts off forgets the remembered alert state, so turning them back on never replays a
+transition that happened while they were off. A tick is skipped while the previous one is still
+dispatching webhooks, so slow endpoints cannot cause duplicate or interleaved alerts.
+
+The alert loop and `GET /api/metrics` read circuit breakers without changing them: an `OPEN`
+breaker whose cooldown has elapsed is reported as `HALF_OPEN`, but a scrape never transitions
+it, persists it or grants its half-open probe; only live traffic does.
 
 ---
 
@@ -499,6 +506,9 @@ Enforced by `open-sse/services/routing/metricLabels.ts`:
 - Bounded values: first 64 providers, 100 models, 16 strategies, 16 engines are kept;
   later distinct values collapse into `other`. Each family is additionally capped at
   2000 series. Combo names, connection ids, request ids and finish reasons are never labels.
+  The fixed values `redacted`, `unknown` and `other` never take a slot, and only a model
+  that served a successful response takes a model slot: failed requests for model ids a
+  client made up are counted under `other` unless the model is already tracked.
 - Values are restricted to `[A-Za-z0-9._:/-]`, truncated to 80 chars, and replaced by
   `redacted` when they look like a credential (API-key prefixes such as `sk-`, `ghp_`),
   an opaque token (32+ alphanumerics), an e-mail address or a UUID.
@@ -527,6 +537,12 @@ defaults by `src/lib/monitoring/sloSettings.ts`. Evaluated by
 
 `failed` excludes `cancelled` and `guardrail_blocked` (client or policy decisions).
 Rate limits and timeouts count against availability but not against `error_rate`.
+
+For `provider_recovery`, an ongoing open episode (breaker still `OPEN` or `HALF_OPEN`) counts
+only while that breaker fails, or opens, inside the window. A breaker only leaves `HALF_OPEN`
+when traffic probes it, so a provider that stopped receiving traffic would otherwise report a
+breach forever. Such an idle open breaker adds no sample; it still shows in
+`omniroute_circuit_breakers` and `omniroute_circuit_breaker_open`.
 
 `GET /api/telemetry/summary` `errorRate` (percent) uses the same definition —
 failed / (success + failed) routed requests in the requested window (clamped to 1–60 min).

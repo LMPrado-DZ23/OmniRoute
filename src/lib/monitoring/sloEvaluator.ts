@@ -12,10 +12,18 @@
  *                          and still succeeded                     ≥ failoverSuccessRateMin
  *  - provider_recovery     worst circuit OPEN→CLOSED duration (ms)
  *                          in the window, ongoing opens included   ≤ providerRecoveryMaxMs
+ *                          while the breaker still fails in the window
  *
  * `failed` excludes cancelled and guardrail_blocked outcomes (client/policy
  * decisions, not service failures). An objective with fewer than `minSamples`
  * samples reports `insufficient_data` and never breaches.
+ *
+ * An OPEN/HALF_OPEN breaker only leaves that state when traffic probes it. A
+ * provider that stops receiving traffic (disabled, removed from combos, idle)
+ * would otherwise stay "recovering" forever, so an ongoing open episode counts
+ * only while the breaker has a failure (or an OPEN transition) inside the
+ * window. An idle open breaker adds no sample; it is still reported by the
+ * circuit-breaker gauges.
  */
 
 import type { RoutingMetricsWindow } from "@omniroute/open-sse/services/routing/metricsSink.ts";
@@ -58,6 +66,8 @@ export interface BreakerHistoryInput {
   state: string;
   failureCount?: number;
   retryAfterMs?: number;
+  /** Epoch ms of the latest failure recorded by the breaker, when known. */
+  lastFailureTime?: number | null;
   transitionHistory: ReadonlyArray<{ to: string; timestamp: number }>;
 }
 
@@ -81,7 +91,18 @@ function ratio(numerator: number, denominator: number): number | null {
   return denominator > 0 ? numerator / denominator : null;
 }
 
-/** Recovery episodes (ms) for one breaker that ended — or are still open — inside the window. */
+/** True when the breaker failed, or opened, inside the window. */
+function failedInWindow(breaker: BreakerHistoryInput, windowStartMs: number): boolean {
+  if ((breaker.lastFailureTime ?? 0) >= windowStartMs) return true;
+  return breaker.transitionHistory.some(
+    (transition) => transition.to === "OPEN" && transition.timestamp >= windowStartMs
+  );
+}
+
+/**
+ * Recovery episodes (ms) for one breaker: the ones that ended inside the window, plus the ongoing
+ * one while the breaker keeps failing inside the window.
+ */
 function recoveryEpisodes(
   breaker: BreakerHistoryInput,
   windowStartMs: number,
@@ -99,7 +120,9 @@ function recoveryEpisodes(
     }
   }
   const stillRecovering = breaker.state === "OPEN" || breaker.state === "HALF_OPEN";
-  if (openedAt !== null && stillRecovering) episodes.push(Math.max(0, nowMs - openedAt));
+  if (openedAt !== null && stillRecovering && failedInWindow(breaker, windowStartMs)) {
+    episodes.push(Math.max(0, nowMs - openedAt));
+  }
   return episodes;
 }
 

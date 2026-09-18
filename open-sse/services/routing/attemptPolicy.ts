@@ -4,6 +4,13 @@
  *
  * Permanent failures (bad credentials, unknown model, invalid request, exhausted quota) are never
  * retried on the same candidate: repeating them cannot succeed and only burns quota and time.
+ *
+ * What live traffic uses: only `isRetryableAttemptStatus()`. The combo loops (open-sse/services/
+ * combo.ts) retry the same target only on 408, 429, 500, 502, 503 and 504, so 400/401/403/404
+ * responses are never retried on the same target. The rest of this module
+ * (`classifyAttemptOutcome`, `isPermanentAttemptOutcome`, `canRetrySameCandidate`,
+ * `checkFailoverBudget`, `planNextAttempt`) is a tested library that no live request path calls
+ * yet: there is no live per-request cost or latency budget, and no cumulative spend check.
  */
 import type {
   ProviderAttempt,
@@ -100,6 +107,7 @@ export interface FailoverBudgetVerdict {
 /**
  * Whether one more attempt on `next` still fits the request budget, given what the earlier
  * attempts cost and how long the request has been running. Unknown estimates do not block.
+ * Library only: no live request path calls it (see the module comment).
  */
 export function checkFailoverBudget(input: {
   attempts: readonly ProviderAttempt[];
@@ -136,6 +144,7 @@ export interface FailoverPlan {
 /**
  * Next candidate after a failed attempt: the eligible candidates in decision order (selected
  * first), skipping any already attempted and any whose attempt would exceed the budget.
+ * Library only: the live combo loops keep their own failover order (see the module comment).
  */
 export function planNextAttempt(input: {
   decision: RoutingDecision;

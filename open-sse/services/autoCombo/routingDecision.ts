@@ -203,6 +203,50 @@ function selectionModeOf(input: BuildRoutingDecisionInput): RoutingDecision["sel
   return describeRotation(input.outcome.trace.eligible);
 }
 
+interface DecisionEntry {
+  key: string;
+  candidate: DecisionCandidateInput;
+  routing: RoutingCandidate;
+}
+
+function isStrategyPick(candidate: DecisionCandidateInput, pick: StrategySelection): boolean {
+  if (candidate.provider !== pick.provider || candidate.model !== pick.model) return false;
+  return !pick.connectionId || (candidate.connectionId ?? "") === pick.connectionId;
+}
+
+/**
+ * The candidate an explicit router strategy picked. The strategy chooses among the routable
+ * candidates on its own rules, so the scoring pass run only to explain the decision does not get
+ * to exclude its pick: a pick without a hard exclusion is reported eligible. A pick without a
+ * connection id matches the best-ranked candidate with its provider and model.
+ */
+function strategyPickEntry(
+  entries: DecisionEntry[],
+  input: BuildRoutingDecisionInput,
+  pick: StrategySelection
+): DecisionEntry | undefined {
+  const entry = entries.find(
+    (candidateEntry) =>
+      isStrategyPick(candidateEntry.candidate, pick) &&
+      hardExclusionReasons(candidateEntry.candidate, input.request).length === 0
+  );
+  if (entry && !entry.routing.eligible) {
+    entry.routing = { ...entry.routing, eligible: true, exclusionReasons: [] };
+  }
+  return entry;
+}
+
+function selectedEntry(
+  entries: DecisionEntry[],
+  input: BuildRoutingDecisionInput
+): DecisionEntry | undefined {
+  if (input.budgetExceeded) return undefined;
+  if (input.strategySelection) return strategyPickEntry(entries, input, input.strategySelection);
+  const chosen = input.outcome?.selection;
+  if (!chosen) return undefined;
+  return entries.find((entry) => entry.key === candidateKey(chosen) && entry.routing.eligible);
+}
+
 /** Turn a selection into the shared decision contract. Pure apart from the clock. */
 export function buildRoutingDecision(
   input: BuildRoutingDecisionInput,
@@ -213,20 +257,16 @@ export function buildRoutingDecision(
     if (!scoredByKey.has(candidateKey(scored))) scoredByKey.set(candidateKey(scored), scored);
   }
   const eligibleKeys = new Set((input.outcome?.trace.eligible ?? []).map(candidateKey));
-  const entries = input.candidates.map((candidate) => ({
+  const entries: DecisionEntry[] = input.candidates.map((candidate) => ({
     key: candidateKey(candidate),
+    candidate,
     routing: toRoutingCandidate(candidate, input, scoredByKey, eligibleKeys),
   }));
   entries.sort(
     (a, b) =>
       Number(b.routing.eligible) - Number(a.routing.eligible) || b.routing.score - a.routing.score
   );
-  const chosen = input.budgetExceeded
-    ? undefined
-    : (input.strategySelection ?? input.outcome?.selection);
-  const selected = chosen
-    ? entries.find((entry) => entry.key === candidateKey(chosen) && entry.routing.eligible)
-    : undefined;
+  const selected = selectedEntry(entries, input);
   return {
     decisionId: clock.newDecisionId(),
     requestId: input.request.requestId,

@@ -157,6 +157,43 @@ test("BoundedLabelSet keeps first N values and collapses the rest", () => {
   assert.equal(set.size, 2);
 });
 
+test("junk model ids from failed requests do not crowd real models out of the label cap", () => {
+  const registry = new RoutingMetricsRegistry();
+  for (let i = 0; i < 500; i++) {
+    registry.record(event({ model: `junk-${i}`, outcome: "error", status: 404 }));
+  }
+  for (let i = 0; i < 500; i++) {
+    registry.record(event({ model: `sk-proj-${"x".repeat(12)}${i}` }));
+  }
+  registry.record(event({ model: "claude-opus-4-7" }));
+  registry.record(event({ model: "claude-opus-4-7", outcome: "error", status: 500 }));
+
+  const models = new Set(
+    familySeries(registry, "omniroute_model_requests_total").map((s) => s.labels.model)
+  );
+  assert.ok(models.has("claude-opus-4-7"), "a real model keeps its own label");
+  assert.ok(models.has(OTHER_LABEL_VALUE), "failed junk ids collapse into other");
+  assert.ok(models.has("redacted"));
+  assert.equal(
+    [...models].some((model) => model.startsWith("junk-")),
+    false,
+    "a failed request never admits a new model label"
+  );
+  assert.equal(registry.totals().requests, 1002);
+});
+
+test("BoundedLabelSet: fixed values take no slot and admit=false never adds", () => {
+  const set = new BoundedLabelSet(1);
+  assert.equal(set.resolve("sk-proj-abcdefghijklmnop"), "redacted");
+  assert.equal(set.resolve(""), "unknown");
+  assert.equal(set.size, 0);
+  assert.equal(set.resolve("junk", false), OTHER_LABEL_VALUE);
+  assert.equal(set.size, 0);
+  assert.equal(set.resolve("real"), "real");
+  assert.equal(set.resolve("real", false), "real", "a tracked value still resolves");
+  assert.equal(set.resolve("sk-proj-abcdefghijklmnop"), "redacted", "fixed values bypass the cap");
+});
+
 test("histogram quantiles interpolate inside the matching bucket", () => {
   const hist = new FixedHistogram([100, 200, 400]);
   for (let i = 0; i < 90; i++) hist.observe(50);

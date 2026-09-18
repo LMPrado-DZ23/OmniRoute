@@ -3,8 +3,9 @@
  *
  * The scoring engine's pick is recorded as a `RoutingDecision` (candidates, scores, exclusion
  * reasons, policy version) under the request id, so a live request can be explained after it ran.
- * The failover chain is kept inside the request cost budget: the budget cap applied to the first
- * pick also applies to every later attempt.
+ * On the scoring-engine ("rules") path the failover chain is kept inside the request cost budget:
+ * the budget cap applied to the first pick also applies to every later attempt. Explicit router
+ * strategies ignore the budget cap, as they did before decisions were recorded.
  */
 import type { RoutingDecision } from "@/shared/contracts/routing";
 import { getRequestId } from "@/shared/utils/requestId";
@@ -128,7 +129,9 @@ export function recordExplicitStrategyDecision(
 }
 
 /**
- * Keep the failover chain inside the request cost budget. With `budgetFallback: "strict"`,
+ * Keep the failover chain of a scoring-engine ("rules") selection inside the request cost budget.
+ * The estimate is per attempt (1K tokens at the candidate's price), not cumulative spend. With
+ * `budgetFallback: "strict"`,
  * targets whose estimated request cost exceeds `budgetCap` are dropped (unless that would leave
  * nothing, in which case the engine has already refused the request); otherwise they move behind
  * the in-budget targets. Targets without a known price are treated as in budget.

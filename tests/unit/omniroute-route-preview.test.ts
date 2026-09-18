@@ -77,3 +77,42 @@ test("an invalid preview body is still rejected with 400", async () => {
   );
   assert.equal(res.status, 400);
 });
+
+async function previewError(body: string) {
+  const res = await POST(
+    new Request("http://localhost/api/omniroute/route/preview", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body,
+    })
+  );
+  assert.equal(res.status, 400);
+  const json = (await res.json()) as { error?: unknown };
+  assert.equal(typeof json.error, "string");
+  return json.error as string;
+}
+
+test("a 400 names the invalid fields in a readable string, not a JSON dump", async () => {
+  const missing = await previewError("{}");
+  assert.match(missing, /^Invalid route preview request: candidates: /);
+  assert.equal(missing.includes("\n"), false);
+  assert.equal(missing.includes('"path"'), false);
+  assert.throws(() => JSON.parse(missing), SyntaxError, "not a serialized issue list");
+
+  const auto = await previewError(
+    JSON.stringify({ engine: "auto", candidates: [{ provider: "alpha", model: "m" }] })
+  );
+  assert.match(auto, /candidates\.0\.costPer1MTokens: /);
+  assert.match(auto, /candidates\.0\.p95LatencyMs: /);
+});
+
+test("a body that is not a JSON object gets a clear 400", async () => {
+  assert.equal(
+    await previewError("not json"),
+    "Invalid route preview request: the body must be a JSON object"
+  );
+  assert.equal(
+    await previewError("[1, 2]"),
+    "Invalid route preview request: the body must be a JSON object"
+  );
+});

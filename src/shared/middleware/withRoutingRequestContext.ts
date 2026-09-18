@@ -3,9 +3,12 @@
  *
  * The authz pipeline stamps `x-request-id` on every forwarded request and on the response. Running
  * the handler inside that id's async context lets the router record its decision under the same
- * id the client receives, so a request can be explained later by its request id. Non-streaming
- * responses also carry the decision id and policy version; streaming responses are sent before
- * routing finishes, so their decision is found through the lookup endpoint instead.
+ * id the client receives, so a request can be explained later by its request id. The response
+ * also carries the decision id and policy version whenever a decision was recorded before the
+ * handler returned its Response. That is the normal case for streaming responses too: the target
+ * is chosen before the stream starts. The headers are missing when no decision was recorded (a
+ * combo strategy other than `auto`, a direct model) or when the Response headers are immutable;
+ * the lookup endpoint by request id works in every case while the decision is retained.
  *
  * Only opaque identifiers leave through these headers: never provider credentials, prompts or
  * account ids.

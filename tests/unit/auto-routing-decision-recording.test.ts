@@ -136,6 +136,75 @@ test("an explicit router strategy is recorded with its own pick and no live side
   assert.equal(getRoutingDecision("req-live-cost")?.decisionId, decision.decisionId);
 });
 
+test("an explicit strategy pick without a connection id is still reported as selected", async () => {
+  const candidates = [
+    candidate("alpha", { connectionId: "conn-a1", costPer1MTokens: 1 }),
+    candidate("gamma", { connectionId: "conn-g1", costPer1MTokens: 5 }),
+  ];
+  const decision = await inRequest("req-live-noconn", () =>
+    recordExplicitStrategyDecision({
+      config: config("live-strategy-noconn", { routerStrategy: "cost" }),
+      candidates,
+      routableCandidates: candidates,
+      taskType: "default",
+      body: { messages: [] },
+      selection: { strategy: "cost", provider: "gamma", model: "gamma-model" },
+    })
+  );
+
+  assert.equal(decision.selected?.providerId, "gamma");
+  assert.equal(decision.selected?.eligible, true);
+});
+
+test("an explicit strategy pick the explanation scoring refused is still selected", async () => {
+  // Every candidate is over the strict cap, so the scoring pass run for the record throws
+  // BudgetExceededError; explicit strategies ignore budgetCap and the request was served.
+  const candidates = [
+    candidate("alpha", { costPer1MTokens: 20 }),
+    candidate("pricey", { costPer1MTokens: 50 }),
+  ];
+  const decision = await inRequest("req-live-over-budget", () =>
+    recordExplicitStrategyDecision({
+      config: config("live-strategy-budget", {
+        routerStrategy: "latency",
+        budgetCap: 0.001,
+        budgetFallback: "strict",
+      }),
+      candidates,
+      routableCandidates: candidates,
+      taskType: "default",
+      body: { messages: [] },
+      selection: { strategy: "latency", provider: "pricey", model: "pricey-model" },
+    })
+  );
+
+  assert.equal(decision.selected?.providerId, "pricey");
+  assert.equal(decision.selected?.eligible, true);
+  assert.deepEqual(decision.selected?.exclusionReasons, []);
+  assert.equal(
+    decision.candidates.find((c) => c.providerId === "pricey")?.eligible,
+    true,
+    "the listed candidate agrees with the selection"
+  );
+});
+
+test("an explicit strategy pick blocked by a quota cutoff is not reported as selected", async () => {
+  const blocked = candidate("beta", { quotaCutoffBlocked: true });
+  const alpha = candidate("alpha");
+  const decision = await inRequest("req-live-blocked-pick", () =>
+    recordExplicitStrategyDecision({
+      config: config("live-strategy-blocked", { routerStrategy: "cost" }),
+      candidates: [alpha, blocked],
+      routableCandidates: [alpha],
+      taskType: "default",
+      body: { messages: [] },
+      selection: { strategy: "cost", provider: "beta", model: "beta-model" },
+    })
+  );
+
+  assert.equal(decision.selected, undefined);
+});
+
 test("failover order respects the cost budget", () => {
   const targets = [{ executionKey: "a" }, { executionKey: "b" }, { executionKey: "c" }];
   const candidates = [
