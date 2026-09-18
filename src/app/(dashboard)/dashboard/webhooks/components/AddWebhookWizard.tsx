@@ -12,7 +12,7 @@ import {
 } from "./steps/Step2ConfigureIntegration";
 import { Step3EventsAndTest } from "./steps/Step3EventsAndTest";
 import { HowItWorksSidebar } from "./HowItWorksSidebar";
-import { describeWebhookApiError } from "./shared/webhookApiError";
+import { describeApiError } from "@/shared/utils/apiErrorPresentation";
 import type { WebhookItem } from "./WebhookCard";
 import type { WebhookKind } from "./shared/IntegrationCard";
 
@@ -94,7 +94,7 @@ async function sendWebhookRequest(
       : {}),
   });
   const data: unknown = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(describeWebhookApiError(data, fallback, res.status));
+  if (!res.ok) throw new Error(describeApiError(data, fallback, res.status));
   return data && typeof data === "object" ? (data as { webhook?: { id?: string } }) : {};
 }
 

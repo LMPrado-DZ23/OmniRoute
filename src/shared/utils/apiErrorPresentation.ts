@@ -175,3 +175,33 @@ export function presentApiError(
   const detail = technical && technical !== message ? technical : null;
   return { message, code, detail };
 }
+
+/**
+ * One readable line for a failed management API response: the `presentApiError` headline
+ * plus the per-field validation details (`field: message`) of the shared envelope
+ * `{ error: { message, details: [{ field, message }] } }`. Passing that envelope straight to
+ * `new Error()` rendered `[object Object]` (audit C H1); this never does.
+ */
+export function describeApiError(body: unknown, fallback: string, status?: number): string {
+  const { message } = presentApiError(body, { fallback, status });
+  const details = readValidationDetails(body);
+  return details.length > 0 ? `${message}: ${details.join("; ")}` : message;
+}
+
+function readValidationDetails(body: unknown): string[] {
+  if (!body || typeof body !== "object") return [];
+  const error = (body as Record<string, unknown>).error;
+  if (!error || typeof error !== "object") return [];
+  const details = (error as Record<string, unknown>).details;
+  if (!Array.isArray(details)) return [];
+  return details.map(formatValidationDetail).filter((text): text is string => text !== null);
+}
+
+function formatValidationDetail(detail: unknown): string | null {
+  if (!detail || typeof detail !== "object") return null;
+  const record = detail as Record<string, unknown>;
+  const message = typeof record.message === "string" ? record.message.trim() : "";
+  if (!message) return null;
+  const field = typeof record.field === "string" ? record.field.trim() : "";
+  return field ? `${field}: ${message}` : message;
+}

@@ -4,8 +4,8 @@
  * - POST /api/webhooks accepts an optional `enabled` (default true, so the existing contract
  *   is unchanged). The dashboard wizard creates its step-2 draft with `enabled:false`, so an
  *   abandoned wizard can never leave an active all-events webhook behind.
- * - Rejected events come back in the validation envelope, and the dashboard's
- *   `describeWebhookApiError` turns that envelope into readable text (not `[object Object]`).
+ * - Rejected events come back in the validation envelope, and the shared
+ *   `describeApiError` turns that envelope into readable text (not `[object Object]`).
  */
 
 import { describe, it, after } from "node:test";
@@ -25,8 +25,7 @@ await updateSettings({ requireLogin: false });
 
 const webhooksRoute = await import("../../src/app/api/webhooks/route.ts");
 const { getWebhook, getEnabledWebhooks } = await import("../../src/lib/db/webhooks.ts");
-const { describeWebhookApiError } =
-  await import("../../src/app/(dashboard)/dashboard/webhooks/components/shared/webhookApiError.ts");
+const { describeApiError } = await import("../../src/shared/utils/apiErrorPresentation.ts");
 
 after(() => {
   core.resetDbInstance();
@@ -91,7 +90,7 @@ describe("POST /api/webhooks — optional enabled flag", () => {
   });
 });
 
-describe("describeWebhookApiError — readable validation errors", () => {
+describe("describeApiError — readable validation errors", () => {
   it("renders the rejected-event envelope as text naming the field", async () => {
     const res = await post({
       url: "https://hooks.example.com/ghost",
@@ -100,7 +99,7 @@ describe("describeWebhookApiError — readable validation errors", () => {
     });
     assert.equal(res.status, 400);
     const body = await res.json();
-    const text = describeWebhookApiError(body, "Failed to save", res.status);
+    const text = describeApiError(body, "Failed to save", res.status);
     assert.doesNotMatch(text, /\[object Object\]/);
     assert.match(text, /^Invalid request: events\.0: /);
     assert.match(text, /slo\.breached/, "the message lists the accepted events");
@@ -108,18 +107,18 @@ describe("describeWebhookApiError — readable validation errors", () => {
 
   it("passes a plain string error through", () => {
     assert.equal(
-      describeWebhookApiError({ error: "Webhook not found" }, "Failed", 404),
+      describeApiError({ error: "Webhook not found" }, "Failed", 404),
       "Webhook not found"
     );
   });
 
   it("falls back when the body carries nothing usable", () => {
-    assert.equal(describeWebhookApiError({}, "Failed to save"), "Failed to save");
-    assert.equal(describeWebhookApiError(null, "Failed to save"), "Failed to save");
+    assert.equal(describeApiError({}, "Failed to save"), "Failed to save");
+    assert.equal(describeApiError(null, "Failed to save"), "Failed to save");
   });
 
   it("ignores malformed details entries", () => {
-    const text = describeWebhookApiError(
+    const text = describeApiError(
       {
         error: {
           message: "Invalid request",
