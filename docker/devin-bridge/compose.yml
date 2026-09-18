@@ -99,7 +99,7 @@ services:
       - ./run-contract.mjs:/opt/omniroute/docker/devin-bridge/run-contract.mjs:ro
 
   claude-egress-guard:
-    image: node:26.0.0-bookworm-slim
+    image: node:26.0.0-bookworm-slim@sha256:3529ef69feecddd94e9c5ecd3d25a96f2f23ea40661f494f932ae2b12ab1977c
     profiles: [offline, live-devin]
     user: "10001:10001"
     read_only: true
@@ -127,7 +127,7 @@ services:
     networks: [bridge-internal]
 
   network-guard:
-    image: node:26.0.0-bookworm-slim
+    image: node:26.0.0-bookworm-slim@sha256:3529ef69feecddd94e9c5ecd3d25a96f2f23ea40661f494f932ae2b12ab1977c
     profiles: [live-devin]
     user: "10001:10001"
     read_only: true

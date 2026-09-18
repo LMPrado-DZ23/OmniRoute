@@ -24,6 +24,7 @@ import {
   SPAWN_CAPABLE_PATTERN_ANCESTORS,
 } from "@/shared/constants/spawnCapablePrefixes";
 import { isHttpUrl } from "@/shared/validation/schemas/misc";
+import { sloSettingsSchema } from "@/shared/validation/schemas/slo";
 
 const signatureCacheModeValues = ["enabled", "bypass", "bypass-strict"] as const;
 
@@ -105,6 +106,8 @@ export const updateSettingsSchema = z.object({
   newPassword: z.string().min(1).max(200).optional(),
   currentPassword: z.string().max(200).optional(),
   credentialRedactionEnabled: z.boolean().optional(),
+  /** Service level objectives evaluated by src/lib/monitoring/sloEvaluator.ts. */
+  slo: sloSettingsSchema.optional(),
   theme: z.string().max(50).optional(),
   language: z.string().max(10).optional(),
   requireLogin: z.boolean().optional(),

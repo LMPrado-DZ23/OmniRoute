@@ -1,4 +1,5 @@
 import { getDbInstance } from "./core";
+import { routingMetrics } from "@omniroute/open-sse/services/routing/metricsSink.ts";
 
 export interface CompressionAnalyticsRow {
   id?: number;
@@ -168,6 +169,14 @@ export function insertCompressionAnalyticsRow(row: CompressionAnalyticsRow): voi
     row.rtk_raw_output_total_bytes ?? null,
     row.skip_reason ?? null
   );
+  // In-process compression counters for GET /api/metrics (skipped/no-op rows excluded).
+  if (!row.skip_reason) {
+    routingMetrics.recordCompression({
+      engine: row.engine ?? row.mode,
+      tokensSaved: row.tokens_saved,
+      estimatedUsdSaved: row.estimated_usd_saved,
+    });
+  }
 }
 
 /**

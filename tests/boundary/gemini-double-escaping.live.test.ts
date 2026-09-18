@@ -7,13 +7,15 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
+import { liveSkipReason } from "../helpers/liveOptIn.ts";
 
 const OMNIROUTE_URL = `${process.env.OMNIROUTE_URL}/v1`;
 const AUTH = `Bearer ${process.env.OMNIROUTE_API_KEY || ""}`;
 
-const skip = !(process.env.OMNIROUTE_API_KEY && process.env.OMNIROUTE_URL)
-  ? "OMNIROUTE_API_KEY or OMNIROUTE_URL not set — skipping live boundary test"
-  : undefined;
+const skip = liveSkipReason({
+  flag: "RUN_BOUNDARY_LIVE",
+  requiredEnv: ["OMNIROUTE_API_KEY", "OMNIROUTE_URL"],
+});
 
 // Chat Completions format tool definition
 const CC_WRITE_TOOL = {

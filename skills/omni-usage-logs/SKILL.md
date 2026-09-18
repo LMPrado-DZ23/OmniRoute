@@ -77,6 +77,15 @@ curl https://localhost:20128/api/usage/proxy-logs \
   -H "Authorization: Bearer $OMNIROUTE_TOKEN"
 ```
 
+### DELETE /api/usage/proxy-logs
+
+DELETE usage › proxy logs
+
+```bash
+curl -X DELETE https://localhost:20128/api/usage/proxy-logs \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN"
+```
+
 ### GET /api/usage/request-logs
 
 Get request logs

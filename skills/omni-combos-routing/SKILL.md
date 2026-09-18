@@ -87,6 +87,15 @@ curl https://localhost:20128/api/combos/metrics \
   -H "Authorization: Bearer $OMNIROUTE_TOKEN"
 ```
 
+### DELETE /api/combos/metrics
+
+DELETE combos › metrics
+
+```bash
+curl -X DELETE https://localhost:20128/api/combos/metrics \
+  -H "Authorization: Bearer $OMNIROUTE_TOKEN"
+```
+
 ### POST /api/combos/test
 
 Test a combo configuration

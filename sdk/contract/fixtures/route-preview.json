@@ -1,0 +1,219 @@
+{
+  "description": "POST /api/omniroute/route/preview — management-authenticated deterministic ranking (src/app/api/omniroute/route/preview/route.ts). Unknown response fields must pass through.",
+  "cases": [
+    {
+      "name": "preview uses the management key and passes unknown fields through",
+      "operation": "routePreview",
+      "client": {
+        "apiKey": "sk-contract-key",
+        "managementKey": "mgmt-contract-key",
+        "requestId": "req-contract-1",
+        "retry": { "maxRetries": 0 }
+      },
+      "input": {
+        "candidates": [
+          {
+            "providerId": "openai",
+            "modelId": "gpt-4o-mini",
+            "capabilityScore": 0.9,
+            "allocation": "allow",
+            "healthScore": 1,
+            "circuit": "closed",
+            "quota": "healthy"
+          },
+          {
+            "providerId": "anthropic",
+            "modelId": "claude-haiku",
+            "capabilityScore": 0.9,
+            "allocation": "allow",
+            "healthScore": 1,
+            "circuit": "open",
+            "quota": "healthy"
+          }
+        ]
+      },
+      "expectedRequests": [
+        {
+          "method": "POST",
+          "path": "/api/omniroute/route/preview",
+          "headers": {
+            "authorization": "Bearer mgmt-contract-key",
+            "accept": "application/json",
+            "content-type": "application/json",
+            "x-request-id": "req-contract-1"
+          },
+          "body": {
+            "candidates": [
+              {
+                "providerId": "openai",
+                "modelId": "gpt-4o-mini",
+                "capabilityScore": 0.9,
+                "allocation": "allow",
+                "healthScore": 1,
+                "circuit": "closed",
+                "quota": "healthy"
+              },
+              {
+                "providerId": "anthropic",
+                "modelId": "claude-haiku",
+                "capabilityScore": 0.9,
+                "allocation": "allow",
+                "healthScore": 1,
+                "circuit": "open",
+                "quota": "healthy"
+              }
+            ]
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": { "content-type": "application/json", "x-request-id": "srv-preview-1" },
+          "json": {
+            "request": { "candidateCount": 2 },
+            "selected": "openai",
+            "candidates": [
+              {
+                "providerId": "openai",
+                "modelId": "gpt-4o-mini",
+                "score": 0.9,
+                "eligible": true,
+                "reasons": [
+                  "capability match",
+                  "allocation permitted",
+                  "provider healthy",
+                  "circuit closed",
+                  "quota healthy"
+                ],
+                "factors": { "capability": 0.9, "circuit": 1 }
+              },
+              {
+                "providerId": "anthropic",
+                "modelId": "claude-haiku",
+                "score": 0,
+                "eligible": false,
+                "reasons": [
+                  "capability match",
+                  "allocation permitted",
+                  "provider healthy",
+                  "circuit open",
+                  "quota healthy"
+                ],
+                "factors": { "capability": 0.9, "circuit": 0 }
+              }
+            ],
+            "liveRequestExecuted": false,
+            "additiveFieldFromNewerServer": { "present": true }
+          }
+        }
+      ],
+      "expected": {
+        "result": {
+          "status": 200,
+          "requestId": "srv-preview-1",
+          "clientRequestId": "req-contract-1",
+          "data": {
+            "request": { "candidateCount": 2 },
+            "selected": "openai",
+            "candidates": [
+              {
+                "providerId": "openai",
+                "modelId": "gpt-4o-mini",
+                "score": 0.9,
+                "eligible": true,
+                "reasons": [
+                  "capability match",
+                  "allocation permitted",
+                  "provider healthy",
+                  "circuit closed",
+                  "quota healthy"
+                ],
+                "factors": { "capability": 0.9, "circuit": 1 }
+              },
+              {
+                "providerId": "anthropic",
+                "modelId": "claude-haiku",
+                "score": 0,
+                "eligible": false,
+                "reasons": [
+                  "capability match",
+                  "allocation permitted",
+                  "provider healthy",
+                  "circuit open",
+                  "quota healthy"
+                ],
+                "factors": { "capability": 0.9, "circuit": 0 }
+              }
+            ],
+            "liveRequestExecuted": false,
+            "additiveFieldFromNewerServer": { "present": true }
+          }
+        }
+      }
+    },
+    {
+      "name": "preview falls back to the API key and surfaces a plain-string validation error",
+      "operation": "routePreview",
+      "client": {
+        "apiKey": "sk-contract-key",
+        "requestId": "req-contract-1",
+        "retry": { "maxRetries": 0 }
+      },
+      "input": { "candidates": [] },
+      "expectedRequests": [
+        {
+          "method": "POST",
+          "path": "/api/omniroute/route/preview",
+          "headers": { "authorization": "Bearer sk-contract-key" },
+          "body": { "candidates": [] }
+        }
+      ],
+      "responses": [
+        {
+          "status": 400,
+          "headers": { "content-type": "application/json", "x-request-id": "srv-preview-400" },
+          "json": { "error": "candidates: Array must contain at least 1 element(s)" }
+        }
+      ],
+      "expected": {
+        "error": {
+          "status": 400,
+          "message": "candidates: Array must contain at least 1 element(s)",
+          "code": null,
+          "requestId": "srv-preview-400"
+        }
+      }
+    },
+    {
+      "name": "a key without management scope gets the management error envelope",
+      "operation": "routePreview",
+      "client": {
+        "apiKey": "sk-contract-key",
+        "requestId": "req-contract-1",
+        "retry": { "maxRetries": 0 }
+      },
+      "input": { "candidates": [] },
+      "expectedRequests": [{ "method": "POST", "path": "/api/omniroute/route/preview" }],
+      "responses": [
+        {
+          "status": 403,
+          "headers": { "content-type": "application/json" },
+          "json": {
+            "error": { "message": "Invalid management token", "type": "invalid_request" },
+            "requestId": "8d0c1e9a-2f4b-4c7d-9e1a-5b6c7d8e9f00"
+          }
+        }
+      ],
+      "expected": {
+        "error": {
+          "status": 403,
+          "message": "Invalid management token",
+          "type": "invalid_request",
+          "code": null,
+          "requestId": "8d0c1e9a-2f4b-4c7d-9e1a-5b6c7d8e9f00"
+        }
+      }
+    }
+  ]
+}
