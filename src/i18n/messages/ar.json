@@ -5894,7 +5894,7 @@
     "embeddingRerankProviders": "التضمين وإعادة الترتيب",
     "imagesShortLabel": "الصور",
     "llmProviders": "مزودو LLM",
-    "localProviderApiKeyOptionalHint": "مفتاح API اختياري للمزود المحلي",
+    "localProviderApiKeyOptionalHint": "Optional for {provider}: leave empty if your local server does not require an API key.",
     "localProviderBaseUrlHint": "عنوان URL الأساسي للمزود المحلي",
     "localProviders": "المزودون المحليون",
     "maxConcurrentWholeNumberError": "يجب أن يكون الحد الأقصى للتزامن عددًا صحيحًا",
