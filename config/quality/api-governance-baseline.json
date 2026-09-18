@@ -8,7 +8,6 @@
     "/api/batches/{id}",
     "/api/cli-tools/status",
     "/api/cli/connect",
-    "/api/cli/tokens/{id}",
     "/api/codex/connect/{token}",
     "/api/combos/metrics",
     "/api/combos/reorder",
