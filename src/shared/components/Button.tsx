@@ -10,7 +10,8 @@ const variants = {
   outline: "border border-black/15 dark:border-white/15 text-text-main hover:bg-black/5",
   ghost: "text-text-muted hover:bg-black/5 dark:hover:bg-white/5 hover:text-text-main",
   warning: "bg-amber-500 text-white hover:bg-amber-600 shadow-sm",
-  danger: "bg-red-500 text-white hover:bg-red-600 shadow-sm",
+  // White on red-600 is 4.8:1 (red-500 was 3.8:1, axe color-contrast on settings).
+  danger: "bg-red-600 text-white hover:bg-red-700 shadow-sm",
 };
 
 export type ButtonVariant = keyof typeof variants;
