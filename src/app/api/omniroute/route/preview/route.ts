@@ -102,6 +102,26 @@ const autoRequestSchema = z.object({
 
 type AutoPreviewBody = z.infer<typeof autoRequestSchema>;
 
+const MAX_REPORTED_ISSUES = 5;
+
+/**
+ * A readable 400 message: each problem as `field: message` (at most five), e.g.
+ * `Invalid route preview request: candidates: Too small: expected array to have >=1 items`.
+ */
+function invalidBodyMessage(error: z.ZodError): string {
+  const issues = error.issues.slice(0, MAX_REPORTED_ISSUES).map((issue) => {
+    const field = issue.path.map(String).join(".");
+    return field ? `${field}: ${issue.message}` : issue.message;
+  });
+  const more = error.issues.length - issues.length;
+  const suffix = more > 0 ? ` (and ${more} more)` : "";
+  return `Invalid route preview request: ${issues.join("; ")}${suffix}`;
+}
+
+function badRequest(message: string): Response {
+  return NextResponse.json({ error: message }, { status: 400 });
+}
+
 function previewRequestId(body: AutoPreviewBody, request: Request): string {
   if (body.request?.requestId) return body.request.requestId;
   const header = request.headers.get("x-request-id");
@@ -178,15 +198,18 @@ export async function POST(request: Request): Promise<Response> {
   const authError = await requireManagementAuth(request);
   if (authError) return authError;
   const raw: unknown = await request.json().catch(() => null);
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    return badRequest("Invalid route preview request: the body must be a JSON object");
+  }
 
-  if (raw !== null && typeof raw === "object" && "engine" in raw) {
+  if ("engine" in raw) {
     const auto = autoRequestSchema.safeParse(raw);
-    if (!auto.success) return NextResponse.json({ error: auto.error.message }, { status: 400 });
+    if (!auto.success) return badRequest(invalidBodyMessage(auto.error));
     return previewAuto(auto.data, request);
   }
 
   const parsed = requestSchema.safeParse(raw);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.message }, { status: 400 });
+  if (!parsed.success) return badRequest(invalidBodyMessage(parsed.error));
 
   const result = rankCandidates(parsed.data.candidates);
   return NextResponse.json({
