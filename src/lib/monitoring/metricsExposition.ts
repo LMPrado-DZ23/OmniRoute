@@ -17,7 +17,7 @@ import {
   type GaugeFamily,
 } from "@omniroute/open-sse/services/routing/prometheusText.ts";
 import { getCachedSettings } from "@/lib/db/readCache";
-import { getAllCircuitBreakerStatuses } from "@/shared/utils/circuitBreaker";
+import { getAllCircuitBreakerSnapshots } from "@/shared/utils/circuitBreaker";
 import { evaluateSlo, type BreakerHistoryInput, type SloReport } from "./sloEvaluator";
 import { resolveSloSettings } from "./sloSettings";
 
@@ -66,7 +66,7 @@ async function readQuotaMonitor(): Promise<QuotaMonitorView> {
 
 export async function collectMetricsSnapshot(now = Date.now()): Promise<MetricsSnapshot> {
   const settings = resolveSloSettings((await getCachedSettings()).slo);
-  const breakers = getAllCircuitBreakerStatuses();
+  const breakers = getAllCircuitBreakerSnapshots();
   const window = routingMetrics.window(settings.windowMinutes * 60_000);
   const { byState, openProviders } = summarizeBreakers(breakers);
   return {

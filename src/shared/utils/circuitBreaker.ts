@@ -414,12 +414,25 @@ export class CircuitBreaker {
 
   getStatus(): CircuitBreakerStatus {
     this._refreshOpenState();
+    return this._statusAs(this.state);
+  }
+
+  /**
+   * Status without side effects: the state is `peekState()`, so an elapsed OPEN breaker reads as
+   * HALF_OPEN but nothing transitions, persists or consumes a probe. For metrics and SLO scrapes.
+   */
+  peekStatus(): CircuitBreakerStatus {
+    return this._statusAs(this.peekState());
+  }
+
+  _statusAs(state: CircuitState): CircuitBreakerStatus {
+    const closed = state === STATE.CLOSED || state === STATE.DEGRADED;
     return {
       name: this.name,
-      state: this.state,
+      state,
       failureCount: this.failureCount,
       lastFailureTime: this.lastFailureTime,
-      retryAfterMs: this.getRetryAfterMs(),
+      retryAfterMs: closed ? 0 : this._timeUntilReset(),
       lastFailureKind: this.lastFailureKind,
       openCycleCount: this.openCycleCount,
       kindFailureCounts: { ...this.kindFailureCounts },
@@ -750,6 +763,25 @@ export function getAllCircuitBreakerStatuses() {
     // Use registry only
   }
   return Array.from(registry.values()).map((cb) => cb.getStatus());
+}
+
+/**
+ * Read-only view of every breaker for metrics and SLO scrapes: registered breakers plus persisted
+ * ones not loaded in this process, via `peekStatus()`. Unlike `getAllCircuitBreakerStatuses()` it
+ * never transitions an elapsed OPEN breaker, writes to the database or registers a breaker.
+ */
+export function getAllCircuitBreakerSnapshots(): CircuitBreakerStatus[] {
+  const snapshots = Array.from(registry.values()).map((cb) => cb.peekStatus());
+  try {
+    for (const persisted of loadAllCircuitBreakerStates()) {
+      if (!registry.has(persisted.name)) {
+        snapshots.push(new CircuitBreaker(persisted.name).peekStatus());
+      }
+    }
+  } catch {
+    // Use registry only
+  }
+  return snapshots;
 }
 
 export function resetAllCircuitBreakers() {

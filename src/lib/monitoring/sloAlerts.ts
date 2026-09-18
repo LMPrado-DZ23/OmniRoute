@@ -16,7 +16,7 @@ import { routingMetrics } from "@omniroute/open-sse/services/routing/metricsSink
 import { sanitizeLabelValue } from "@omniroute/open-sse/services/routing/metricLabels.ts";
 import { getCachedSettings } from "@/lib/db/readCache";
 import { dispatchEvent } from "@/lib/webhookDispatcher";
-import { getAllCircuitBreakerStatuses } from "@/shared/utils/circuitBreaker";
+import { getAllCircuitBreakerSnapshots } from "@/shared/utils/circuitBreaker";
 import { evaluateSlo, type BreakerHistoryInput, type SloReport } from "./sloEvaluator";
 import { resolveSloSettings } from "./sloSettings";
 
@@ -94,7 +94,7 @@ let loopTimer: ReturnType<typeof setInterval> | null = null;
 async function runSloAlertTick(): Promise<void> {
   const settings = resolveSloSettings((await getCachedSettings()).slo);
   if (!settings.alertsEnabled) return;
-  const breakers = getAllCircuitBreakerStatuses();
+  const breakers = getAllCircuitBreakerSnapshots();
   const now = Date.now();
   const report = evaluateSlo(
     settings,
