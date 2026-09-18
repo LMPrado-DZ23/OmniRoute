@@ -4,6 +4,8 @@
  * Every call goes through an in-process fake fetch — no network, no provider calls.
  */
 import assert from "node:assert/strict";
+import { createServer, type IncomingHttpHeaders, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
 import { describe, it } from "node:test";
 import { inspect } from "node:util";
 
@@ -144,6 +146,71 @@ describe("OmniRouteClient retries", () => {
     const error = await captureError(client.health({ signal: controller.signal }));
     assert.equal(error.code, CLIENT_ERROR_CODES.aborted);
     assert.ok(Date.now() - started < 5_000, "backoff sleep must be interrupted");
+  });
+});
+
+async function listen(server: Server): Promise<string> {
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+}
+
+/**
+ * Closes a loopback server and lets fetch's pooled sockets finish closing: with --test-force-exit
+ * on Windows, exiting while they close trips a libuv assertion (src/win/async.c).
+ */
+function close(server: Server): Promise<void> {
+  server.closeAllConnections();
+  return new Promise((resolve) => server.close(() => setTimeout(resolve, 50)));
+}
+
+/** Two loopback servers on different ports: `origin` answers 302 to `target`. */
+async function withRedirect(
+  run: (originUrl: string, targetHeaders: IncomingHttpHeaders[]) => Promise<void>
+): Promise<void> {
+  const targetHeaders: IncomingHttpHeaders[] = [];
+  const target = createServer((req, res) => {
+    targetHeaders.push(req.headers);
+    res.setHeader("connection", "close");
+    res.setHeader("content-type", "application/json");
+    res.end(JSON.stringify({ object: "list", data: [] }));
+  });
+  const targetUrl = await listen(target);
+  const origin = createServer((_req, res) => {
+    res.statusCode = 302;
+    res.setHeader("connection", "close");
+    res.setHeader("location", `${targetUrl}/elsewhere`);
+    res.end();
+  });
+  const originUrl = await listen(origin);
+  try {
+    await run(originUrl, targetHeaders);
+  } finally {
+    await Promise.all([close(origin), close(target)]);
+  }
+}
+
+describe("OmniRouteClient redirects (loopback servers only)", () => {
+  it("never forwards a credential to a cross-origin redirect target", async () => {
+    await withRedirect(async (originUrl, targetHeaders) => {
+      const bearerOnly = new OmniRouteClient({
+        baseUrl: originUrl,
+        apiKey: "sk-redirect",
+        retry: false,
+      });
+      assert.equal((await bearerOnly.models.list()).status, 200);
+      assert.equal(targetHeaders.length, 1);
+      assert.equal(targetHeaders[0]?.authorization, undefined, "fetch strips Authorization");
+
+      const customCredential = new OmniRouteClient({
+        baseUrl: originUrl,
+        apiKey: "sk-redirect",
+        headers: { "x-goog-api-key": "sk-goog", "x-api-key": "sk-anthropic-style" },
+        retry: false,
+      });
+      const error = await captureError(customCredential.models.list());
+      assert.equal(error.status, 302, "the redirect surfaces instead of being followed");
+      assert.equal(targetHeaders.length, 1, "the redirect target must not be contacted again");
+    });
   });
 });
 

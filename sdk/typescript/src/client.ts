@@ -124,6 +124,27 @@ function isSensitiveHeader(name: string): boolean {
   return SENSITIVE_HEADERS.has(lowered) || SENSITIVE_HEADER_PATTERN.test(lowered);
 }
 
+/** The credential headers `fetch` itself removes when a redirect changes origin. */
+const STRIPPED_BY_FETCH_ON_REDIRECT: ReadonlySet<string> = new Set([
+  "authorization",
+  "proxy-authorization",
+  "cookie",
+]);
+
+/**
+ * `fetch` would forward any other credential header (e.g. `x-api-key` passed through `headers`)
+ * to a cross-origin redirect target, so such requests do not follow redirects: the 3xx surfaces
+ * as an `OmniRouteError` instead.
+ */
+function redirectModeFor(headers: Headers): RequestRedirect {
+  let forwardsCredential = false;
+  headers.forEach((_value, key) => {
+    if (isSensitiveHeader(key) && !STRIPPED_BY_FETCH_ON_REDIRECT.has(key))
+      forwardsCredential = true;
+  });
+  return forwardsCredential ? "manual" : "follow";
+}
+
 export function redactHeaders(headers: Headers): Record<string, string> {
   const out: Record<string, string> = {};
   headers.forEach((value, key) => {
@@ -316,6 +337,7 @@ export class OmniRouteClient {
           method: op.method,
           headers,
           body: payload,
+          redirect: redirectModeFor(headers),
           signal: attempt.signal,
         });
       } catch (cause) {
