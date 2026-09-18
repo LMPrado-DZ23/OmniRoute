@@ -1,7 +1,8 @@
 name: Test Coverage Task
 description: Create a focused coverage-improvement issue tied to concrete files and targets
 title: "[Coverage] "
-labels: ["test", "coverage"]
+# No labels: "test" and "coverage" do not exist in the repository and GitHub drops unknown
+# labels silently. The title prefix identifies the form for triage.
 body:
   - type: markdown
     attributes:

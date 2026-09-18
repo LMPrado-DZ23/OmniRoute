@@ -1,7 +1,9 @@
 name: Compatibility Problem
 description: OmniRoute does not install, start or work on a specific OS, runtime, architecture, install method or client
 title: "[Compat] "
-labels: ["compatibility"]
+# Only labels that exist in the repository are listed: GitHub silently drops unknown ones.
+# The title prefix identifies the form for triage.
+labels: ["bug"]
 body:
   - type: markdown
     attributes:
@@ -83,17 +85,19 @@ body:
     id: provider
     attributes:
       label: Provider(s) Involved
+      description: "Leave empty if the problem is not provider related (UI, install, startup)."
       placeholder: "e.g. n/a, or a provider ID"
     validations:
-      required: true
+      required: false
 
   - type: input
     id: model
     attributes:
       label: Model(s) Involved
+      description: "Leave empty if the problem is not model related."
       placeholder: "e.g. n/a, or a model ID from /v1/models"
     validations:
-      required: true
+      required: false
 
   - type: input
     id: client

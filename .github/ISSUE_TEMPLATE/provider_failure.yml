@@ -1,7 +1,9 @@
 name: Provider Failure
 description: A specific AI provider or model fails, times out, or returns wrong results through OmniRoute
 title: "[Provider] "
-labels: ["bug", "provider"]
+# Only labels that exist in the repository are listed: GitHub silently drops unknown ones.
+# The title prefix identifies the form for triage.
+labels: ["bug"]
 body:
   - type: markdown
     attributes:
