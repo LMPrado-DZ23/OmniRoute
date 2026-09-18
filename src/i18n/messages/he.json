@@ -5894,7 +5894,7 @@
     "embeddingRerankProviders": "הטמעות ודירוג מחדש",
     "imagesShortLabel": "Images Short Label",
     "llmProviders": "Llm Providers",
-    "localProviderApiKeyOptionalHint": "Local Provider Api Key Optional Hint",
+    "localProviderApiKeyOptionalHint": "Optional for {provider}: leave empty if your local server does not require an API key.",
     "localProviderBaseUrlHint": "Local Provider Base Url Hint",
     "localProviders": "Local Providers",
     "maxConcurrentWholeNumberError": "Max Concurrent Whole Number Error",

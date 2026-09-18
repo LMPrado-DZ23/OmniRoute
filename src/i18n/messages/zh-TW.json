@@ -5894,7 +5894,7 @@
     "embeddingRerankProviders": "嵌入與重排序",
     "imagesShortLabel": "影像",
     "llmProviders": "LLM Provider",
-    "localProviderApiKeyOptionalHint": "本地提供者的 API 金鑰通常是可選的。",
+    "localProviderApiKeyOptionalHint": "Optional for {provider}: leave empty if your local server does not require an API key.",
     "localProviderBaseUrlHint": "輸入本地提供者的 Base URL。",
     "localProviders": "本地 Provider",
     "maxConcurrentWholeNumberError": "最大併發必須是整數",

@@ -352,7 +352,7 @@
     "comboNamePlaceholder": "Combo Name Placeholder",
     "memoryRss": "Memory Rss",
     "disableProvider": "Disable Provider",
-    "welcomeDesc": "Welcome Desc",
+    "welcomeDesc": "O OmniRoute é o seu proxy local de APIs de IA. Ele encaminha requisições para vários provedores de IA com balanceamento de carga, failover e acompanhamento de uso.",
     "nameLabel": "Name Label",
     "allOperational": "All Operational",
     "backupNow": "Backup Now",
@@ -361,7 +361,7 @@
     "machineId": "Machine Id",
     "globalProxy": "Global Proxy",
     "hitsMisses": "Hits Misses",
-    "testDesc": "Test Desc",
+    "testDesc": "Vamos verificar se a conexão com o provedor funciona.",
     "chatDesc": "Chat Desc",
     "importSuccess": "Import Success",
     "chat": "Chat",
@@ -492,7 +492,7 @@
     "enableProvider": "Enable Provider",
     "modeTest": "Mode Test",
     "failedDeleteChain": "Failed Delete Chain",
-    "providerDesc": "Provider Desc",
+    "providerDesc": "Conecte o seu primeiro provedor de IA. Você pode adicionar outros depois.",
     "templateLoadHint": "Template Load Hint",
     "lastFailure": "Last Failure",
     "moveDown": "Move Down",
@@ -587,7 +587,7 @@
     "zedImportHint": "Zed Import Hint",
     "modelsAcrossEndpoints": "Models Across Endpoints",
     "autoDisableBannedAccounts": "Auto Disable Banned Accounts",
-    "securityDesc": "Security Desc",
+    "securityDesc": "Defina uma senha para proteger o painel, ou pule por enquanto.",
     "listModels": "List Models",
     "backupRestore": "Backup Restore",
     "target": "Target",
@@ -604,7 +604,7 @@
     "signatureTool": "Signature Tool",
     "connectionFailed": "Connection Failed",
     "activeLimitersPlural": "Active Limiters Plural",
-    "doneDesc": "Done Desc",
+    "doneDesc": "Tudo pronto! A sua instância do OmniRoute está configurada e pronta para encaminhar requisições de IA.",
     "down": "Down",
     "noDataYet": "No Data Yet",
     "activeProviders": "Active Providers",
@@ -674,7 +674,7 @@
     "addAtLeastOneProvider": "Add At Least One Provider",
     "reasonSeparator": "Reason Separator",
     "zedImporting": "Zed Importing",
-    "confirmPasswordPlaceholder": "Confirm Password Placeholder",
+    "confirmPasswordPlaceholder": "Confirme a senha",
     "whatYouGet": "What You Get",
     "signatureSession": "Signature Session",
     "errorCountNoCode": "Error Count No Code",
@@ -5080,7 +5080,102 @@
         "skipped": "já configurado",
         "failed": "falhou"
       }
-    }
+    },
+    "errorGuide": {
+      "whyLabel": "Por quê",
+      "fixLabel": "Como corrigir",
+      "retryPossible": "Você pode tentar novamente.",
+      "retryAfterFix": "Tentar de novo não resolve até a causa acima ser corrigida.",
+      "docsLink": "Abrir o guia",
+      "network": {
+        "why": "O painel não conseguiu falar com o servidor do OmniRoute.",
+        "fix": "Confira se o OmniRoute continua rodando (terminal ou contêiner Docker) e se esta página usa o mesmo endereço; depois tente novamente."
+      },
+      "timeout": {
+        "why": "A requisição demorou mais do que o assistente espera.",
+        "fix": "O provedor ou a sua rede estão lentos. Tente novamente; se continuar estourando o tempo, confira a URL do provedor e as configurações de proxy."
+      },
+      "unreachable": {
+        "why": "O OmniRoute não conseguiu abrir conexão com o servidor do provedor.",
+        "fix": "Confira a URL do provedor (deixe a URL personalizada vazia para usar a padrão), a sua conexão com a internet, o firewall e o proxy."
+      },
+      "tls": {
+        "why": "A conexão segura (TLS) com o provedor falhou, em geral por certificado inválido ou por um proxy que intercepta HTTPS.",
+        "fix": "Garanta que a URL personalizada use https com certificado válido, ou configure o proxy e o certificado de CA em que o OmniRoute deve confiar."
+      },
+      "credential": {
+        "why": "O provedor recusou a credencial: a chave é inválida, expirou, foi revogada ou não tem acesso a esta API.",
+        "fix": "Crie ou copie uma chave válida no console do provedor, volte à etapa do provedor e adicione-a de novo."
+      },
+      "rateLimited": {
+        "why": "O provedor está limitando as requisições desta chave (limite de taxa ou cota esgotada).",
+        "fix": "Aguarde um minuto e tente novamente, ou confira o plano e a cota no console do provedor."
+      },
+      "providerDown": {
+        "why": "O provedor respondeu com erro de servidor; o problema está do lado do provedor.",
+        "fix": "Tente novamente em alguns minutos ou consulte a página de status do provedor."
+      },
+      "invalidInput": {
+        "why": "O servidor não aceitou os dados enviados.",
+        "fix": "Revise os campos desta etapa (a mensagem acima indica o problema) e envie de novo."
+      },
+      "sessionExpired": {
+        "why": "A sua sessão do painel não existe ou expirou, então o servidor recusou a requisição.",
+        "fix": "Entre novamente em /login e abra o assistente de configuração outra vez."
+      },
+      "server": {
+        "why": "O OmniRoute encontrou um erro interno ao processar a requisição.",
+        "fix": "Tente novamente. Se voltar a acontecer, procure o erro no log do servidor do OmniRoute (terminal ou docker logs)."
+      },
+      "noConnection": {
+        "why": "Ainda não existe conexão de provedor para testar.",
+        "fix": "Volte à etapa do provedor e adicione um, ou adicione depois em Provedores."
+      },
+      "noModels": {
+        "why": "O provedor não retornou nenhum modelo de chat para esta credencial.",
+        "fix": "Digite o ID de um modelo que este provedor oferece, ou confira o acesso da chave no console do provedor."
+      },
+      "paidModelBlocked": {
+        "why": "A configuração \"ocultar modelos pagos\" está ativa, então o OmniRoute recusou testar um modelo pago.",
+        "fix": "Escolha um modelo gratuito, ou desative \"ocultar modelos pagos\" nas Configurações."
+      },
+      "unknown": {
+        "why": "O servidor não informou o motivo da falha.",
+        "fix": "Tente novamente. Se continuar falhando, confira o log do servidor do OmniRoute e o guia de solução de problemas."
+      }
+    },
+    "connectionLabel": "Conexão a testar",
+    "backToProvider": "Voltar ao provedor",
+    "chooseModelTitle": "Escolha um modelo",
+    "chooseModelDesc": "Modelos que o provedor listou para esta credencial. Escolha um para enviar uma requisição de teste curta.",
+    "loadingModels": "Carregando modelos…",
+    "modelLabel": "Modelo",
+    "modelIdManualPlaceholder": "ID do modelo, ex.: gpt-4o-mini",
+    "failedLoadModels": "Não foi possível carregar a lista de modelos.",
+    "noModelsListed": "O provedor não listou nenhum modelo de chat.",
+    "sendTestRequest": "Enviar requisição de teste",
+    "sendingTestRequest": "Enviando requisição de teste…",
+    "testRequestOk": "O modelo respondeu em {ms} ms.",
+    "testRequestFailed": "A requisição de teste falhou.",
+    "clientConfigTitle": "Configuração do cliente",
+    "clientConfigDesc": "Use estas configurações em qualquer ferramenta compatível com OpenAI (SDKs, extensões de IDE, agentes de CLI).",
+    "apiKeyLabel": "Chave de API",
+    "apiKeyHint": "Troque o marcador por uma chave de API do OmniRoute criada no Gerenciador de API. Ela não é a chave do provedor.",
+    "copyConfig": "Copiar configuração",
+    "copied": "Copiado!",
+    "copyFailed": "Não foi possível copiar automaticamente. Selecione o texto acima e copie manualmente.",
+    "openApiManager": "Criar uma chave de API",
+    "openEndpoints": "Mais configurações de cliente",
+    "firstRequestTitle": "Sua primeira requisição",
+    "firstRequestLoading": "Procurando a sua primeira requisição…",
+    "firstRequestFound": "Requisição mais recente: {model} (status {status}).",
+    "firstRequestNone": "Nenhuma requisição registrada ainda. Envie uma com a configuração acima; ela aparecerá nos logs de requisições.",
+    "firstRequestFailedLoad": "Não foi possível ler os logs de requisições agora.",
+    "refreshRequests": "Verificar de novo",
+    "openLogs": "Abrir logs de requisições",
+    "firstStepsGuide": "Guia: seus primeiros 10 minutos",
+    "passwordAlreadySet": "Já existe uma senha do painel (por exemplo, definida por INITIAL_PASSWORD). Mantenha-a ou digite uma nova abaixo para substituí-la.",
+    "keepPassword": "Manter a senha atual"
   },
   "providers": {
     "title": "Provedores",
@@ -5910,7 +6005,7 @@
     "embeddingRerankProviders": "Incorporações e reclassificação",
     "imagesShortLabel": "Imagens",
     "llmProviders": "Provedores LLM",
-    "localProviderApiKeyOptionalHint": "Local Provider Api Key Optional Hint",
+    "localProviderApiKeyOptionalHint": "Opcional para {provider}: deixe vazio se o seu servidor local não exigir chave de API.",
     "localProviderBaseUrlHint": "Local Provider Base Url Hint",
     "localProviders": "Local / Self-Hosted",
     "maxConcurrentWholeNumberError": "Max concurrent deve ser um número inteiro maior ou igual a 0.",
@@ -9908,10 +10003,10 @@
     "waitingForAntigravityAuthorization": "Aguardando autorização antigravidade...",
     "waitingForQoderAuthorization": "Aguardando autorização do Qoder...",
     "exchangingCodeForTokens": "Trocando código por tokens...",
-    "nodeIncompatibleTitle": "Incompatible Node.js Version",
-    "nodeIncompatibleDesc": "You are running Node.js {version}, which is outside OmniRoute's supported secure runtime policy. Use a patched Node.js 20.x or 22.x LTS release.",
-    "nodeIncompatibleFixLabel": "Fix: install a patched Node.js 22 LTS release",
-    "nodeIncompatibleHint": "OmniRoute requires Node.js 22.22.2+ (22.x LTS) or 24.0.0+ (24.x LTS). Node 24 LTS is recommended.",
+    "nodeIncompatibleTitle": "Versão do Node.js incompatível",
+    "nodeIncompatibleDesc": "Você está usando o Node.js {version}, que está fora da política de runtime seguro suportada pelo OmniRoute. Use uma versão LTS corrigida do Node.js 22.x ou 24.x.",
+    "nodeIncompatibleFixLabel": "Correção: instale uma versão LTS corrigida do Node.js 22",
+    "nodeIncompatibleHint": "O OmniRoute exige Node.js 22.22.2+ (22.x LTS) ou 24.0.0+ (24.x LTS). O Node 24 LTS é o recomendado.",
     "resetViaAppDataTitle": "Redefinir via Dados do App",
     "resetViaAppDataDescription": "Exclua o arquivo de configurações do diretório de dados do aplicativo para redefinir sua senha:",
     "quitDesktopApp": "Saia do aplicativo desktop OmniRoute completamente",

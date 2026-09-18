@@ -138,6 +138,41 @@ function applySessionAffinityLegacyFallback(settings: Record<string, unknown>): 
   }
 }
 
+/**
+ * Marker row of the INITIAL_PASSWORD bootstrap. Underscore keys are skipped when the settings
+ * object is built, so it never surfaces as a setting.
+ */
+const INITIAL_PASSWORD_BOOTSTRAP_KEY = "_initialPasswordBootstrapped";
+
+/**
+ * Auto-complete onboarding for pre-configured deployments (Docker/VM): when INITIAL_PASSWORD
+ * is set via env this is a headless deploy, so the first read marks setup complete and
+ * requires login — the wizard is skipped on first boot.
+ *
+ * It is a ONE-TIME bootstrap (audit C-06): the marker row records that it ran, so an explicit
+ * PATCH /api/settings {setupComplete:false} (re-running the wizard) is honoured instead of
+ * being answered 200 and silently re-forced on the next read. Installs bootstrapped before
+ * the marker existed (setupComplete already true) only get the marker written.
+ */
+function applyInitialPasswordBootstrap(
+  db: ReturnType<typeof getDbInstance>,
+  settings: Record<string, unknown>,
+  rows: unknown[]
+): void {
+  if (!process.env.INITIAL_PASSWORD) return;
+  if (rows.some((row) => toRecord(row).key === INITIAL_PASSWORD_BOOTSTRAP_KEY)) return;
+  const upsert = db.prepare(
+    "INSERT OR REPLACE INTO key_value (namespace, key, value) VALUES ('settings', ?, ?)"
+  );
+  if (!settings.setupComplete) {
+    settings.setupComplete = true;
+    settings.requireLogin = true;
+    upsert.run("setupComplete", "true");
+    upsert.run("requireLogin", "true");
+  }
+  upsert.run(INITIAL_PASSWORD_BOOTSTRAP_KEY, "true");
+}
+
 export async function getSettings() {
   const db = getDbInstance();
   const rows = db.prepare("SELECT key, value FROM key_value WHERE namespace = 'settings'").all();
@@ -286,18 +321,7 @@ export async function getSettings() {
   }
   applySessionAffinityLegacyFallback(settings);
 
-  // Auto-complete onboarding for pre-configured deployments (Docker/VM)
-  // If INITIAL_PASSWORD is set via env, this is a headless deploy — skip the wizard
-  if (!settings.setupComplete && process.env.INITIAL_PASSWORD) {
-    settings.setupComplete = true;
-    settings.requireLogin = true;
-    db.prepare(
-      "INSERT OR REPLACE INTO key_value (namespace, key, value) VALUES ('settings', 'setupComplete', 'true')"
-    ).run();
-    db.prepare(
-      "INSERT OR REPLACE INTO key_value (namespace, key, value) VALUES ('settings', 'requireLogin', 'true')"
-    ).run();
-  }
+  applyInitialPasswordBootstrap(db, settings, rows);
 
   return settings;
 }

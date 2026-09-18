@@ -5894,7 +5894,7 @@
     "embeddingRerankProviders": "Embeddings i Rerank",
     "imagesShortLabel": "Obrazy",
     "llmProviders": "LLM Providers",
-    "localProviderApiKeyOptionalHint": "Wskazówka: klucz API dla lokalnego provider jest opcjonalny",
+    "localProviderApiKeyOptionalHint": "Optional for {provider}: leave empty if your local server does not require an API key.",
     "localProviderBaseUrlHint": "Wskazówka dotycząca bazowego URL lokalnego provider",
     "localProviders": "Local Providers",
     "maxConcurrentWholeNumberError": "Błąd: maksymalna współbieżność musi być liczbą całkowitą",

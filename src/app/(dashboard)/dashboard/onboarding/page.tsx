@@ -6,11 +6,16 @@ import { useTranslations } from "next-intl";
 import { useDisplayBaseUrl } from "@/shared/hooks";
 import { FreeProviderOnboardingCard } from "./steps/FreeProviderOnboardingCard";
 import { TierTour } from "./steps/TierTour";
-import { presentApiError, presentConnectionTestFailure } from "@/shared/utils/apiErrorPresentation";
+import { ValidateAndTryStep } from "./steps/ValidateAndTryStep";
+import { FirstUseDone } from "./steps/FirstUseDone";
+import { useCredentialCheck, type StepFailure } from "./steps/useCredentialCheck";
+import { useModelTrial } from "./steps/useModelTrial";
+import { ActionableErrorCallout } from "./components/ActionableErrorCallout";
+import { WizardProgress } from "./components/WizardProgress";
+import { presentApiError } from "@/shared/utils/apiErrorPresentation";
+import { actionableGuide, guideForHttpStatus } from "@/shared/utils/actionableError";
 
 const STEP_IDS = ["welcome", "tiers", "security", "provider", "test", "done"];
-/** U8: upper bound for the onboarding connection test (list + probe). */
-const PROVIDER_TEST_TIMEOUT_MS = 15_000;
 const STEP_ICONS = ["waving_hand", "layers", "lock", "dns", "play_circle", "check_circle"];
 
 const COMMON_PROVIDERS = [
@@ -21,6 +26,34 @@ const COMMON_PROVIDERS = [
   { id: "groq", name: "Groq", color: "#F55036" },
   { id: "mistral", name: "Mistral", color: "#FF7000" },
 ];
+
+const DEFAULT_PROVIDER_URLS: Record<string, string> = {
+  openai: "https://api.openai.com",
+  anthropic: "https://api.anthropic.com",
+  google: "https://generativelanguage.googleapis.com",
+  openrouter: "https://openrouter.ai/api",
+  groq: "https://api.groq.com/openai",
+  mistral: "https://api.mistral.ai",
+};
+
+const INPUT_CLASS =
+  "w-full px-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-text-main text-sm placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/40";
+const PRIMARY_BUTTON_CLASS =
+  "px-6 py-2.5 bg-primary rounded-lg text-white font-medium text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
+
+/** `/dashboard/onboarding?rerun=1` opens the wizard even after setup was completed. */
+function isRerunRequested(): boolean {
+  try {
+    return new URLSearchParams(window.location.search).get("rerun") === "1";
+  } catch {
+    return false;
+  }
+}
+
+async function readJsonOrNull(res: Response): Promise<Record<string, unknown> | null> {
+  const body = await res.json().catch(() => null);
+  return body && typeof body === "object" ? (body as Record<string, unknown>) : null;
+}
 
 export default function OnboardingWizard() {
   const router = useRouter();
@@ -36,16 +69,21 @@ export default function OnboardingWizard() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [skipSecurity, setSkipSecurity] = useState(false);
   const [capsLockOn, setCapsLockOn] = useState(false);
+  // A password configured before the wizard (INITIAL_PASSWORD or an earlier run).
+  const [existingPassword, setExistingPassword] = useState(false);
 
   // Provider step state
-  const [selectedProvider, setSelectedProvider] = useState(null);
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [providerUrl, setProviderUrl] = useState("");
   const [providerKey, setProviderKey] = useState("");
   const [providerName, setProviderName] = useState("");
+  // The connection created in this run — the one the test step validates.
+  const [createdConnectionId, setCreatedConnectionId] = useState<string | null>(null);
 
-  // Test step state
-  const [testStatus, setTestStatus] = useState("idle"); // idle, testing, success, error
-  const [testMessage, setTestMessage] = useState("");
+  const trial = useModelTrial(t);
+  const credential = useCredentialCheck(createdConnectionId, t, tc, (connection) => {
+    void trial.loadModels(connection);
+  });
 
   // Check if setup is already complete
   useEffect(() => {
@@ -54,13 +92,19 @@ export default function OnboardingWizard() {
         const res = await fetch("/api/settings");
         if (res.ok) {
           const settings = await res.json();
-          if (settings.setupComplete) {
+          if (settings.setupComplete && !isRerunRequested()) {
             router.replace("/dashboard");
             return;
           }
         }
       } catch {
         // Continue with setup
+      }
+      try {
+        const res = await fetch("/api/settings/require-login");
+        if (res.ok) setExistingPassword((await readJsonOrNull(res))?.hasPassword === true);
+      } catch {
+        // Unknown — the security step then behaves as on a fresh install.
       }
       setLoading(false);
     };
@@ -78,34 +122,31 @@ export default function OnboardingWizard() {
 
   // U1: API failures land here and are rendered (role="alert") inside the step that
   // produced them; changing step clears it so a stale message never follows the user.
-  const [errorMessage, setErrorMessage] = useState("");
+  const [stepFailure, setStepFailure] = useState<StepFailure | null>(null);
   // U4: the body may be `{ error: "text" }` or `{ error: { code, message } }` — always a string here.
-  const describeFailure = async (res: Response, fallback: string) => {
+  const describeFailure = async (res: Response, fallback: string): Promise<StepFailure> => {
     const body = await res.json().catch(() => null);
-    return presentApiError(body, {
+    const message = presentApiError(body, {
       translate: (key) => (typeof tc.has !== "function" || tc.has(key) ? tc(key) : null),
       fallback,
       status: res.status,
     }).message;
+    return { message, guide: guideForHttpStatus(res.status) };
   };
+  const networkFailure = (): StepFailure => ({
+    message: t("connectionError"),
+    guide: actionableGuide("network"),
+  });
 
-  const handleNext = () => {
-    setErrorMessage("");
-    if (step < STEPS.length - 1) setStep(step + 1);
+  const goTo = (next: number) => {
+    setStepFailure(null);
+    setStep(Math.min(Math.max(next, 0), STEPS.length - 1));
   };
+  const handleNext = () => goTo(step + 1);
+  const handleBack = () => goTo(step - 1);
 
-  const handleBack = () => {
-    setErrorMessage("");
-    if (step > 0) setStep(step - 1);
-  };
-
-  const stepError = errorMessage ? (
-    <p
-      role="alert"
-      className="text-sm text-red-400 text-center rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 animate-in fade-in duration-200"
-    >
-      {errorMessage}
-    </p>
+  const stepError = stepFailure ? (
+    <ActionableErrorCallout message={stepFailure.message} guide={stepFailure.guide} />
   ) : null;
 
   const handleSetPassword = async () => {
@@ -121,8 +162,12 @@ export default function OnboardingWizard() {
       handleNext();
       return;
     }
+    if (existingPassword && !password) {
+      handleNext();
+      return;
+    }
     if (password !== confirmPassword) return;
-    setErrorMessage("");
+    setStepFailure(null);
     try {
       const res = await fetch("/api/settings/require-login", {
         method: "POST",
@@ -130,7 +175,7 @@ export default function OnboardingWizard() {
         body: JSON.stringify({ requireLogin: true, password }),
       });
       if (!res.ok) {
-        setErrorMessage(await describeFailure(res, t("failedSetPassword")));
+        setStepFailure(await describeFailure(res, t("failedSetPassword")));
         return;
       }
       const loginRes = await fetch("/api/auth/login", {
@@ -139,110 +184,41 @@ export default function OnboardingWizard() {
         body: JSON.stringify({ password }),
       });
       if (!loginRes.ok) {
-        setErrorMessage(await describeFailure(loginRes, t("connectionError")));
+        setStepFailure(await describeFailure(loginRes, t("connectionError")));
         return;
       }
+      setExistingPassword(true);
       handleNext();
     } catch {
-      setErrorMessage(t("connectionError"));
+      setStepFailure(networkFailure());
     }
   };
 
   const handleAddProvider = async () => {
     if (!selectedProvider || !providerKey) return;
-    setErrorMessage("");
+    setStepFailure(null);
     try {
       const provider = COMMON_PROVIDERS.find((p) => p.id === selectedProvider);
-      const defaultUrls = {
-        openai: "https://api.openai.com",
-        anthropic: "https://api.anthropic.com",
-        google: "https://generativelanguage.googleapis.com",
-        openrouter: "https://openrouter.ai/api",
-        groq: "https://api.groq.com/openai",
-        mistral: "https://api.mistral.ai",
-      };
       const res = await fetch("/api/providers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           provider: selectedProvider,
           name: providerName || provider?.name || selectedProvider,
-          url: providerUrl || defaultUrls[selectedProvider] || "",
+          url: providerUrl || DEFAULT_PROVIDER_URLS[selectedProvider] || "",
           apiKey: providerKey,
           isActive: true,
         }),
       });
       if (!res.ok) {
-        setErrorMessage(await describeFailure(res, t("failedAddProvider")));
+        setStepFailure(await describeFailure(res, t("failedAddProvider")));
         return;
       }
+      const created = (await readJsonOrNull(res))?.connection as { id?: unknown } | undefined;
+      if (typeof created?.id === "string") setCreatedConnectionId(created.id);
       handleNext();
     } catch {
-      setErrorMessage(t("connectionError"));
-    }
-  };
-
-  const handleTestProvider = async () => {
-    setTestStatus("testing");
-    setTestMessage(t("testingConnection"));
-    // U8: a provider that never answers must not leave the wizard spinning forever.
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), PROVIDER_TEST_TIMEOUT_MS);
-    try {
-      const res = await fetch("/api/providers", { signal: controller.signal });
-      if (!res.ok) throw new Error("Failed to fetch");
-      const data = await res.json();
-      const conn = data.connections?.[0];
-      if (!conn) {
-        setTestStatus("error");
-        setTestMessage(t("noProviderFound"));
-        return;
-      }
-      const testRes = await fetch(`/api/providers/${conn.id}/test`, {
-        method: "POST",
-        signal: controller.signal,
-      });
-      if (testRes.ok) {
-        // The test route answers 200 for a probe that RAN; whether the provider is reachable
-        // is in the body (`valid`). Treating HTTP 200 as success told a first-time user
-        // "connection successful" for a dead host (found by the final audit's C-03 fix).
-        const result = (await testRes.json().catch(() => null)) as {
-          valid?: boolean;
-          error?: string | null;
-          warning?: string | null;
-          diagnosis?: { code?: string | null; message?: string | null } | null;
-        } | null;
-        if (result && result.valid === false) {
-          setTestStatus("error");
-          setTestMessage(
-            presentConnectionTestFailure(result, {
-              // Forward the interpolation values ({host}, {seconds}) — dropping them would
-              // render the typed message without the host the user needs to check.
-              translate: (key, values) =>
-                typeof tc.has !== "function" || tc.has(key) ? tc(key, values) : null,
-              fallback: t("testFailed"),
-            }).message
-          );
-          return;
-        }
-        setTestStatus("success");
-        setTestMessage(t("connectionSuccessful"));
-      } else {
-        const err = await testRes.json().catch(() => ({}));
-        setTestStatus("error");
-        setTestMessage(
-          typeof err.error === "string" && err.error.trim() ? err.error : t("testFailed")
-        );
-      }
-    } catch (err) {
-      setTestStatus("error");
-      setTestMessage(
-        controller.signal.aborted || (err as { name?: string })?.name === "AbortError"
-          ? t("testTimedOut")
-          : t("couldNotTest")
-      );
-    } finally {
-      clearTimeout(timeout);
+      setStepFailure(networkFailure());
     }
   };
 
@@ -280,47 +256,30 @@ export default function OnboardingWizard() {
     );
   }
 
+  const passwordsDiffer = password !== confirmPassword;
+  const securityBlocked = existingPassword
+    ? Boolean(password) && passwordsDiffer
+    : !password || passwordsDiffer;
+  const securityLabel = skipSecurity
+    ? t("skipAndContinue")
+    : existingPassword && !password
+      ? t("keepPassword")
+      : t("setPassword");
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-lg">
-        {/* Progress Indicator */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          {STEPS.map((s, i) => (
-            <div key={s.id} className="flex items-center gap-2">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
-                  i < step
-                    ? "bg-green-500/20 text-green-400"
-                    : i === step
-                      ? "bg-primary/20 text-primary ring-2 ring-primary/40"
-                      : "bg-white/5 text-text-muted"
-                }`}
-              >
-                {i < step ? (
-                  <span className="material-symbols-outlined text-[16px]">check</span>
-                ) : (
-                  i + 1
-                )}
-              </div>
-              {i < STEPS.length - 1 && (
-                <div
-                  className={`w-8 h-0.5 rounded-full transition-colors ${
-                    i < step ? "bg-green-500/40" : "bg-white/10"
-                  }`}
-                />
-              )}
-            </div>
-          ))}
-        </div>
+      <div className="w-full max-w-lg min-w-0">
+        <WizardProgress stepCount={STEPS.length} current={step} />
 
         {/* Card */}
-        <div className="bg-surface rounded-2xl border border-white/[0.06] p-8 shadow-xl">
+        <div className="bg-surface rounded-2xl border border-white/[0.06] p-5 sm:p-8 shadow-xl">
           {/* Step Header */}
           <div className="text-center mb-6">
             <span
               className={`material-symbols-outlined text-[48px] mb-3 block ${
                 currentStep.id === "done" ? "text-green-400" : "text-primary"
               }`}
+              aria-hidden="true"
             >
               {currentStep.icon}
             </span>
@@ -349,7 +308,10 @@ export default function OnboardingWizard() {
                       className="h-full bg-white/[0.03] rounded-xl p-3 text-center border border-white/[0.06]"
                     >
                       <div className="flex h-full flex-col items-center justify-center">
-                        <span className="material-symbols-outlined text-primary text-[24px] mb-1 block">
+                        <span
+                          className="material-symbols-outlined text-primary text-[24px] mb-1 block"
+                          aria-hidden="true"
+                        >
                           {f.icon}
                         </span>
                         <span className="text-xs text-text-muted">{f.label}</span>
@@ -367,15 +329,21 @@ export default function OnboardingWizard() {
             {currentStep.id === "security" && (
               <div className="space-y-4">
                 <p className="text-sm text-text-muted text-center">{t("securityDesc")}</p>
-                <label className="flex items-center gap-2 cursor-pointer text-sm text-text-muted">
-                  <input
-                    type="checkbox"
-                    checked={skipSecurity}
-                    onChange={(e) => setSkipSecurity(e.target.checked)}
-                    className="accent-primary"
-                  />
-                  {t("skipPassword")}
-                </label>
+                {existingPassword ? (
+                  <p className="text-xs text-text-muted text-center rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+                    {t("passwordAlreadySet")}
+                  </p>
+                ) : (
+                  <label className="flex items-center gap-2 cursor-pointer text-sm text-text-muted">
+                    <input
+                      type="checkbox"
+                      checked={skipSecurity}
+                      onChange={(e) => setSkipSecurity(e.target.checked)}
+                      className="accent-primary"
+                    />
+                    {t("skipPassword")}
+                  </label>
+                )}
                 {skipSecurity && (
                   <p className="text-xs text-amber-400 text-center animate-in fade-in duration-200">
                     {t("securityDescSkipWarning")}
@@ -391,7 +359,7 @@ export default function OnboardingWizard() {
                       onChange={(e) => setPassword(e.target.value)}
                       onKeyDown={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
                       onKeyUp={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
-                      className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-text-main text-sm placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className={INPUT_CLASS}
                     />
                     <input
                       type="password"
@@ -401,7 +369,7 @@ export default function OnboardingWizard() {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       onKeyDown={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
                       onKeyUp={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
-                      className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-text-main text-sm placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className={INPUT_CLASS}
                     />
                     {capsLockOn && (
                       <p className="text-xs text-amber-500 dark:text-amber-400 flex items-center gap-1 animate-in fade-in duration-200">
@@ -411,7 +379,7 @@ export default function OnboardingWizard() {
                         {tc("capsLockOn")}
                       </p>
                     )}
-                    {password && confirmPassword && password !== confirmPassword && (
+                    {password && confirmPassword && passwordsDiffer && (
                       <p className="text-xs text-red-400">{t("passwordsMismatch")}</p>
                     )}
                   </div>
@@ -429,7 +397,13 @@ export default function OnboardingWizard() {
                     <p className="text-sm text-amber-400">{t("providerRequiresPassword")}</p>
                   </div>
                 )}
-                {!skipSecurity && <FreeProviderOnboardingCard />}
+                {!skipSecurity && (
+                  <FreeProviderOnboardingCard
+                    onConnectionsCreated={(ids) => {
+                      if (ids[0]) setCreatedConnectionId(ids[0]);
+                    }}
+                  />
+                )}
                 {!skipSecurity && (
                   <div className="flex items-center gap-3 text-[11px] text-text-muted">
                     <span className="h-px flex-1 bg-white/10" />
@@ -465,7 +439,7 @@ export default function OnboardingWizard() {
                       aria-label={t("apiKeyRequired")}
                       value={providerKey}
                       onChange={(e) => setProviderKey(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-text-main text-sm placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className={INPUT_CLASS}
                     />
                     <input
                       type="text"
@@ -473,7 +447,7 @@ export default function OnboardingWizard() {
                       aria-label={t("customUrlOptional")}
                       value={providerUrl}
                       onChange={(e) => setProviderUrl(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-lg text-text-main text-sm placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className={INPUT_CLASS}
                     />
                   </div>
                 )}
@@ -481,63 +455,23 @@ export default function OnboardingWizard() {
               </div>
             )}
 
-            {/* Test */}
+            {/* Test: validate the credential, choose a model, send a test request */}
             {currentStep.id === "test" && (
-              <div className="text-center space-y-4">
-                <p className="text-sm text-text-muted">{t("testDesc")}</p>
-                {testStatus === "idle" && (
-                  <button
-                    onClick={handleTestProvider}
-                    className="px-6 py-2.5 bg-primary rounded-lg text-white font-medium text-sm hover:bg-primary/90 transition-colors cursor-pointer"
-                  >
-                    {t("runTest")}
-                  </button>
-                )}
-                {testStatus === "testing" && (
-                  <div className="flex items-center justify-center gap-2 text-text-muted">
-                    <span className="material-symbols-outlined animate-spin text-[20px]">
-                      progress_activity
-                    </span>
-                    <span className="text-sm">{testMessage}</span>
-                  </div>
-                )}
-                {testStatus === "success" && (
-                  <div className="flex items-center justify-center gap-2 text-green-400">
-                    <span className="material-symbols-outlined text-[20px]">check_circle</span>
-                    <span className="text-sm">{testMessage}</span>
-                  </div>
-                )}
-                {testStatus === "error" && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-center gap-2 text-amber-400">
-                      <span className="material-symbols-outlined text-[20px]">warning</span>
-                      <span className="text-sm">{testMessage}</span>
-                    </div>
-                    <button
-                      onClick={handleTestProvider}
-                      className="text-xs text-text-muted underline cursor-pointer"
-                    >
-                      {t("retry")}
-                    </button>
-                  </div>
-                )}
-              </div>
+              <ValidateAndTryStep
+                credential={credential}
+                trial={trial}
+                onBackToProvider={() => goTo(STEP_IDS.indexOf("provider"))}
+              />
             )}
 
-            {/* Done */}
+            {/* Done: client configuration + first request */}
             {currentStep.id === "done" && (
-              <div className="text-center space-y-4">
-                <p className="text-text-muted">{t("doneDesc")}</p>
-                <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.06] text-left">
-                  <p className="text-xs text-text-muted mb-2 font-medium">{t("yourEndpoint")}</p>
-                  <code className="text-sm text-primary">{apiEndpoint}</code>
-                </div>
-              </div>
+              <FirstUseDone apiEndpoint={apiEndpoint} modelId={trial.clientModelId} />
             )}
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/[0.06]">
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-8 pt-6 border-t border-white/[0.06]">
             <div>
               {step > 0 && !isLastStep && (
                 <button
@@ -548,7 +482,7 @@ export default function OnboardingWizard() {
                 </button>
               )}
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-end gap-3">
               {!isLastStep && step > 0 && (
                 <button
                   onClick={handleNext}
@@ -558,45 +492,36 @@ export default function OnboardingWizard() {
                 </button>
               )}
               {currentStep.id === "welcome" && (
-                <button
-                  onClick={handleNext}
-                  className="px-6 py-2.5 bg-primary rounded-lg text-white font-medium text-sm hover:bg-primary/90 transition-colors cursor-pointer"
-                >
+                <button onClick={handleNext} className={PRIMARY_BUTTON_CLASS}>
                   {t("getStarted")}
                 </button>
               )}
               {currentStep.id === "tiers" && (
-                <button
-                  onClick={handleNext}
-                  className="px-6 py-2.5 bg-primary rounded-lg text-white font-medium text-sm hover:bg-primary/90 transition-colors cursor-pointer"
-                >
+                <button onClick={handleNext} className={PRIMARY_BUTTON_CLASS}>
                   {t("continue")}
                 </button>
               )}
               {currentStep.id === "security" && (
                 <button
                   onClick={handleSetPassword}
-                  disabled={!skipSecurity && (!password || password !== confirmPassword)}
-                  className="px-6 py-2.5 bg-primary rounded-lg text-white font-medium text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  disabled={!skipSecurity && securityBlocked}
+                  className={PRIMARY_BUTTON_CLASS}
                 >
-                  {skipSecurity ? t("skipAndContinue") : t("setPassword")}
+                  {securityLabel}
                 </button>
               )}
               {currentStep.id === "provider" && !skipSecurity ? (
                 <button
                   onClick={handleAddProvider}
                   disabled={!selectedProvider || !providerKey}
-                  className="px-6 py-2.5 bg-primary rounded-lg text-white font-medium text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  className={PRIMARY_BUTTON_CLASS}
                 >
                   {t("addProvider")}
                 </button>
               ) : null}
               {currentStep.id === "test" && (
-                <button
-                  onClick={handleNext}
-                  className="px-6 py-2.5 bg-primary rounded-lg text-white font-medium text-sm hover:bg-primary/90 transition-colors cursor-pointer"
-                >
-                  {testStatus === "success" ? t("continue") : t("skip")}
+                <button onClick={handleNext} className={PRIMARY_BUTTON_CLASS}>
+                  {credential.status === "success" ? t("continue") : t("skip")}
                 </button>
               )}
               {isLastStep && (
