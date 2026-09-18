@@ -254,6 +254,8 @@ async function runCase(testCase: ContractCase): Promise<void> {
     sleep: async (ms) => {
       delays.push(ms);
     },
+    // No jitter: fixtures pin the exact backoff delays.
+    random: () => 0,
   });
 
   const outcome = await invoke(client, testCase);

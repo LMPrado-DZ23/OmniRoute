@@ -17,6 +17,7 @@ from omniroute_sdk import (
     iter_sse_data,
     parse_retry_after_ms,
 )
+from omniroute_sdk import client as client_module
 from tests._fake_server import FakeOmniRoute
 
 CHAT = {"model": "auto", "messages": [{"role": "user", "content": "Hi"}]}
@@ -45,6 +46,7 @@ class ClientBehaviourTest(unittest.TestCase):
             retry=RetryConfig(max_retries=2, base_delay_ms=100),
             sleep=lambda seconds: delays.append(int(round(seconds * 1000))),
             use_env_proxies=False,
+            random=lambda: 0.0,
         )
         with self.assertRaises(OmniRouteError) as ctx:
             client.list_models()
@@ -143,6 +145,61 @@ class ClientBehaviourTest(unittest.TestCase):
         self.assertEqual(OmniRouteClient("http://gateway.test/omniroute///").base_url, "http://gateway.test/omniroute")
         with self.assertRaises(ValueError):
             OmniRouteClient("gateway.test")
+
+
+class NonIdempotentRetryTest(unittest.TestCase):
+    """A chat completion POST that may have reached the server is never replayed by default."""
+
+    def _client(self, base_url: str, **retry: Any) -> OmniRouteClient:
+        return OmniRouteClient(base_url, "sk-test", retry=RetryConfig(base_delay_ms=0, **retry), sleep=lambda _s: None, use_env_proxies=False, timeout_ms=150)
+
+    def test_post_is_not_retried_after_a_timeout(self) -> None:
+        with FakeOmniRoute([{"status": 200, "json": {}, "delay_s": 0.6}] * 3) as server:
+            with self.assertRaises(OmniRouteError) as ctx:
+                self._client(server.base_url, max_retries=2).chat_completions(CHAT)
+            self.assertEqual(len(server.requests), 1)
+        self.assertEqual(ctx.exception.code, CLIENT_ERROR_CODES["timeout"])
+
+    def test_post_is_retried_when_the_connection_is_refused(self) -> None:
+        attempts: List[int] = []
+        client = OmniRouteClient(
+            f"http://127.0.0.1:{_unused_port()}",
+            retry=RetryConfig(max_retries=2, base_delay_ms=0),
+            on_request=lambda info: attempts.append(info["attempt"]),
+            sleep=lambda _s: None,
+            use_env_proxies=False,
+        )
+        with self.assertRaises(OmniRouteError) as ctx:
+            client.chat_completions(CHAT)
+        self.assertEqual(ctx.exception.code, CLIENT_ERROR_CODES["network"])
+        self.assertEqual(attempts, [0, 1, 2])
+
+    def test_post_is_not_retried_after_a_reset_once_sent(self) -> None:
+        error = urllib.error.URLError(ConnectionResetError(10054, "reset"))
+        self.assertFalse(client_module._may_retry_failure("POST", RetryConfig(), False, error))
+        self.assertTrue(client_module._may_retry_failure("GET", RetryConfig(), False, error))
+        refused = urllib.error.URLError(ConnectionRefusedError(10061, "refused"))
+        self.assertTrue(client_module._may_retry_failure("POST", RetryConfig(), False, refused))
+        self.assertFalse(client_module._may_retry_failure("POST", RetryConfig(), True, refused))
+
+    def test_retry_non_idempotent_restores_post_retries_after_a_timeout(self) -> None:
+        with FakeOmniRoute([{"status": 200, "json": {}, "delay_s": 0.6}] * 2) as server:
+            with self.assertRaises(OmniRouteError):
+                self._client(server.base_url, max_retries=1, retry_non_idempotent=True).chat_completions(CHAT)
+            self.assertEqual(len(server.requests), 2)
+
+    def test_backoff_jitter_stays_within_half_and_max_delay(self) -> None:
+        delays: List[int] = []
+        client = OmniRouteClient(
+            f"http://127.0.0.1:{_unused_port()}",
+            retry=RetryConfig(max_retries=3, base_delay_ms=1_000, max_delay_ms=1_500),
+            sleep=lambda seconds: delays.append(int(round(seconds * 1000))),
+            random=lambda: 0.999,
+            use_env_proxies=False,
+        )
+        with self.assertRaises(OmniRouteError):
+            client.list_models()
+        self.assertEqual(delays, [501, 751, 751])
 
 
 class RedirectCredentialTest(unittest.TestCase):

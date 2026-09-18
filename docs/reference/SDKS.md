@@ -57,8 +57,14 @@ Failures without an HTTP response use `status` 0 and a client code: `network_err
 
 ## Retries and timeouts
 
-- Retries apply to network errors, timeouts and the `retryOn` / `retry_on` statuses (default `408, 429, 500, 502, 503, 504`). Defaults: 2 retries, 500 ms base delay, 8000 ms maximum delay.
-- Backoff is exponential (`baseDelayMs * 2^attempt`). A `Retry-After` header, in delta-seconds or HTTP-date form, replaces the computed delay. Either delay is capped by `maxDelayMs`. The final error exposes `retryAfterMs`.
+- GET requests (models, health, quota) retry network errors, timeouts and the `retryOn` / `retry_on` statuses (default `408, 429, 500, 502, 503, 504`). Defaults: 2 retries, 500 ms base delay, 8000 ms maximum delay.
+- POST requests (chat completions, streaming, route preview) are not idempotent. A chat completion that reached the server may already be generating, so replaying it can bill the same prompt twice. By default a POST is retried only when the server cannot have run it:
+  - the connection was never established: connection refused or a DNS failure (`ECONNREFUSED`, `ENOTFOUND`, `EAI_AGAIN` in TypeScript; `ConnectionRefusedError` or `socket.gaierror` in Python);
+  - a `429` or `503` that is in `retryOn` and carries a `Retry-After` header, which means the server deferred the request.
+
+  A POST is never retried after a timeout, a connection reset or any other network error once the request may have been sent, nor on another status. Set `retryNonIdempotent: true` (TypeScript) or `RetryConfig(retry_non_idempotent=True)` (Python) to retry POST requests like GET requests.
+
+- Backoff is exponential (`baseDelayMs * 2^attempt`), capped by `maxDelayMs`, then jittered down by up to half, so a delay `d` becomes a value in `(d/2, d]` and never exceeds `maxDelayMs`. The jitter source is injectable (`random` option in both SDKs) for deterministic tests. A `Retry-After` header, in delta-seconds or HTTP-date form, replaces the computed delay without jitter and is also capped by `maxDelayMs`. The final error exposes `retryAfterMs`.
 - Pass `retry: false` (TypeScript) or `retry=False` (Python) to disable retries, per client or per call.
 - Retries happen only before a successful response is returned. Once a stream has started, nothing is retried: a mid-stream failure raises immediately.
 - The timeout (`timeoutMs` / `timeout_ms`, default 60000) applies to each attempt. For streams in TypeScript it covers the time until response headers arrive. In Python it is the socket timeout of each read.

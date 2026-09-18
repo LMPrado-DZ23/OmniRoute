@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import http.client
 import json
+import random as _random_module
 import re
 import socket
 import time
@@ -79,16 +80,46 @@ class _CredentialSafeRedirectHandler(urllib.request.HTTPRedirectHandler):
 
 @dataclass(frozen=True)
 class RetryConfig:
-    """Retries apply to network errors, timeouts and ``retry_on`` statuses, never mid-stream."""
+    """Retry policy. Nothing is retried once a stream has started.
+
+    GET requests retry network errors, timeouts and ``retry_on`` statuses. POST requests (chat
+    completions, route preview) are not idempotent: a POST that reached the server may already
+    have run, so by default it is retried only when the connection was never established
+    (refused, DNS failure) or on a ``429``/``503`` in ``retry_on`` that carries ``Retry-After``.
+    ``retry_non_idempotent=True`` retries POST requests like GET requests.
+    """
 
     max_retries: int = 2
     base_delay_ms: int = 500
     max_delay_ms: int = 8_000
     retry_on: Tuple[int, ...] = (408, 429, 500, 502, 503, 504)
+    retry_non_idempotent: bool = False
 
 
 _NO_RETRY = RetryConfig(max_retries=0, base_delay_ms=0, max_delay_ms=0, retry_on=())
 RetryArg = Union[RetryConfig, bool, None]
+#: Statuses that, with ``Retry-After``, mean the server deferred a request without running it.
+_DEFERRED_STATUSES = frozenset({429, 503})
+
+
+def _failed_before_sending(exc: BaseException) -> bool:
+    """True for connection-phase failures: the request never reached the server."""
+    reason = exc.reason if isinstance(exc, urllib.error.URLError) else exc
+    return isinstance(reason, (ConnectionRefusedError, socket.gaierror))
+
+
+def _may_retry_failure(method: str, cfg: RetryConfig, timed_out: bool, exc: BaseException) -> bool:
+    if method != "POST" or cfg.retry_non_idempotent:
+        return True
+    return not timed_out and _failed_before_sending(exc)
+
+
+def _may_retry_status(method: str, cfg: RetryConfig, status: int, retry_after_ms: Optional[int]) -> bool:
+    if status not in cfg.retry_on:
+        return False
+    if method != "POST" or cfg.retry_non_idempotent:
+        return True
+    return status in _DEFERRED_STATUSES and retry_after_ms is not None
 
 
 @dataclass
@@ -200,6 +231,7 @@ class OmniRouteClient:
         on_request: Optional[Callable[[Dict[str, Any]], None]] = None,
         sleep: Optional[Callable[[float], None]] = None,
         use_env_proxies: bool = True,
+        random: Optional[Callable[[], float]] = None,
     ) -> None:
         if not base_url.startswith(("http://", "https://")):
             raise ValueError("base_url must be an http(s) URL")
@@ -212,6 +244,8 @@ class OmniRouteClient:
         self._default_headers = {k.lower(): v for k, v in (headers or {}).items()}
         self._on_request = on_request
         self._sleep = sleep or time.sleep
+        #: Source of backoff jitter in [0, 1); injectable for tests.
+        self._random = random or _random_module.random
         handlers: List[urllib.request.BaseHandler] = [_CredentialSafeRedirectHandler()]
         if not use_env_proxies:
             handlers.append(urllib.request.ProxyHandler({}))
@@ -285,8 +319,13 @@ class OmniRouteClient:
         return result
 
     def _backoff(self, attempt: int, retry_after_ms: Optional[int], cfg: RetryConfig) -> None:
-        exponential = cfg.base_delay_ms * (2 ** attempt)
-        delay_ms = min(retry_after_ms if retry_after_ms is not None else exponential, cfg.max_delay_ms)
+        if retry_after_ms is not None:
+            delay_ms = min(retry_after_ms, cfg.max_delay_ms)
+        else:
+            # Exponential backoff capped by max_delay_ms, then jittered down by up to half: (d/2, d].
+            capped = min(cfg.base_delay_ms * (2 ** attempt), cfg.max_delay_ms)
+            unit = min(max(self._random(), 0.0), 1.0)
+            delay_ms = capped - int(unit * capped / 2)
         self._sleep(delay_ms / 1000.0)
 
     def _execute(self, operation: str, body: Optional[Dict[str, Any]], accept: str, request_id: Optional[str], timeout_ms: Optional[float], retry: RetryArg, extra_headers: Optional[Mapping[str, str]]) -> Tuple[Any, str, float]:
@@ -311,7 +350,7 @@ class OmniRouteClient:
             except urllib.error.HTTPError as exc:
                 response_headers = _lower_headers(exc.headers)
                 retry_after_ms = parse_retry_after_ms(response_headers.get("retry-after"), time.time())
-                if exc.code in cfg.retry_on and attempt < cfg.max_retries:
+                if attempt < cfg.max_retries and _may_retry_status(method, cfg, exc.code, retry_after_ms):
                     _close_quietly(exc)
                     self._backoff(attempt, retry_after_ms, cfg)
                     attempt += 1
@@ -319,11 +358,12 @@ class OmniRouteClient:
                 text = _read_text_quietly(exc)
                 raise error_from_http(exc.code, text, response_headers, client_request_id, retry_after_ms) from None
             except _NETWORK_ERRORS as exc:
-                if _is_timeout(exc):
+                timed_out = _is_timeout(exc)
+                if timed_out:
                     error = client_error("timeout", f"The request timed out after {effective_timeout_ms}ms", request_id=client_request_id)
                 else:
                     error = client_error("network", "The request failed before a response was received", request_id=client_request_id)
-                if attempt >= cfg.max_retries:
+                if attempt >= cfg.max_retries or not _may_retry_failure(method, cfg, timed_out, exc):
                     raise error from exc
                 self._backoff(attempt, None, cfg)
                 attempt += 1

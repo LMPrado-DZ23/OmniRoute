@@ -68,6 +68,7 @@ describe("OmniRouteClient retries", () => {
       sleep: async (ms) => {
         delays.push(ms);
       },
+      random: () => 0,
     });
     const response = await client.models.list();
     assert.equal(response.status, 200);
@@ -211,6 +212,129 @@ describe("OmniRouteClient redirects (loopback servers only)", () => {
       assert.equal(error.status, 302, "the redirect surfaces instead of being followed");
       assert.equal(targetHeaders.length, 1, "the redirect target must not be contacted again");
     });
+  });
+});
+
+function refused(): TypeError {
+  const cause = Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:1"), {
+    code: "ECONNREFUSED",
+  });
+  return new TypeError("fetch failed", { cause });
+}
+
+describe("OmniRouteClient retries of non-idempotent POST requests", () => {
+  const hangUntilAborted: FetchLike = (_url, init) =>
+    new Promise((_resolve, reject) => {
+      init.signal?.addEventListener("abort", () => reject(new Error("aborted by signal")), {
+        once: true,
+      });
+    });
+
+  it("never retries a chat completion after a timeout (the upstream may be generating)", async () => {
+    let calls = 0;
+    const client = new OmniRouteClient({
+      fetch: (url, init) => {
+        calls++;
+        return hangUntilAborted(url, init);
+      },
+      timeoutMs: 20,
+      retry: { maxRetries: 2, baseDelayMs: 0 },
+      sleep: async () => {},
+    });
+    const error = await captureError(client.chat.completions.create(CHAT));
+    assert.equal(error.code, CLIENT_ERROR_CODES.timeout);
+    assert.equal(calls, 1);
+  });
+
+  it("does not retry a POST after a network error once the request may have been sent", async () => {
+    let calls = 0;
+    const client = new OmniRouteClient({
+      fetch: async () => {
+        calls++;
+        throw new TypeError("fetch failed", { cause: new Error("socket hang up") });
+      },
+      retry: { maxRetries: 2, baseDelayMs: 0 },
+      sleep: async () => {},
+    });
+    assert.equal(
+      (await captureError(client.chat.completions.create(CHAT))).code,
+      CLIENT_ERROR_CODES.network
+    );
+    assert.equal(calls, 1);
+  });
+
+  it("retries a POST whose connection was refused (nothing reached the server)", async () => {
+    let calls = 0;
+    const client = new OmniRouteClient({
+      fetch: async () => {
+        calls++;
+        if (calls === 1) throw refused();
+        return jsonResponse({ id: "chatcmpl-1", object: "chat.completion", choices: [] });
+      },
+      retry: { maxRetries: 2, baseDelayMs: 0 },
+      sleep: async () => {},
+    });
+    assert.equal((await client.chat.completions.create(CHAT)).status, 200);
+    assert.equal(calls, 2);
+  });
+
+  it("recognises a real refused connection from fetch as not sent", async () => {
+    const server = createServer();
+    const baseUrl = await listen(server);
+    await close(server);
+    const attempts: number[] = [];
+    const client = new OmniRouteClient({
+      baseUrl,
+      retry: { maxRetries: 1, baseDelayMs: 0 },
+      onRequest: (info) => attempts.push(info.attempt),
+      sleep: async () => {},
+    });
+    const error = await captureError(client.chat.completions.create(CHAT));
+    assert.equal(error.code, CLIENT_ERROR_CODES.network);
+    assert.deepEqual(attempts, [0, 1]);
+  });
+
+  it("retryNonIdempotent restores retries after a POST timeout", async () => {
+    let calls = 0;
+    const client = new OmniRouteClient({
+      fetch: (url, init) => {
+        calls++;
+        return hangUntilAborted(url, init);
+      },
+      timeoutMs: 20,
+      retry: { maxRetries: 1, baseDelayMs: 0, retryNonIdempotent: true },
+      sleep: async () => {},
+    });
+    await captureError(client.chat.completions.create(CHAT));
+    assert.equal(calls, 2);
+  });
+
+  it("jitters exponential backoff within (delay/2, delay] and never above maxDelayMs", async () => {
+    const delays: number[] = [];
+    const client = new OmniRouteClient({
+      fetch: async () => {
+        throw new TypeError("fetch failed");
+      },
+      retry: { maxRetries: 3, baseDelayMs: 1_000, maxDelayMs: 1_500 },
+      sleep: async (ms) => {
+        delays.push(ms);
+      },
+      random: () => 0.999,
+    });
+    await captureError(client.models.list());
+    assert.deepEqual(delays, [501, 751, 751]);
+    const low = new OmniRouteClient({
+      fetch: async () => {
+        throw new TypeError("fetch failed");
+      },
+      retry: { maxRetries: 1, baseDelayMs: 1_000 },
+      sleep: async (ms) => {
+        delays.push(ms);
+      },
+      random: () => 0,
+    });
+    await captureError(low.models.list());
+    assert.equal(delays.at(-1), 1_000);
   });
 });
 
