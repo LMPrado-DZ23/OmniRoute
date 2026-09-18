@@ -1,7 +1,7 @@
 ---
 title: "Monitoring & Observability Guide"
-version: 3.8.50
-lastUpdated: 2026-08-13
+version: 3.8.54
+lastUpdated: 2026-09-18
 ---
 
 # Monitoring & Observability Guide
@@ -105,10 +105,10 @@ Per-combo:
 
 OmniRoute exposes **two** HTTP health surfaces. They are not interchangeable for orchestrators.
 
-| Path | Purpose | Weight | Use for |
-| --- | --- | --- | --- |
-| `GET /healthz` | Lifecycle liveness/readiness (`ok` / `starting` / `stopping`) | Trivial (phase flag only) | Kubernetes **readiness**; soft **liveness** if you must use HTTP |
-| `GET /api/monitoring/health` | Deep system + provider summary (DB, heap, catalog counts, …) | Heavy (sync DB / monitoring work) | Dashboards, blackbox deep checks, Docker’s built-in healthcheck |
+| Path                         | Purpose                                                       | Weight                            | Use for                                                          |
+| ---------------------------- | ------------------------------------------------------------- | --------------------------------- | ---------------------------------------------------------------- |
+| `GET /healthz`               | Lifecycle liveness/readiness (`ok` / `starting` / `stopping`) | Trivial (phase flag only)         | Kubernetes **readiness**; soft **liveness** if you must use HTTP |
+| `GET /api/monitoring/health` | Deep system + provider summary (DB, heap, catalog counts, …)  | Heavy (sync DB / monitoring work) | Dashboards, blackbox deep checks, Docker’s built-in healthcheck  |
 
 > **Note:** Provider health matrices, autopilot issues, quota monitors, token health, and latency detail beyond `/api/monitoring/health` are available via the **MCP tool** `observability_snapshot` or the **dashboard** pages — there are no dedicated REST routes for those.
 
@@ -159,12 +159,12 @@ Response:
 
 OmniRoute is a **single Node process** (one event loop). Stock Docker `HEALTHCHECK` targets lightweight `/healthz`. `/api/monitoring/health` is **too heavy** for kubelet liveness intervals.
 
-| Probe | Recommended target | Notes |
-| --- | --- | --- |
-| **Startup** | HTTP `GET /healthz` with a long `failureThreshold` (or large `startPeriod`) | Cold start + SQLite migration can exceed a few seconds |
-| **Readiness** | HTTP `GET /healthz` | Lifecycle `ok` / `starting` / `stopping` (200 vs 503). Still flaps if the loop is CPU-blocked. A **200 in multiple seconds is not healthy** (#10303) — it means the event loop was starved before the 3-byte handler ran |
-| **Liveness** | HTTP `GET /livez`, **or TCP** on the main service port (`PORT`, default `20128`) | `/livez` is process-alive only (always 200 if the handler runs). It still shares the event loop — busy ≠ dead, and it does not detect event-loop starvation (#10303) any better than TCP does. Prefer **TCP** if HTTP probes time out under catalog/compression load; do **not** kill the pod on short event-loop stalls either way |
-| **Deep health** | `GET /api/monitoring/health` from an external checker | Not for kubelet `livenessProbe` / tight `readinessProbe` |
+| Probe           | Recommended target                                                               | Notes                                                                                                                                                                                                                                                                                                                               |
+| --------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Startup**     | HTTP `GET /healthz` with a long `failureThreshold` (or large `startPeriod`)      | Cold start + SQLite migration can exceed a few seconds                                                                                                                                                                                                                                                                              |
+| **Readiness**   | HTTP `GET /healthz`                                                              | Lifecycle `ok` / `starting` / `stopping` (200 vs 503). Still flaps if the loop is CPU-blocked. A **200 in multiple seconds is not healthy** (#10303) — it means the event loop was starved before the 3-byte handler ran                                                                                                            |
+| **Liveness**    | HTTP `GET /livez`, **or TCP** on the main service port (`PORT`, default `20128`) | `/livez` is process-alive only (always 200 if the handler runs). It still shares the event loop — busy ≠ dead, and it does not detect event-loop starvation (#10303) any better than TCP does. Prefer **TCP** if HTTP probes time out under catalog/compression load; do **not** kill the pod on short event-loop stalls either way |
+| **Deep health** | `GET /api/monitoring/health` from an external checker                            | Not for kubelet `livenessProbe` / tight `readinessProbe`                                                                                                                                                                                                                                                                            |
 
 Example shape (adjust thresholds to your cold-start and compression load):
 
@@ -201,7 +201,6 @@ livenessProbe:
 **Do not** point kubelet **liveness** at `/api/monitoring/health`. That path does real DB/monitoring work and will false-positive under load.
 
 Related: [#10052](https://github.com/diegosouzapw/OmniRoute/issues/10052) (probes while the event loop is busy), [#9685](https://github.com/diegosouzapw/OmniRoute/issues/9685) / [#10055](https://github.com/diegosouzapw/OmniRoute/pull/10055) (catalog pricing hog), [#10117](https://github.com/diegosouzapw/OmniRoute/issues/10117) (compression token-count hog).
-
 
 ### Optional request-path work (memory, skills, token refresh)
 
@@ -344,9 +343,7 @@ The MCP tool `observability_snapshot` returns a **complete system snapshot** for
       "ageMs": 109
     }
   ],
-  "quotaMonitors": {
-    /* see above */
-  },
+  "quotaMonitors": {/* see above */},
   "uptime": 12345,
   "version": "3.8.16"
 }
@@ -394,15 +391,20 @@ Token health check configuration is handled internally by `tokenHealthCheck.ts`.
 
 OmniRoute supports **3 alert channels**:
 
-| Channel          | Setup         | Use case                     |
-| ---------------- | ------------- | ---------------------------- |
-| Dashboard banner | Always on     | In-app notifications         |
-| Webhook          | Configure URL | Slack, Discord, PagerDuty    |
-| Log              | Default       | For external log aggregation |
+| Channel          | Setup         | Use case                              |
+| ---------------- | ------------- | ------------------------------------- |
+| Dashboard banner | Always on     | In-app notifications                  |
+| Webhook          | Configure URL | Slack, Discord, Telegram, custom HTTP |
+| Log              | Default       | For external log aggregation          |
 
 ### Webhook Configuration
 
-> **Note:** Webhook alerting configuration is handled via the dashboard Settings page. See the Settings UI for webhook URL, event filtering, and payload customization.
+Webhooks are managed on the dashboard **Webhooks** page (`/dashboard/webhooks`): **Add Webhook** opens a
+wizard (Slack, Discord, Telegram or a custom HTTP endpoint → URL → events and a test delivery).
+The event picker offers exactly the events the API accepts (`src/lib/webhooks/eventDescriptions.ts`),
+including the alert events below. The same operations are available through
+`/api/webhooks` ([WEBHOOKS.md](../frameworks/WEBHOOKS.md)). Email, PagerDuty and Microsoft Teams
+are shown as "Coming soon" and cannot be configured yet.
 
 ### Alert Events
 
@@ -418,9 +420,17 @@ boot unless background services are disabled). Only **state changes** are sent:
 
 An objective with fewer samples than `minSamples` is `insufficient_data` and keeps its
 previous alert state (no flapping on low traffic). Payloads never contain prompts,
-responses, API keys, connection ids or account ids. Subscribe a webhook to these events
-(or `*`) in the dashboard. Alerts are off by default: set `slo.alertsEnabled = true` to start
-evaluation, so existing `*` subscribers do not receive new events after an upgrade.
+responses, API keys, connection ids or account ids.
+
+To receive them:
+
+1. **Turn alerts on.** They are off by default, so existing `*` subscribers do not receive new
+   events after an upgrade. In the dashboard: **Settings → Resilience → Service level
+   objectives (SLO) → Send SLO alerts**, then **Save SLO settings** (or
+   `PATCH /api/settings` with `{ "slo": { "alertsEnabled": true, … } }`, see
+   [SLO Settings](#slo-settings)).
+2. **Subscribe a webhook.** **Webhooks → Add Webhook**, and on the last step pick
+   `slo.breached`, `slo.recovered` and/or `provider.circuit_open` (or keep **All events**, `*`).
 
 ---
 
@@ -512,6 +522,17 @@ validated by `sloSettingsSchema` (`src/shared/validation/schemas/slo.ts`) and re
 defaults by `src/lib/monitoring/sloSettings.ts`. Evaluated by
 `src/lib/monitoring/sloEvaluator.ts`.
 
+**Dashboard:** **Settings → Resilience → Service level objectives (SLO)** edits every key below:
+the **Send SLO alerts** switch (`alertsEnabled`) and the numeric targets. Ratios
+(`availabilityTarget`, `errorRateMax`, `failoverSuccessRateMin`) are entered as percentages
+(99.5 → `0.995`). Values outside the ranges below are rejected before saving, and the card
+always sends the complete object.
+
+**API:** `PATCH /api/settings` replaces the whole `slo` object. Keys you omit fall back to
+their defaults, so send every key you have customised (for example, read the current values
+first with `GET /api/settings`). An out-of-range value returns `400` with
+`details[].field` = `slo.<key>`.
+
 | Key                      | Default  | Range           | Objective / meaning                                                                            |
 | ------------------------ | -------- | --------------- | ---------------------------------------------------------------------------------------------- |
 | `alertsEnabled`          | `false`  | boolean         | Emit the alert webhook events above                                                            |
@@ -528,8 +549,14 @@ defaults by `src/lib/monitoring/sloSettings.ts`. Evaluated by
 `failed` excludes `cancelled` and `guardrail_blocked` (client or policy decisions).
 Rate limits and timeouts count against availability but not against `error_rate`.
 
-`GET /api/telemetry/summary` `errorRate` (percent) uses the same definition —
-failed / (success + failed) routed requests in the requested window (clamped to 1–60 min).
+`GET /api/telemetry/summary` `errorRate` is **not** the SLO `error_rate`. It uses the same
+denominator (success + failed routed requests) but counts **every** failed outcome in the
+numerator, including timeouts and rate limits (still excluding `cancelled` and
+`guardrail_blocked`), and is reported as a percentage. It is therefore always ≥ the SLO
+`error_rate` for the same window; it matches `100 − availability`. The window is the
+`windowMs` query parameter (milliseconds, default `300000` = 5 min), rounded up to whole
+minutes and clamped to 1–60 minutes; a missing or non-numeric value uses the default or
+1 minute respectively.
 
 ### OpenTelemetry Traces
 
@@ -542,19 +569,19 @@ when `OMNIROUTE_OTEL_ENDPOINT` or `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
 
 ### Slack
 
-> **Note:** Webhook alerting is configured through the dashboard Settings page — there are no dedicated webhook env vars (`grep -rn` returns zero hits). See the Settings UI for webhook URL, event filtering, and payload customization.
+> **Note:** Webhook alerting is configured on the dashboard **Webhooks** page (`/dashboard/webhooks`, **Add Webhook → Slack**) or through `/api/webhooks`. There are no dedicated webhook env vars (`grep -rn` returns zero hits).
 
 ### Discord
 
-> Webhook alerting uses the same Settings UI flow as Slack. Discord accepts the same JSON payload shape.
+> Same flow as Slack: **Webhooks → Add Webhook → Discord**. The payload is formatted for Discord (`src/lib/webhooks/integrations/discord.ts`).
 
 ### PagerDuty
 
-> Webhook alerting uses the same Settings UI flow. PagerDuty Events API v2 routing keys are configured in the Settings UI.
+> Not available yet: PagerDuty is listed as "Coming soon" in the webhook wizard and there is no PagerDuty integration to configure. To page from OmniRoute today, point a **Custom** webhook at a relay that converts the JSON payload to PagerDuty Events API v2.
 
 ### Custom Webhook (JSON)
 
-> Any HTTP endpoint that accepts POST with JSON body will work. Configure the URL in the Settings UI.
+> Any HTTP endpoint that accepts POST with JSON body will work: **Webhooks → Add Webhook → Custom**, then set the URL (and optionally the HMAC secret).
 
 ---
 
