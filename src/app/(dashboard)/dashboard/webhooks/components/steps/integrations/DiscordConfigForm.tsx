@@ -67,7 +67,7 @@ export function DiscordConfigForm({ value, onChange, t }: DiscordConfigFormProps
         />
         {urlHint && (
           <p
-            className={`mt-1 text-xs ${urlState === "ok" ? "text-emerald-500" : urlState === "checking" ? "text-text-muted" : "text-red-500"}`}
+            className={`mt-1 text-xs ${urlState === "ok" ? "text-emerald-700 dark:text-emerald-400" : urlState === "checking" ? "text-text-muted" : "text-red-700 dark:text-red-400"}`}
           >
             {urlHint}
           </p>

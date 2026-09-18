@@ -13,6 +13,7 @@ import { CustomConfigForm } from "../components/steps/integrations/CustomConfigF
 import { Step3EventsAndTest } from "../components/steps/Step3EventsAndTest";
 import { HmacRecipeBlock } from "../components/shared/HmacRecipeBlock";
 import { PayloadPreview } from "../components/shared/PayloadPreview";
+import { DeliveryStatusBadge } from "../components/shared/DeliveryStatusBadge";
 
 const t = (key: string): string => `label:${key}`;
 
@@ -100,5 +101,20 @@ describe("webhook code blocks are keyboard-scrollable (axe scrollable-region-foc
     const pres = Array.from(c.querySelectorAll("pre"));
     expect(pres).toHaveLength(2);
     for (const pre of pres) expect(pre.getAttribute("tabindex")).toBe("0");
+  });
+});
+
+describe("webhook status text contrast (axe color-contrast, light theme)", () => {
+  it("delivery badges use AA shades on their tints", () => {
+    const c = render(
+      <div>
+        <DeliveryStatusBadge status="success" httpStatus={200} />
+        <DeliveryStatusBadge status="failed" httpStatus={500} />
+      </div>
+    );
+    const [ok, failed] = Array.from(c.querySelectorAll("span.rounded-full"));
+    expect(ok.className).toContain("text-emerald-800");
+    expect(failed.className).toContain("text-red-800");
+    expect(c.innerHTML).not.toMatch(/text-emerald-600|text-red-600/);
   });
 });

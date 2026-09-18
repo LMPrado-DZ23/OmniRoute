@@ -72,10 +72,10 @@ export function CustomConfigForm({ value, onChange, t, isEditing }: CustomConfig
           <p
             className={`mt-1 text-xs ${
               urlState === "ok"
-                ? "text-emerald-500"
+                ? "text-emerald-700 dark:text-emerald-400"
                 : urlState === "checking"
                   ? "text-text-muted"
-                  : "text-red-500"
+                  : "text-red-700 dark:text-red-400"
             }`}
           >
             {urlHint}
