@@ -1,6 +1,6 @@
 ---
 title: "Matriz de compatibilidade"
-version: 3.8.53
+version: 3.8.54
 lastUpdated: 2026-09-14
 ---
 

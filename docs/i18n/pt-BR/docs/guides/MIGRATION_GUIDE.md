@@ -1,7 +1,7 @@
 ---
 title: "Guia de atualização e migração"
-version: 3.8.53
-lastUpdated: 2026-09-14
+version: 3.8.54
+lastUpdated: 2026-09-18
 ---
 
 # Guia de atualização e migração
