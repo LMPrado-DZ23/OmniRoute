@@ -249,24 +249,17 @@ function statusForResponse(response: Response): LookupStatus | null {
   return response.ok ? null : "error";
 }
 
-/** Look up a recent live routing decision by request id or decision id. */
-export default function RoutingDecisionLookup() {
-  const t = useTranslations("analytics") as Translator;
-  const locale = useLocale();
-  const [query, setQuery] = useState("");
+/** Fetch state of the lookup; focus moves to the results region once a decision loads. */
+function useDecisionLookup() {
   const [decision, setDecision] = useState<RoutingDecision | null>(null);
   const [status, setStatus] = useState<LookupStatus>("idle");
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // Move focus to the result once it loads, so keyboard and screen-reader users land on it.
   useEffect(() => {
     if (status === "found") resultsRef.current?.focus();
   }, [status, decision]);
 
-  async function lookup(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const id = query.trim();
-    if (!id) return;
+  async function run(id: string) {
     setStatus("loading");
     try {
       const response = await fetch(`/api/omniroute/route/decisions/${encodeURIComponent(id)}`, {
@@ -285,6 +278,22 @@ export default function RoutingDecisionLookup() {
       setDecision(null);
       setStatus("error");
     }
+  }
+
+  return { decision, status, resultsRef, run };
+}
+
+/** Look up a recent live routing decision by request id or decision id. */
+export default function RoutingDecisionLookup() {
+  const t = useTranslations("analytics") as Translator;
+  const locale = useLocale();
+  const [query, setQuery] = useState("");
+  const { decision, status, resultsRef, run } = useDecisionLookup();
+
+  function lookup(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const id = query.trim();
+    if (id) void run(id);
   }
 
   return (
