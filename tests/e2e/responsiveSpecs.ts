@@ -16,7 +16,12 @@
 export const VIEWPORTS = {
   mobile: { width: 375, height: 812, label: "Mobile (375px)" },
   tablet: { width: 768, height: 1024, label: "Tablet (768px)" },
+  // 900/1024 sit below the `lg` (1024px) sidebar breakpoint and above `md`: the band
+  // where the header and wizard cards used to overflow (audit C-09).
+  smallLaptop: { width: 900, height: 800, label: "Small laptop (900px)" },
+  laptop: { width: 1024, height: 768, label: "Laptop (1024px)" },
   desktop: { width: 1280, height: 800, label: "Desktop (1280px)" },
+  wide: { width: 1440, height: 900, label: "Wide (1440px)" },
 };
 
 /**
@@ -36,8 +41,35 @@ export const A11Y_CHECKS = [
   {
     id: "overflow-x",
     kind: "evaluate",
-    evaluate: () => document.body.scrollWidth <= document.documentElement.clientWidth,
-    criteria: "No horizontal overflow (scrollWidth <= clientWidth)",
+    // Returns the offending elements ([] = pass). The dashboard shell clips horizontal
+    // overflow (`overflow-hidden` / `overflow-x-hidden`), so `body.scrollWidth` alone never
+    // grows there: content is cut off instead. Any visible, non-fixed element crossing the
+    // viewport edge counts unless it sits inside a real horizontal scroller.
+    evaluate: () => {
+      const viewportWidth = document.documentElement.clientWidth;
+      const offenders: string[] = [];
+      if (document.documentElement.scrollWidth > viewportWidth) {
+        offenders.push(`document scrollWidth=${document.documentElement.scrollWidth}`);
+      }
+      const insideHorizontalScroller = (element: Element) => {
+        for (let node = element.parentElement; node; node = node.parentElement) {
+          if (/(auto|scroll)/.test(getComputedStyle(node).overflowX)) return true;
+        }
+        return false;
+      };
+      for (const element of document.querySelectorAll("body *")) {
+        const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        const crossesEdge =
+          rect.width > 0 && rect.left < viewportWidth && rect.right > viewportWidth + 1;
+        if (!crossesEdge || style.position === "fixed" || style.visibility === "hidden") continue;
+        if (insideHorizontalScroller(element)) continue;
+        offenders.push(`${element.tagName.toLowerCase()} right=${Math.round(rect.right)}`);
+        if (offenders.length >= 5) break;
+      }
+      return offenders;
+    },
+    criteria: "No element crosses the right viewport edge outside a horizontal scroller",
     description: "No horizontal overflow",
   },
   {

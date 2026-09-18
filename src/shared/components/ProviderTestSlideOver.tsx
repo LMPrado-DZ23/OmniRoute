@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+
+import { useDialogFocus } from "@/shared/hooks/useDialogFocus";
 
 import {
   LlmChatCard,
@@ -62,13 +64,9 @@ function ProviderTestSlideOverPanel({
   const { models } = useProviderModels(providerId);
   const firstModel = models[0]?.id ?? "";
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  // The panel only mounts while open: Escape, focus trap and focus restore on unmount.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(dialogRef, true, onClose);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -89,7 +87,9 @@ function ProviderTestSlideOverPanel({
         aria-hidden
       />
       <div
+        ref={dialogRef}
         role="dialog"
+        aria-modal="true"
         aria-label={t("dialogLabel", { provider: provider.name })}
         className="relative w-full sm:w-[640px] md:w-[720px] lg:w-[820px] max-w-full bg-surface border-l border-black/10 dark:border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200"
       >
@@ -170,7 +170,9 @@ function SlideOverHeader({
             <>
               <span>·</span>
               <span className="flex items-center gap-0.5 text-text-muted/70">
-                <span className="material-symbols-outlined text-[12px]">block</span>
+                <span className="material-symbols-outlined text-[12px]" aria-hidden="true">
+                  block
+                </span>
                 {t("deprecated")}
               </span>
             </>
@@ -179,7 +181,9 @@ function SlideOverHeader({
             <>
               <span>·</span>
               <span className="flex items-center gap-0.5 text-amber-500">
-                <span className="material-symbols-outlined text-[12px]">info</span>
+                <span className="material-symbols-outlined text-[12px]" aria-hidden="true">
+                  info
+                </span>
                 {t("risk")}
               </span>
             </>
@@ -192,7 +196,9 @@ function SlideOverHeader({
         aria-label={t("close")}
         className="p-1.5 rounded-lg text-text-muted hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
       >
-        <span className="material-symbols-outlined text-[20px]">close</span>
+        <span className="material-symbols-outlined text-[20px]" aria-hidden="true">
+          close
+        </span>
       </button>
     </div>
   );
@@ -216,12 +222,18 @@ function TestToolbar({
   controls: LlmChatControls | null;
 }) {
   const t = useTranslations("providerTest");
+  const modelSelectId = useId();
+  const keySelectId = useId();
   const hasMessages = controls?.hasMessages ?? false;
   return (
     <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b border-black/5 dark:border-white/5 bg-bg-subtle/30 shrink-0">
       <div className="flex items-center gap-1.5 min-w-0 flex-1">
-        <label className="text-[11px] text-text-muted shrink-0">{t("model")}:</label>
+        <label htmlFor={modelSelectId} className="text-[11px] text-text-muted shrink-0">
+          {t("model")}
+          <span aria-hidden="true">:</span>
+        </label>
         <select
+          id={modelSelectId}
           value={model}
           onChange={(e) => onModelChange(e.target.value)}
           className="min-w-0 flex-1 rounded-md border border-border bg-bg-subtle text-xs px-2 py-1 text-text-main focus:outline-none focus:ring-1 focus:ring-primary"
@@ -236,8 +248,12 @@ function TestToolbar({
       </div>
       {keys.length > 0 && (
         <div className="flex items-center gap-1.5">
-          <label className="text-[11px] text-text-muted shrink-0">{t("key")}:</label>
+          <label htmlFor={keySelectId} className="text-[11px] text-text-muted shrink-0">
+            {t("key")}
+            <span aria-hidden="true">:</span>
+          </label>
           <select
+            id={keySelectId}
             value={selectedKey}
             onChange={(e) => onSelectedKeyChange(e.target.value)}
             className="rounded-md border border-border bg-bg-subtle text-xs px-2 py-1 text-text-main focus:outline-none focus:ring-1 focus:ring-primary"
@@ -258,7 +274,9 @@ function TestToolbar({
           className="text-[11px] text-text-muted hover:text-text-main transition-colors flex items-center gap-1"
           title={t("clearConversation")}
         >
-          <span className="material-symbols-outlined text-[14px]">delete_sweep</span>
+          <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
+            delete_sweep
+          </span>
           {t("clear")}
         </button>
       )}
@@ -286,7 +304,9 @@ function SlideOverTabs({ tab, onChange }: { tab: TabKey; onChange: (next: TabKey
               active ? "text-accent" : "text-text-muted hover:text-text-main"
             }`}
           >
-            <span className="material-symbols-outlined text-[16px]">{tabItem.icon}</span>
+            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
+              {tabItem.icon}
+            </span>
             <span>{translate(`tabs.${tabItem.label}`)}</span>
             {active && (
               <span
@@ -301,11 +321,27 @@ function SlideOverTabs({ tab, onChange }: { tab: TabKey; onChange: (next: TabKey
   );
 }
 
-function TabPlaceholder({ icon, title, body }: { icon: string; title: string; body: ReactNode }) {
+function TabPlaceholder({
+  icon,
+  title,
+  body,
+  role,
+}: {
+  icon: string;
+  title: string;
+  body: ReactNode;
+  /** "alert" announces load failures to screen readers. */
+  role?: "alert";
+}) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 p-10 text-center flex-1 min-h-0 overflow-y-auto">
+    <div
+      role={role}
+      className="flex flex-col items-center justify-center gap-3 p-10 text-center flex-1 min-h-0 overflow-y-auto"
+    >
       <div className="size-12 rounded-full bg-accent/10 flex items-center justify-center">
-        <span className="material-symbols-outlined text-accent text-[24px]">{icon}</span>
+        <span className="material-symbols-outlined text-accent text-[24px]" aria-hidden="true">
+          {icon}
+        </span>
       </div>
       <h3 className="text-sm font-semibold text-text-main">{title}</h3>
       <div className="text-xs text-text-muted max-w-sm">{body}</div>
@@ -389,8 +425,12 @@ function LogsTab({ providerId }: { providerId: string }) {
 
   if (state.status === "loading") {
     return (
-      <div className="flex-1 min-h-0 flex items-center justify-center text-xs text-text-muted gap-2">
-        <span className="material-symbols-outlined text-[18px] animate-spin">
+      <div
+        role="status"
+        aria-live="polite"
+        className="flex-1 min-h-0 flex items-center justify-center text-xs text-text-muted gap-2"
+      >
+        <span className="material-symbols-outlined text-[18px] animate-spin" aria-hidden="true">
           progress_activity
         </span>
         {t("loadingLogs")}
@@ -400,7 +440,12 @@ function LogsTab({ providerId }: { providerId: string }) {
 
   if (state.status === "error") {
     return (
-      <TabPlaceholder icon="error" title={t("failedToLoadLogs")} body={<p>{state.message}</p>} />
+      <TabPlaceholder
+        role="alert"
+        icon="error"
+        title={t("failedToLoadLogs")}
+        body={<p>{state.message}</p>}
+      />
     );
   }
 
@@ -419,7 +464,9 @@ function LogsTab({ providerId }: { providerId: string }) {
               rel="noopener noreferrer"
             >
               {t("openFullLogs")}
-              <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+              <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
+                open_in_new
+              </span>
             </a>
           </>
         }
@@ -447,7 +494,9 @@ function LogsTab({ providerId }: { providerId: string }) {
           className="text-[10px] text-text-muted hover:text-text-main inline-flex items-center gap-1"
           title={t("refreshNow")}
         >
-          <span className="material-symbols-outlined text-[14px]">refresh</span>
+          <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
+            refresh
+          </span>
           {t("refresh")}
         </button>
       </div>
@@ -493,6 +542,7 @@ function LogsTab({ providerId }: { providerId: string }) {
                   {formatDurationMs(log.duration)}
                 </span>
                 <span
+                  aria-hidden="true"
                   className={`material-symbols-outlined text-text-muted text-[16px] shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`}
                 >
                   chevron_right
@@ -511,7 +561,9 @@ function LogsTab({ providerId }: { providerId: string }) {
           rel="noopener noreferrer"
         >
           {t("openFullLogs")}
-          <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+          <span className="material-symbols-outlined text-[12px]" aria-hidden="true">
+            open_in_new
+          </span>
         </a>
       </div>
     </div>

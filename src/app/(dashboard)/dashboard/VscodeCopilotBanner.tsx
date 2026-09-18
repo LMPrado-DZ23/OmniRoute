@@ -89,7 +89,7 @@ export default function VscodeCopilotBanner() {
               open_in_new
             </span>
           </a>
-          <span className="text-[9px] text-text-muted/70">{t("secondaryNote")}</span>
+          <span className="text-[9px] text-text-muted">{t("secondaryNote")}</span>
         </div>
         <button
           type="button"

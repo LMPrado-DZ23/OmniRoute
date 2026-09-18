@@ -86,10 +86,19 @@ function applyColorTheme(colorTheme: string, customColor: string) {
   if (typeof window === "undefined") return;
 
   const root = document.documentElement;
+  // The default preset (and unknown ids, which fall back to it) follows the theme-aware
+  // CSS tokens in globals.css: a deeper coral in light mode for WCAG AA contrast and the
+  // original coral in dark mode. An inline value on <html> would beat both.
+  const usesDefaultPreset =
+    colorTheme !== "custom" && (colorTheme === "coral" || !COLOR_THEMES[colorTheme]);
+  if (usesDefaultPreset) {
+    root.style.removeProperty("--color-primary");
+    root.style.removeProperty("--color-primary-hover");
+    return;
+  }
+
   const baseColor =
-    colorTheme === "custom"
-      ? normalizeHexColor(customColor)
-      : COLOR_THEMES[colorTheme] || COLOR_THEMES.coral;
+    colorTheme === "custom" ? normalizeHexColor(customColor) : COLOR_THEMES[colorTheme];
   const hoverColor = shadeHexColor(baseColor, -0.14);
 
   root.style.setProperty("--color-primary", baseColor);
