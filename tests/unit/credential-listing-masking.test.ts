@@ -6,8 +6,10 @@
  *     secret nor its hash.
  *   - Provider connections: masked for every caller by default. `ALLOW_API_KEY_REVEAL=true`
  *     (documented dashboard-UI opt-in) reveals only to a dashboard caller; a programmatic
- *     credential (Bearer API key / `oma_` token, x-api-key, loopback CLI token) stays masked,
- *     and every reveal is audited without the credential itself.
+ *     credential (Bearer API key / `oma_` token, x-api-key, x-goog-api-key, loopback CLI token)
+ *     stays masked, and every reveal is audited without the credential itself. The reveal keys
+ *     off the subject the real authz pipeline stamps, so those cases run through
+ *     `runAuthzPipeline` exactly as the middleware forwards them.
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -15,6 +17,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { SignJWT } from "jose";
+import { NextRequest } from "next/server";
 
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omr-credential-listing-"));
 process.env.DATA_DIR = TEST_DATA_DIR;
@@ -36,6 +39,8 @@ const keyByIdRoute = await import("../../src/app/api/keys/[id]/route.ts");
 const providersRoute = await import("../../src/app/api/providers/route.ts");
 const providerByIdRoute = await import("../../src/app/api/providers/[id]/route.ts");
 const tokensRoute = await import("../../src/app/api/cli/tokens/route.ts");
+const pipeline = await import("../../src/server/authz/pipeline.ts");
+const exposure = await import("../../src/lib/apiKeyExposure.ts");
 
 const PROVIDER_SECRET = "sk-phase8-listing-provider-secret-abcdefghijklmnop";
 const createdSecrets: string[] = [PROVIDER_SECRET];
@@ -82,6 +87,32 @@ async function readProviders(
     { params: Promise.resolve({ id: connectionId }) }
   );
   assert.equal(detailResponse.status, 200);
+  return { list: await listResponse.text(), detail: await detailResponse.text() };
+}
+
+/**
+ * Runs the real authz pipeline and returns the request as the middleware forwards it to the
+ * route handler: client copies of trusted headers stripped, the authenticated subject stamped.
+ */
+async function throughPipeline(req: Request): Promise<Request> {
+  const verdict = await pipeline.runAuthzPipeline(new NextRequest(req), { enforce: true });
+  assert.equal(verdict.headers.get("x-middleware-next"), "1", `pipeline rejected ${req.url}`);
+  const forwarded = new Headers();
+  for (const name of (verdict.headers.get("x-middleware-override-headers") ?? "").split(",")) {
+    const value = verdict.headers.get(`x-middleware-request-${name}`);
+    if (name && value !== null) forwarded.set(name, value);
+  }
+  return new Request(req.url, { method: req.method, headers: forwarded });
+}
+
+async function readProvidersVia(
+  headers: (url: string) => Promise<Request>
+): Promise<{ list: string; detail: string }> {
+  const listResponse = await providersRoute.GET(await headers("http://localhost/api/providers"));
+  const detailResponse = await providerByIdRoute.GET(
+    await headers(`http://localhost/api/providers/${connectionId}`),
+    { params: Promise.resolve({ id: connectionId }) }
+  );
   return { list: await listResponse.text(), detail: await detailResponse.text() };
 }
 
@@ -234,8 +265,36 @@ test("ALLOW_API_KEY_REVEAL reveals only to the dashboard, never to programmatic 
     }
     assert.equal(revealEvents().length, 0, "masked responses must not be audited as reveals");
 
-    const { list, detail } = await readProviders(() =>
+    // Every API-key header the auth layer accepts, authenticated by the real pipeline (#B-02:
+    // x-goog-api-key used to be stamped management_key yet still received the credential).
+    const pipelineProgrammatic: Array<[string, Record<string, string>]> = [
+      ["pipeline bearer manage key", { authorization: `Bearer ${manageKey}` }],
+      ["pipeline x-goog-api-key manage key", { "x-goog-api-key": manageKey }],
+      [
+        "pipeline x-api-key manage key",
+        { "x-api-key": manageKey, "anthropic-version": "2023-06-01" },
+      ],
+      ["pipeline bearer read token", { authorization: `Bearer ${readToken}` }],
+    ];
+    for (const [label, headers] of pipelineProgrammatic) {
+      const viaPipeline = (url: string) => throughPipeline(new Request(url, { headers }));
+      const stamped = await viaPipeline("http://localhost/api/providers");
+      assert.equal(stamped.headers.get("x-omniroute-auth-kind"), "management_key", label);
+      const { list, detail } = await readProvidersVia(viaPipeline);
+      assert.equal(list.includes(PROVIDER_SECRET), false, `${label}: list revealed it`);
+      assert.equal(detail.includes(PROVIDER_SECRET), false, `${label}: detail revealed it`);
+    }
+    assert.equal(revealEvents().length, 0, "masked responses must not be audited as reveals");
+
+    // A handler reached without the pipeline stamp fails closed, even with a valid session.
+    const unstamped = await readProviders(() =>
       request("http://localhost/api/providers", "session")
+    );
+    assert.equal(unstamped.list.includes(PROVIDER_SECRET), false, "unstamped list revealed it");
+    assert.equal(revealEvents().length, 0);
+
+    const { list, detail } = await readProvidersVia(async (url) =>
+      throughPipeline(await request(url, "session"))
     );
     assert.ok(list.includes(PROVIDER_SECRET), "dashboard opt-in reveal (list) must keep working");
     assert.ok(
@@ -251,6 +310,53 @@ test("ALLOW_API_KEY_REVEAL reveals only to the dashboard, never to programmatic 
   } finally {
     delete process.env.ALLOW_API_KEY_REVEAL;
   }
+});
+
+test("reveal is an allow-list on the pipeline-stamped subject", () => {
+  process.env.ALLOW_API_KEY_REVEAL = "true";
+  try {
+    const cases: Array<[Record<string, string>, boolean]> = [
+      [{ "x-omniroute-auth-kind": "dashboard_session" }, true],
+      [{ "x-omniroute-auth-kind": "anonymous", "x-omniroute-auth-label": "auth-disabled" }, true],
+      [{ "x-omniroute-auth-kind": "anonymous" }, false],
+      [
+        {
+          "x-omniroute-auth-kind": "management_key",
+          "x-omniroute-auth-label": "api-key-manage-scope",
+        },
+        false,
+      ],
+      [
+        { "x-omniroute-auth-kind": "management_key", "x-omniroute-auth-label": "local-cli-token" },
+        false,
+      ],
+      [{ "x-omniroute-auth-kind": "client_api_key" }, false],
+      [{}, false],
+      [{ "x-omniroute-auth-kind": "dashboard_session", "x-goog-api-key": "k" }, false],
+      [
+        {
+          "x-omniroute-auth-kind": "anonymous",
+          "x-omniroute-auth-label": "auth-disabled",
+          authorization: "Bearer k",
+        },
+        false,
+      ],
+    ];
+    for (const [headers, expected] of cases) {
+      const req = new Request("http://localhost/api/providers", { headers });
+      assert.equal(
+        exposure.isProviderCredentialRevealAllowed(req),
+        expected,
+        JSON.stringify(headers)
+      );
+    }
+  } finally {
+    delete process.env.ALLOW_API_KEY_REVEAL;
+  }
+  const dashboard = new Request("http://localhost/api/providers", {
+    headers: { "x-omniroute-auth-kind": "dashboard_session" },
+  });
+  assert.equal(exposure.isProviderCredentialRevealAllowed(dashboard), false, "flag off");
 });
 
 test("the audit log never contains a created credential", () => {

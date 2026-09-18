@@ -161,9 +161,26 @@ export function listAccessTokens(): AccessTokenRecord[] {
 export function getAccessToken(id: string): AccessTokenRecord | null {
   const db = getDbInstance();
   const row = db.prepare("SELECT * FROM cli_access_tokens WHERE id = ?").get(id) as
-    | AccessTokenRow
-    | undefined;
+    AccessTokenRow | undefined;
   return row ? rowToRecord(row) : null;
+}
+
+/**
+ * Revoke a token by id or by its display prefix and return the ids of the rows newly revoked
+ * (empty when nothing matched or the token was already revoked). Callers that audit the revoke
+ * log these ids, never the display prefix they may have been given.
+ */
+export function revokeAccessTokenIds(idOrPrefix: string): string[] {
+  if (!idOrPrefix) return [];
+  const db = getDbInstance();
+  const rows = db
+    .prepare(
+      `UPDATE cli_access_tokens SET revoked_at = ?
+         WHERE (id = ? OR token_prefix = ?) AND revoked_at IS NULL
+       RETURNING id`
+    )
+    .all(new Date().toISOString(), idOrPrefix, idOrPrefix) as Array<{ id: unknown }>;
+  return rows.map((row) => String(row.id));
 }
 
 /**
@@ -171,13 +188,5 @@ export function getAccessToken(id: string): AccessTokenRecord | null {
  * already-revoked token is a no-op. Returns true when a row was newly revoked.
  */
 export function revokeAccessToken(idOrPrefix: string): boolean {
-  if (!idOrPrefix) return false;
-  const db = getDbInstance();
-  const res = db
-    .prepare(
-      `UPDATE cli_access_tokens SET revoked_at = ?
-         WHERE (id = ? OR token_prefix = ?) AND revoked_at IS NULL`
-    )
-    .run(new Date().toISOString(), idOrPrefix, idOrPrefix);
-  return res.changes > 0;
+  return revokeAccessTokenIds(idOrPrefix).length > 0;
 }

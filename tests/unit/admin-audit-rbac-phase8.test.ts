@@ -193,6 +193,28 @@ test("CLI access token create/revoke are audited without the secret, hash or pre
   assert.equal(revokeEvents[0].target, body.id);
 });
 
+test("CLI access token revoke by display prefix audits the token id, never the prefix", async () => {
+  const stamp = { kind: "management_key", id: adminToken.id, label: "access-token:admin" };
+  const created = accessTokensDb.createAccessToken({ name: "revoke-by-prefix", scope: "read" });
+  const prefix = created.record.tokenPrefix;
+  const before = events("accessToken.revoke").length;
+  const revoked = await tokenByIdRoute.DELETE(
+    await makeRequest(`http://localhost/api/cli/tokens/${prefix}`, {
+      method: "DELETE",
+      bearer: adminToken.secret,
+      stamp,
+    }),
+    { params: Promise.resolve({ id: prefix }) }
+  );
+  assert.equal(revoked.status, 200);
+  const revokeEvents = events("accessToken.revoke");
+  assert.equal(revokeEvents.length, before + 1);
+  const event = revokeEvents.find((entry) => entry.target === created.record.id);
+  assert.ok(event, "the revoke event must target the token id");
+  assert.equal(JSON.stringify(event).includes(prefix), false, "audit row exposed the prefix");
+  assert.equal(accessTokensDb.verifyAccessToken(created.secret), null);
+});
+
 test("API key permission updates and deletion are audited; a 404 records nothing", async () => {
   const key = await apiKeysDb.createApiKey("audit-permissions", "machine-audit-02", []);
   const patched = await keyByIdRoute.PATCH(

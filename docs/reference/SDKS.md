@@ -1,6 +1,6 @@
 ---
 title: "SDKs (experimental)"
-lastUpdated: 2026-09-14
+lastUpdated: 2026-09-18
 ---
 
 # SDKs (experimental)
@@ -13,6 +13,8 @@ OmniRoute ships two minimal client SDKs in the repository. Both are **experiment
 | Python     | [`sdk/python`](../../sdk/python/README.md)         | Python 3.9+                       | none (standard library `urllib`) |
 
 Both SDKs expose the same surface and are verified against the same contract fixtures in `sdk/contract/fixtures/`.
+
+Neither package is published. The TypeScript SDK is imported from source (`sdk/typescript/src/index.ts`). For Python, run `pip install -e sdk/python` in a virtual environment, or set `PYTHONPATH=sdk/python` (from the repository root), or run your script from inside `sdk/python`; otherwise `import omniroute_sdk` fails with `ModuleNotFoundError`.
 
 ## Endpoint coverage
 
@@ -28,11 +30,14 @@ Both SDKs expose the same surface and are verified against the same contract fix
 Sources for each route: `src/app/api/v1/chat/completions/route.ts`, `src/app/api/v1/models/route.ts`, `src/app/api/health/route.ts`, `src/app/api/v1/me/status/route.ts` and `src/app/api/omniroute/route/preview/route.ts`.
 
 - **Quota** uses the self-service status route because it is the usage/quota endpoint a client API key can call for itself. It returns the key's cost window, token totals and, when the key has the `self:account-quota` scope, account quotas. Keys without `self:usage` receive `403`.
+- **Chat model:** the README examples use a `<provider>/<model>` placeholder. Use a model id you configured, as listed by the models endpoint. Avoid `auto` until providers are configured: `auto` routes to any enabled provider, including built-in keyless third-party free tiers (currently the OpenCode free tier, `oc/*`, allow-listed in `open-sse/services/autoCombo/virtualFactory.ts`). On a fresh install with no provider configured, an `auto` prompt therefore leaves the machine for a service you never set up. Add the provider to `blockedProviders` in the dashboard settings, or disable its card on the Providers page, to keep it out of `auto`.
 - **Route preview** is a management route. Configure `managementKey` (TypeScript) or `management_key` (Python) with a credential accepted by management auth, such as an API key with the `manage` scope; the SDK falls back to the client API key when none is set. The endpoint only ranks the candidates you send and never calls a provider (`liveRequestExecuted` is always `false`). Unknown response fields pass through, so additive server changes do not break the SDK.
 
 ## Authentication
 
-Credentials are sent as `Authorization: Bearer` headers. Debug hooks (`onRequest` / `on_request`) receive a header snapshot with `authorization`, `x-api-key`, `cookie` and `proxy-authorization` replaced by `[REDACTED]`. The TypeScript client stores keys in private class fields and the Python client redacts them from `repr()`.
+Credentials are sent as `Authorization: Bearer` headers. Debug hooks (`onRequest` / `on_request`) receive a header snapshot with every credential header replaced by `[REDACTED]`: `authorization`, `proxy-authorization`, `cookie`, `x-api-key`, `x-goog-api-key`, `x-omniroute-cli-token`, and any other header whose name contains `auth`, `key`, `token`, `secret`, `cookie`, `session` or `password`. The TypeScript client stores keys in private class fields and the Python client redacts them from `repr()`.
+
+Redirects never carry credentials to another origin. The Python client follows redirects like `urllib`, but it drops every credential header when the scheme, host or port changes, and it refuses an `https` to `http` redirect with an `OmniRouteError` that carries the redirect status. The TypeScript client relies on `fetch`, which removes `Authorization`, `Proxy-Authorization` and `Cookie` on a cross-origin redirect but would forward any other header. So when a call carries another credential header through `headers` (for example `x-api-key` or `x-goog-api-key`), the TypeScript client does not follow redirects at all and raises an `OmniRouteError` with the redirect status.
 
 ## Request IDs
 
@@ -55,11 +60,19 @@ Failures without an HTTP response use `status` 0 and a client code: `network_err
 
 ## Retries and timeouts
 
-- Retries apply to network errors, timeouts and the `retryOn` / `retry_on` statuses (default `408, 429, 500, 502, 503, 504`). Defaults: 2 retries, 500 ms base delay, 8000 ms maximum delay.
-- Backoff is exponential (`baseDelayMs * 2^attempt`). A `Retry-After` header, in delta-seconds or HTTP-date form, replaces the computed delay. Either delay is capped by `maxDelayMs`. The final error exposes `retryAfterMs`.
+- GET requests (models, health, quota) retry network errors, timeouts and the `retryOn` / `retry_on` statuses (default `408, 429, 500, 502, 503, 504`). Defaults: 2 retries, 500 ms base delay, 8000 ms maximum delay.
+- POST requests (chat completions, streaming, route preview) are not idempotent. A chat completion that reached the server may already be generating, so replaying it can bill the same prompt twice. By default a POST is retried only when the server cannot have run it:
+  - the connection was never established: connection refused or a DNS failure (`ECONNREFUSED`, `ENOTFOUND`, `EAI_AGAIN` in TypeScript; `ConnectionRefusedError` or `socket.gaierror` in Python);
+  - a `429` or `503` that is in `retryOn` and carries a `Retry-After` header, which means the server deferred the request.
+
+  A POST is never retried after a timeout, a connection reset or any other network error once the request may have been sent, nor on another status. Set `retryNonIdempotent: true` (TypeScript) or `RetryConfig(retry_non_idempotent=True)` (Python) to retry POST requests like GET requests.
+
+- Backoff is exponential (`baseDelayMs * 2^attempt`), capped by `maxDelayMs`, then jittered down by up to half, so a delay `d` becomes a value in `(d/2, d]` and never exceeds `maxDelayMs`. The jitter source is injectable (`random` option in both SDKs) for deterministic tests. A `Retry-After` header, in delta-seconds or HTTP-date form, replaces the computed delay without jitter and is also capped by `maxDelayMs`. The final error exposes `retryAfterMs`.
 - Pass `retry: false` (TypeScript) or `retry=False` (Python) to disable retries, per client or per call.
 - Retries happen only before a successful response is returned. Once a stream has started, nothing is retried: a mid-stream failure raises immediately.
-- The timeout (`timeoutMs` / `timeout_ms`, default 60000) applies to each attempt. For streams in TypeScript it covers the time until response headers arrive. In Python it is the socket timeout of each read.
+- The timeout (`timeoutMs` / `timeout_ms`, default 60000) applies to each attempt, but it does not measure the same thing in the two SDKs:
+  - **TypeScript** — a wall-clock deadline for the whole attempt. For JSON calls it covers connecting, sending, the response headers and reading the full body. For streams it covers the time until the response headers arrive; after that the stream has no timeout (use `abort()` or an `AbortSignal`).
+  - **Python** — the `urllib` socket timeout. It bounds the connection and each individual blocking socket operation, not the total time: a response that keeps sending some bytes more often than `timeout_ms` can take longer in total. For streams it keeps applying to every read, so a stream that stays silent for longer than `timeout_ms` raises `stream_error`.
 
 ## Streaming
 

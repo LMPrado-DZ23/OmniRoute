@@ -57,8 +57,18 @@ export interface RetryOptions {
   maxRetries?: number;
   baseDelayMs?: number;
   maxDelayMs?: number;
-  /** HTTP statuses that trigger a retry. Network errors and timeouts are always retryable. */
+  /**
+   * HTTP statuses that trigger a retry. GET requests also retry network errors and timeouts.
+   * POST requests (chat completions, route preview) are not idempotent: see `retryNonIdempotent`.
+   */
   retryOn?: readonly number[];
+  /**
+   * Retry POST requests like GET requests (after timeouts, network errors and any `retryOn`
+   * status). Off by default because a POST that reached the server may already have run, so a
+   * retry can bill the same generation twice. When off, a POST is retried only when the
+   * connection was never established, or on a `429`/`503` in `retryOn` that carries `Retry-After`.
+   */
+  retryNonIdempotent?: boolean;
 }
 
 interface ResolvedRetry {
@@ -66,6 +76,49 @@ interface ResolvedRetry {
   baseDelayMs: number;
   maxDelayMs: number;
   retryOn: ReadonlySet<number>;
+  nonIdempotent: boolean;
+}
+
+/** Statuses that, with `Retry-After`, mean the server deferred a request without running it. */
+const DEFERRED_STATUSES: ReadonlySet<number> = new Set([429, 503]);
+/** Connection-phase failures: the request never reached the server. */
+const NOT_SENT_ERROR_CODES: ReadonlySet<string> = new Set([
+  "ECONNREFUSED",
+  "ENOTFOUND",
+  "EAI_AGAIN",
+]);
+
+/** True when a fetch rejection (or one of its causes) is a connection-phase failure. */
+function failedBeforeSending(cause: unknown): boolean {
+  let current: unknown = cause;
+  for (let depth = 0; depth < 4 && isRecord(current); depth++) {
+    if (typeof current.code === "string" && NOT_SENT_ERROR_CODES.has(current.code)) return true;
+    current = current.cause;
+  }
+  return false;
+}
+
+/** Whether an attempt that got no HTTP response may be retried. */
+function mayRetryFailure(
+  op: OperationSpec,
+  retry: ResolvedRetry,
+  timedOut: boolean,
+  cause: unknown
+): boolean {
+  if (op.method !== "POST" || retry.nonIdempotent) return true;
+  return !timedOut && failedBeforeSending(cause);
+}
+
+/** Whether an HTTP error status may be retried. */
+function mayRetryStatus(
+  op: OperationSpec,
+  retry: ResolvedRetry,
+  status: number,
+  retryAfterMs: number | undefined
+): boolean {
+  if (!retry.retryOn.has(status)) return false;
+  if (op.method !== "POST" || retry.nonIdempotent) return true;
+  return DEFERRED_STATUSES.has(status) && retryAfterMs !== undefined;
 }
 
 export interface RequestDebugInfo {
@@ -93,6 +146,8 @@ export interface OmniRouteClientOptions {
   onRequest?: (info: RequestDebugInfo) => void;
   /** Backoff sleep; injectable for tests. */
   sleep?: (ms: number, signal: AbortSignal | undefined) => Promise<void>;
+  /** Source of backoff jitter in [0, 1); injectable for tests. Defaults to `Math.random`. */
+  random?: () => number;
 }
 
 export interface RequestOptions {
@@ -104,12 +159,51 @@ export interface RequestOptions {
   headers?: Record<string, string>;
 }
 
-const SENSITIVE_HEADERS = new Set(["authorization", "x-api-key", "cookie", "proxy-authorization"]);
+/**
+ * Every credential header the server accepts (`Authorization: Bearer` also carries the management
+ * key). Any other header whose name looks credential-like is covered by the pattern.
+ */
+const SENSITIVE_HEADERS: ReadonlySet<string> = new Set([
+  "authorization",
+  "proxy-authorization",
+  "cookie",
+  "x-api-key",
+  "x-goog-api-key",
+  "x-omniroute-cli-token",
+]);
+const SENSITIVE_HEADER_PATTERN = /auth|key|token|secret|cookie|session|password/;
+
+/** True for a header that may carry a credential. */
+function isSensitiveHeader(name: string): boolean {
+  const lowered = name.toLowerCase();
+  return SENSITIVE_HEADERS.has(lowered) || SENSITIVE_HEADER_PATTERN.test(lowered);
+}
+
+/** The credential headers `fetch` itself removes when a redirect changes origin. */
+const STRIPPED_BY_FETCH_ON_REDIRECT: ReadonlySet<string> = new Set([
+  "authorization",
+  "proxy-authorization",
+  "cookie",
+]);
+
+/**
+ * `fetch` would forward any other credential header (e.g. `x-api-key` passed through `headers`)
+ * to a cross-origin redirect target, so such requests do not follow redirects: the 3xx surfaces
+ * as an `OmniRouteError` instead.
+ */
+function redirectModeFor(headers: Headers): RequestRedirect {
+  let forwardsCredential = false;
+  headers.forEach((_value, key) => {
+    if (isSensitiveHeader(key) && !STRIPPED_BY_FETCH_ON_REDIRECT.has(key))
+      forwardsCredential = true;
+  });
+  return forwardsCredential ? "manual" : "follow";
+}
 
 export function redactHeaders(headers: Headers): Record<string, string> {
   const out: Record<string, string> = {};
   headers.forEach((value, key) => {
-    out[key] = SENSITIVE_HEADERS.has(key.toLowerCase()) ? "[REDACTED]" : value;
+    out[key] = isSensitiveHeader(key) ? "[REDACTED]" : value;
   });
   return out;
 }
@@ -125,7 +219,13 @@ function resolveRetry(
   override: RetryOptions | false | undefined
 ): ResolvedRetry {
   if (override === false || (override === undefined && base === false)) {
-    return { maxRetries: 0, baseDelayMs: 0, maxDelayMs: 0, retryOn: new Set() };
+    return {
+      maxRetries: 0,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
+      retryOn: new Set(),
+      nonIdempotent: false,
+    };
   }
   const merged: RetryOptions = { ...(base === false ? {} : base), ...override };
   return {
@@ -133,6 +233,7 @@ function resolveRetry(
     baseDelayMs: nonNegative(merged.baseDelayMs, DEFAULT_RETRY.baseDelayMs),
     maxDelayMs: nonNegative(merged.maxDelayMs, DEFAULT_RETRY.maxDelayMs),
     retryOn: new Set(merged.retryOn ?? DEFAULT_RETRY.retryOn),
+    nonIdempotent: merged.retryNonIdempotent === true,
   };
 }
 
@@ -170,7 +271,10 @@ interface Established {
 }
 
 export interface ChatCompletionsResource {
-  create(request: ChatCompletionRequest, options?: RequestOptions): Promise<ApiResponse<ChatCompletion>>;
+  create(
+    request: ChatCompletionRequest,
+    options?: RequestOptions
+  ): Promise<ApiResponse<ChatCompletion>>;
   stream(request: ChatCompletionRequest, options?: RequestOptions): Promise<ChatCompletionStream>;
 }
 
@@ -179,7 +283,10 @@ export class OmniRouteClient {
   readonly chat: { readonly completions: ChatCompletionsResource };
   readonly models: { list(options?: RequestOptions): Promise<ApiResponse<ModelList>> };
   readonly routing: {
-    preview(request: RoutePreviewRequest, options?: RequestOptions): Promise<ApiResponse<RoutePreviewResult>>;
+    preview(
+      request: RoutePreviewRequest,
+      options?: RequestOptions
+    ): Promise<ApiResponse<RoutePreviewResult>>;
   };
   readonly #apiKey: string | undefined;
   readonly #managementKey: string | undefined;
@@ -190,6 +297,7 @@ export class OmniRouteClient {
   readonly #defaultHeaders: Record<string, string>;
   readonly #onRequest: ((info: RequestDebugInfo) => void) | undefined;
   readonly #sleep: (ms: number, signal: AbortSignal | undefined) => Promise<void>;
+  readonly #random: () => number;
 
   constructor(options: OmniRouteClientOptions = {}) {
     this.baseUrl = normalizeBaseUrl(options.baseUrl ?? DEFAULT_BASE_URL);
@@ -202,6 +310,7 @@ export class OmniRouteClient {
     this.#defaultHeaders = { ...options.headers };
     this.#onRequest = options.onRequest;
     this.#sleep = options.sleep ?? defaultSleep;
+    this.#random = options.random ?? Math.random;
 
     this.chat = {
       completions: {
@@ -292,6 +401,7 @@ export class OmniRouteClient {
           method: op.method,
           headers,
           body: payload,
+          redirect: redirectModeFor(headers),
           signal: attempt.signal,
         });
       } catch (cause) {
@@ -300,7 +410,12 @@ export class OmniRouteClient {
         const error = attempt.timedOut
           ? timeoutError(timeoutMs, clientRequestId, cause)
           : networkError(clientRequestId, cause);
-        if (attemptNumber >= retry.maxRetries) throw error;
+        if (
+          attemptNumber >= retry.maxRetries ||
+          !mayRetryFailure(op, retry, attempt.timedOut, cause)
+        ) {
+          throw error;
+        }
         await this.#backoff(attemptNumber, undefined, retry, options.signal, clientRequestId);
         continue;
       }
@@ -308,7 +423,10 @@ export class OmniRouteClient {
       if (response.ok) return { response, clientRequestId, attempt };
 
       const retryAfterMs = parseRetryAfterMs(response.headers.get("retry-after"), Date.now());
-      if (retry.retryOn.has(response.status) && attemptNumber < retry.maxRetries) {
+      if (
+        attemptNumber < retry.maxRetries &&
+        mayRetryStatus(op, retry, response.status, retryAfterMs)
+      ) {
         await discardBody(response);
         attempt.dispose();
         await this.#backoff(attemptNumber, retryAfterMs, retry, options.signal, clientRequestId);
@@ -316,7 +434,13 @@ export class OmniRouteClient {
       }
       const text = await response.text().catch(() => "");
       attempt.dispose();
-      throw errorFromHttpResponse(response.status, text, response.headers, clientRequestId, retryAfterMs);
+      throw errorFromHttpResponse(
+        response.status,
+        text,
+        response.headers,
+        clientRequestId,
+        retryAfterMs
+      );
     }
   }
 
@@ -327,13 +451,22 @@ export class OmniRouteClient {
     signal: AbortSignal | undefined,
     clientRequestId: string
   ): Promise<void> {
-    const exponential = retry.baseDelayMs * 2 ** attemptNumber;
-    const delay = Math.min(retryAfterMs ?? exponential, retry.maxDelayMs);
+    const delay =
+      retryAfterMs === undefined
+        ? this.#jitteredBackoff(attemptNumber, retry)
+        : Math.min(retryAfterMs, retry.maxDelayMs);
     try {
       await this.#sleep(delay, signal);
     } catch (cause) {
       throw abortedError(clientRequestId, cause);
     }
+  }
+
+  /** Exponential backoff capped by `maxDelayMs`, then jittered down by up to half: (d/2, d]. */
+  #jitteredBackoff(attemptNumber: number, retry: ResolvedRetry): number {
+    const capped = Math.min(retry.baseDelayMs * 2 ** attemptNumber, retry.maxDelayMs);
+    const unit = Math.min(Math.max(this.#random(), 0), 1);
+    return capped - Math.floor((unit * capped) / 2);
   }
 
   async #requestJson<T>(
@@ -352,7 +485,8 @@ export class OmniRouteClient {
       text = await response.text();
     } catch (cause) {
       if (attempt.abortedByCaller) throw abortedError(clientRequestId, cause);
-      if (attempt.timedOut) throw timeoutError(nonNegative(options.timeoutMs, this.#timeoutMs), clientRequestId, cause);
+      if (attempt.timedOut)
+        throw timeoutError(nonNegative(options.timeoutMs, this.#timeoutMs), clientRequestId, cause);
       throw networkError(clientRequestId, cause);
     } finally {
       attempt.dispose();

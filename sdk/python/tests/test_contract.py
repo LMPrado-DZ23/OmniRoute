@@ -48,6 +48,7 @@ def retry_from_fixture(retry: Dict[str, Any]) -> RetryConfig:
         base_delay_ms=retry.get("baseDelayMs", defaults.base_delay_ms),
         max_delay_ms=retry.get("maxDelayMs", defaults.max_delay_ms),
         retry_on=tuple(retry.get("retryOn", defaults.retry_on)),
+        retry_non_idempotent=retry.get("retryNonIdempotent", defaults.retry_non_idempotent),
     )
 
 
@@ -116,6 +117,7 @@ class ContractFixtureTest(unittest.TestCase):
                 sleep=lambda seconds: delays.append(int(round(seconds * 1000))),
                 timeout_ms=5_000,
                 use_env_proxies=False,
+                random=lambda: 0.0,  # no jitter: fixtures pin the exact backoff delays
             )
             result, chunks, error = invoke(client, case)
 

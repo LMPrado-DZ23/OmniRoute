@@ -1,7 +1,7 @@
 ---
 title: "Workspaces, Budgets and RBAC (ADR)"
 version: 3.8.53
-lastUpdated: 2026-09-14
+lastUpdated: 2026-09-18
 ---
 
 # Workspaces, Budgets and RBAC (ADR)
@@ -129,8 +129,14 @@ role)`; nullable `project_id` on `api_keys`. Rows with `project_id IS NULL` belo
 ### 3.5 Credential exposure (implemented)
 
 `isProviderCredentialRevealAllowed` in `src/lib/apiKeyExposure.ts` returns true only when
-`ALLOW_API_KEY_REVEAL` is on **and** the request carries no programmatic credential (Bearer API
-key or CLI token, `x-api-key`, loopback CLI machine token). The flag stays default-off. With it
+`ALLOW_API_KEY_REVEAL` is on **and** the authz pipeline stamped a dashboard subject
+(`x-omniroute-auth-kind: dashboard_session`, or `anonymous` with label `auth-disabled` when login
+is disabled). It is an allow-list on the trusted stamp, which the pipeline strips from client input
+before it stamps: every API key or token is stamped `management_key` or `client_api_key` whatever
+header carried it (`Authorization`, `x-api-key`, `x-goog-api-key`), and a handler reached without
+the pipeline has no stamp and stays masked. As defense in depth, a request that also carries a
+programmatic credential (Bearer API key or CLI token, `x-api-key`, `x-goog-api-key`, loopback CLI
+machine token) stays masked. The flag stays default-off. With it
 off, no stored provider credential is returned in full after creation. Leaving the flag in place
 for the dashboard is a deliberate compatibility decision (documented operator opt-in, danger
 level); every reveal is audited.
