@@ -366,6 +366,7 @@ export async function resolveAutoStrategyOrder(
     let selectedModel: string | null = null;
     let selectedConnectionId: string | null = null;
     let selectionReason = "";
+    let selectedByRulesEngine = false;
 
     const autoConfig: AutoComboConfig = {
       id: combo.id || combo.name,
@@ -432,6 +433,7 @@ export async function resolveAutoStrategyOrder(
       selectedProvider = selection.provider;
       selectedModel = selection.model;
       selectedConnectionId = selection.connectionId ?? null;
+      selectedByRulesEngine = true;
       selectionReason = `score=${selection.score.toFixed(3)}${selection.isExploration ? " (exploration)" : ""}`;
     }
 
@@ -461,17 +463,17 @@ export async function resolveAutoStrategyOrder(
     // routable ranked ones (and, when the cutoff is OFF, makes this identical to
     // the pre-cutoff behavior), but a quota-blocked target still survives as a
     // final fallback instead of vanishing — the hard cutoff only de-prioritizes.
-    // The budget cap that bounded the first pick also bounds every failover attempt.
-    orderedTargets = orderTargetsByCostBudget(
-      dedupeTargetsByExecutionKey(
-        [selectedTarget, ...rankedTargets, ...eligibleTargets].filter(
-          (entry): entry is ResolvedComboTarget => entry !== undefined && entry !== null
-        )
-      ),
-      candidates,
-      budgetCap,
-      budgetFallback
+    const failoverTargets = dedupeTargetsByExecutionKey(
+      [selectedTarget, ...rankedTargets, ...eligibleTargets].filter(
+        (entry): entry is ResolvedComboTarget => entry !== undefined && entry !== null
+      )
     );
+    // On the scoring-engine path the budget cap that bounded the first pick also bounds every
+    // failover attempt. An explicit router strategy ignores budgetCap (as in v3.8.53): its pick
+    // is attempted first, so the recorded decision and the log name the first target tried.
+    orderedTargets = selectedByRulesEngine
+      ? orderTargetsByCostBudget(failoverTargets, candidates, budgetCap, budgetFallback)
+      : failoverTargets;
 
     log.info(
       "COMBO",
