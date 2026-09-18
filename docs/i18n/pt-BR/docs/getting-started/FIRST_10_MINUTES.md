@@ -58,6 +58,8 @@ Abra `http://localhost:20128`. O que aparece depende de `INITIAL_PASSWORD`:
 | não definida       | O assistente inicial (`/dashboard/onboarding`) pede para você definir uma senha do painel (ou continuar explicitamente sem senha, para uso apenas local).                                                            |
 | definida           | **O assistente inicial é pulado.** Na primeira leitura das configurações o OmniRoute grava `setupComplete=true` e `requireLogin=true` (`src/lib/db/settings.ts`), então você cai em `/login` e entra com essa senha. |
 
+Essa inicialização acontece uma única vez. Depois de entrar, você ainda pode fazer a configuração guiada em `/dashboard/onboarding?rerun=1`: ela mantém a senha que você já tem e passa por adicionar um provedor, validar a credencial, escolher um modelo, uma requisição de teste, a configuração do cliente e a primeira requisição nos logs. `PATCH /api/settings` com `{"setupComplete": false}` também traz o assistente de volta, e o valor não é mais forçado de novo na leitura seguinte.
+
 Se a senha for o valor de exemplo `CHANGEME` do `.env.example`, troque imediatamente em **Configurações → Segurança** (`/dashboard/settings/security`). Esqueceu a senha? Rode `omniroute-reset-password` (a partir do código-fonte: `node bin/reset-password.mjs`).
 
 **Confirme:** você vê a página inicial do painel, logado.
@@ -159,7 +161,7 @@ Model:    <model-id-from-/v1/models>
 
 ## Ressalvas conhecidas
 
-- Definir `INITIAL_PASSWORD` pula o assistente inicial por completo (veja a tabela acima). Use em implantações headless, não num primeiro teste local se você quiser o assistente.
+- Definir `INITIAL_PASSWORD` pula o assistente inicial na primeira inicialização (veja a tabela acima). Use em implantações headless; para ter a configuração guiada mesmo assim, entre e abra `/dashboard/onboarding?rerun=1`.
 - Local dos dados: `DATA_DIR` quando definido; senão um `~/.omniroute` já existente é mantido; depois `%APPDATA%\omniroute` no Windows, `$XDG_CONFIG_HOME/omniroute` quando `XDG_CONFIG_HOME` está definido, e por fim `~/.omniroute` (`src/lib/dataPaths.ts`). Faça backup antes de atualizar: [Backup e restauração](../ops/BACKUP_RESTORE.md).
 - Imagens Docker `:next` mudam sem aviso. Atualização, fixação de versão e rollback: [Guia de atualização e migração](../guides/MIGRATION_GUIDE.md).
 - Publicar a porta em `127.0.0.1` (como no exemplo Docker) mantém o gateway local. Antes de expor, leia o [SECURITY.md](../../SECURITY.md) e o [Guia de implantação em VM](../ops/VM_DEPLOYMENT_GUIDE.md).
