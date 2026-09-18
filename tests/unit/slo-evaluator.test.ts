@@ -16,7 +16,7 @@ import {
   evaluateSlo,
   type BreakerHistoryInput,
 } from "../../src/lib/monitoring/sloEvaluator.ts";
-import { SloAlertTracker } from "../../src/lib/monitoring/sloAlerts.ts";
+import { SloAlertRunner, SloAlertTracker } from "../../src/lib/monitoring/sloAlerts.ts";
 import { sloSettingsSchema } from "../../src/shared/validation/schemas/slo.ts";
 import { updateSettingsSchema } from "../../src/shared/validation/settingsSchemas.ts";
 import { WEBHOOK_EVENT_VALUES } from "../../src/lib/webhooks/eventDescriptions.ts";
@@ -177,6 +177,125 @@ test("provider recovery time comes from OPEN→CLOSED transitions, including ong
   );
   assert.equal(report.provider_recovery.status, "breached");
   assert.equal(report.provider_recovery.provider, "openai");
+});
+
+test("an idle breaker left open or half-open does not breach provider recovery forever", () => {
+  const windowStart = NOW - 15 * 60_000;
+  const idleHalfOpen: BreakerHistoryInput = {
+    name: "retired-provider",
+    state: "HALF_OPEN",
+    lastFailureTime: NOW - 2 * 60 * 60_000,
+    transitionHistory: [
+      { to: "OPEN", timestamp: NOW - 2 * 60 * 60_000 },
+      { to: "HALF_OPEN", timestamp: NOW - 2 * 60 * 60_000 + 30_000 },
+    ],
+  };
+  const idleOpen: BreakerHistoryInput = {
+    name: "idle-open",
+    state: "OPEN",
+    lastFailureTime: NOW - 60 * 60_000,
+    transitionHistory: [{ to: "OPEN", timestamp: NOW - 60 * 60_000 }],
+  };
+  const idle = computeProviderRecovery([idleHalfOpen, idleOpen], windowStart, NOW);
+  assert.equal(idle.samples, 0);
+  assert.equal(idle.worstMs, null);
+
+  const report = evaluateSlo(
+    resolveSloSettings({ providerRecoveryMaxMs: 120_000 }),
+    windowWith(0, 0),
+    [idleHalfOpen, idleOpen],
+    NOW
+  );
+  assert.equal(byKey(report).provider_recovery.status, "insufficient_data");
+  assert.notEqual(report.status, "breached");
+
+  // Still failing inside the window: the whole ongoing episode counts and breaches.
+  const stillFailing: BreakerHistoryInput = {
+    ...idleHalfOpen,
+    name: "still-failing",
+    lastFailureTime: NOW - 60_000,
+  };
+  const failing = computeProviderRecovery([stillFailing], windowStart, NOW);
+  assert.equal(failing.samples, 1);
+  assert.equal(failing.worstMs, 2 * 60 * 60_000);
+  assert.equal(failing.provider, "still-failing");
+});
+
+function runnerDeps(overrides: Partial<ConstructorParameters<typeof SloAlertRunner>[0]> = {}) {
+  const dispatched: string[] = [];
+  let enabled = true;
+  let window = windowWith(50, 50);
+  const deps = {
+    loadSettings: async () => resolveSloSettings({ minSamples: 10, alertsEnabled: enabled }),
+    readBreakers: () => [],
+    readWindow: () => window,
+    dispatch: async (event: string) => {
+      dispatched.push(event);
+    },
+    now: () => NOW,
+    ...overrides,
+  };
+  return {
+    deps,
+    dispatched,
+    setEnabled: (value: boolean) => (enabled = value),
+    setWindow: (value: ReturnType<typeof windowWith>) => (window = value),
+  };
+}
+
+test("SloAlertRunner forgets alert state while alerts are off", async () => {
+  const harness = runnerDeps();
+  const runner = new SloAlertRunner(harness.deps);
+
+  await runner.tick();
+  assert.ok(harness.dispatched.includes("slo.breached"));
+  harness.dispatched.length = 0;
+
+  harness.setEnabled(false);
+  harness.setWindow(windowWith(100, 0));
+  await runner.tick();
+  assert.deepEqual(harness.dispatched, [], "nothing is sent while alerts are off");
+
+  harness.setEnabled(true);
+  await runner.tick();
+  assert.deepEqual(
+    harness.dispatched,
+    [],
+    "re-enabling does not replay a recovery that happened while alerts were off"
+  );
+
+  harness.setWindow(windowWith(50, 50));
+  await runner.tick();
+  assert.ok(harness.dispatched.includes("slo.breached"), "a new breach alerts again");
+});
+
+test("SloAlertRunner skips a tick while the previous one is still dispatching", async () => {
+  let release: () => void = () => undefined;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const events: string[] = [];
+  const harness = runnerDeps({
+    dispatch: async (event: string) => {
+      events.push(event);
+      await gate;
+    },
+  });
+  const runner = new SloAlertRunner(harness.deps);
+
+  const first = runner.tick();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(await runner.tick(), false, "the overlapping tick is skipped");
+  release();
+  assert.equal(await first, true);
+  const breaches = events.filter((event) => event === "slo.breached").length;
+  assert.ok(breaches > 0);
+  assert.equal(await runner.tick(), true, "the next tick runs again");
+  assert.equal(
+    events.filter((event) => event === "slo.breached").length,
+    breaches,
+    "each transition is sent once"
+  );
 });
 
 test("SloAlertTracker emits breach/recovery/circuit-open once per state change", () => {

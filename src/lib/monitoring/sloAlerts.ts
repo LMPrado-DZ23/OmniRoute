@@ -7,6 +7,9 @@
  *  - `provider.circuit_open` a provider circuit breaker is newly OPEN (once per open cycle)
  *
  * `insufficient_data` keeps the previous state, so low traffic never flaps.
+ * Turning alerts off forgets that state, so re-enabling them never replays a
+ * transition that happened while they were off. Ticks never overlap: a tick
+ * that finds the previous one still dispatching (slow webhooks) is skipped.
  * Payloads carry only objective names, numbers and sanitized provider labels —
  * never prompts, responses, API keys, connection ids or account ids.
  * Off by default; enabled with settings `slo.alertsEnabled = true`.
@@ -16,9 +19,10 @@ import { routingMetrics } from "@omniroute/open-sse/services/routing/metricsSink
 import { sanitizeLabelValue } from "@omniroute/open-sse/services/routing/metricLabels.ts";
 import { getCachedSettings } from "@/lib/db/readCache";
 import { dispatchEvent } from "@/lib/webhookDispatcher";
-import { getAllCircuitBreakerStatuses } from "@/shared/utils/circuitBreaker";
+import { getAllCircuitBreakerSnapshots } from "@/shared/utils/circuitBreaker";
+import type { RoutingMetricsWindow } from "@omniroute/open-sse/services/routing/metricsSink.ts";
 import { evaluateSlo, type BreakerHistoryInput, type SloReport } from "./sloEvaluator";
-import { resolveSloSettings } from "./sloSettings";
+import { resolveSloSettings, type SloSettings } from "./sloSettings";
 
 const SLO_ALERT_INTERVAL_MS = 60_000;
 
@@ -71,6 +75,12 @@ export class SloAlertTracker {
     this.openProviders = nowOpen;
     return alerts;
   }
+
+  /** Forget every remembered breach and open provider. */
+  reset(): void {
+    this.breached.clear();
+    this.openProviders = new Set<string>();
+  }
 }
 
 function objectivePayload(
@@ -88,30 +98,66 @@ function objectivePayload(
   };
 }
 
-const tracker = new SloAlertTracker();
-let loopTimer: ReturnType<typeof setInterval> | null = null;
+export interface SloAlertRunnerDeps {
+  loadSettings(): Promise<SloSettings>;
+  readBreakers(): BreakerHistoryInput[];
+  readWindow(windowMs: number): RoutingMetricsWindow;
+  dispatch(event: SloAlert["event"], data: SloAlert["data"]): Promise<unknown>;
+  now(): number;
+}
 
-async function runSloAlertTick(): Promise<void> {
-  const settings = resolveSloSettings((await getCachedSettings()).slo);
-  if (!settings.alertsEnabled) return;
-  const breakers = getAllCircuitBreakerStatuses();
-  const now = Date.now();
-  const report = evaluateSlo(
-    settings,
-    routingMetrics.window(settings.windowMinutes * 60_000),
-    breakers,
-    now
-  );
-  for (const alert of tracker.transitions(report, breakers)) {
-    await dispatchEvent(alert.event, alert.data).catch(() => undefined);
+/** One SLO alert evaluation per `tick()`, never two at once. */
+export class SloAlertRunner {
+  private readonly tracker = new SloAlertTracker();
+  private running = false;
+
+  constructor(private readonly deps: SloAlertRunnerDeps) {}
+
+  /** Evaluate and dispatch; returns false when skipped because a tick is still running. */
+  async tick(): Promise<boolean> {
+    if (this.running) return false;
+    this.running = true;
+    try {
+      await this.evaluate();
+    } finally {
+      this.running = false;
+    }
+    return true;
+  }
+
+  private async evaluate(): Promise<void> {
+    const settings = await this.deps.loadSettings();
+    if (!settings.alertsEnabled) {
+      this.tracker.reset();
+      return;
+    }
+    const breakers = this.deps.readBreakers();
+    const report = evaluateSlo(
+      settings,
+      this.deps.readWindow(settings.windowMinutes * 60_000),
+      breakers,
+      this.deps.now()
+    );
+    for (const alert of this.tracker.transitions(report, breakers)) {
+      await this.deps.dispatch(alert.event, alert.data).catch(() => undefined);
+    }
   }
 }
+
+const runner = new SloAlertRunner({
+  loadSettings: async () => resolveSloSettings((await getCachedSettings()).slo),
+  readBreakers: getAllCircuitBreakerSnapshots,
+  readWindow: (windowMs) => routingMetrics.window(windowMs),
+  dispatch: dispatchEvent,
+  now: Date.now,
+});
+let loopTimer: ReturnType<typeof setInterval> | null = null;
 
 /** Start the periodic SLO evaluation. Idempotent; the timer never keeps the process alive. */
 export function startSloAlertLoop(): void {
   if (loopTimer) return;
   loopTimer = setInterval(() => {
-    runSloAlertTick().catch(() => undefined);
+    runner.tick().catch(() => undefined);
   }, SLO_ALERT_INTERVAL_MS);
   loopTimer.unref?.();
 }

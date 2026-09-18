@@ -286,6 +286,7 @@
       "tests/unit/mcp-connect-scope.test.ts",
       "tests/unit/memory-embedding-remote.test.ts",
       "tests/unit/memory-embedding-transformers.test.ts",
+      "tests/unit/metrics-scrape-breaker-readonly.test.ts",
       "tests/unit/microsoft-designer-web-runtime-block.test.ts",
       "tests/unit/middleware-header-strip-5849.test.ts",
       "tests/unit/middleware-hooks-error-sanitization.test.ts",

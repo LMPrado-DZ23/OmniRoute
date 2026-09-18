@@ -22,6 +22,7 @@
   "memory-qdrant-routes.spec.ts": 360,
   "memory-settings.spec.ts": 193,
   "navigation.spec.ts": 28,
+  "onboarding-first-use.spec.ts": 268,
   "playground-compare.spec.ts": 138,
   "playground-studio.spec.ts": 101,
   "protocol-visibility.spec.ts": 25,

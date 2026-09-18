@@ -35,7 +35,13 @@ export type RoutingExclusionReason =
  */
 export type RoutingQuotaState = "available" | "low" | "exhausted" | "unknown";
 
-/** Optional per-request limits that the decision and every failover attempt must respect. */
+/**
+ * Optional per-request limits. Today they are read by route previews (candidates over a limit are
+ * excluded as `cost_over_budget` / `latency_over_budget`) and by the `planNextAttempt()` /
+ * `checkFailoverBudget()` library in `open-sse/services/routing/attemptPolicy.ts`. Live traffic has
+ * no per-request budget input: the live auto combo enforces only the combo's own `budgetCap` (see
+ * docs/routing/ROUTING_CONTRACT.md, "Guarantees").
+ */
 export interface RoutingBudget {
   /** Maximum estimated cost of the request in USD, summed over its attempts. */
   maxCost?: number;
@@ -94,6 +100,11 @@ export interface RoutingDecision {
   selectionMode?: RoutingSelectionMode;
   /** Router strategy that chose the candidate ("rules" is the scoring engine). */
   strategy?: string;
+  /**
+   * Candidates left out of `candidates` when the decision was retained in its compact form (live
+   * decisions keep a bounded number of candidates). Absent when every candidate is listed.
+   */
+  omittedCandidates?: number;
 }
 
 /** Result class of one provider attempt. */

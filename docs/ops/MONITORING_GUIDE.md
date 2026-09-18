@@ -432,6 +432,14 @@ To receive them:
 2. **Subscribe a webhook.** **Webhooks → Add Webhook**, and on the last step pick
    `slo.breached`, `slo.recovered` and/or `provider.circuit_open` (or keep **All events**, `*`).
 
+Turning alerts off forgets the remembered alert state, so turning them back on never replays a
+transition that happened while they were off. A tick is skipped while the previous one is still
+dispatching webhooks, so slow endpoints cannot cause duplicate or interleaved alerts.
+
+The alert loop and `GET /api/metrics` read circuit breakers without changing them: an `OPEN`
+breaker whose cooldown has elapsed is reported as `HALF_OPEN`, but a scrape never transitions
+it, persists it or grants its half-open probe; only live traffic does.
+
 ---
 
 ## Performance Metrics
@@ -509,6 +517,9 @@ Enforced by `open-sse/services/routing/metricLabels.ts`:
 - Bounded values: first 64 providers, 100 models, 16 strategies, 16 engines are kept;
   later distinct values collapse into `other`. Each family is additionally capped at
   2000 series. Combo names, connection ids, request ids and finish reasons are never labels.
+  The fixed values `redacted`, `unknown` and `other` never take a slot, and only a model
+  that served a successful response takes a model slot: failed requests for model ids a
+  client made up are counted under `other` unless the model is already tracked.
 - Values are restricted to `[A-Za-z0-9._:/-]`, truncated to 80 chars, and replaced by
   `redacted` when they look like a credential (API-key prefixes such as `sk-`, `ghp_`),
   an opaque token (32+ alphanumerics), an e-mail address or a UUID.
@@ -548,6 +559,12 @@ first with `GET /api/settings`). An out-of-range value returns `400` with
 
 `failed` excludes `cancelled` and `guardrail_blocked` (client or policy decisions).
 Rate limits and timeouts count against availability but not against `error_rate`.
+
+For `provider_recovery`, an ongoing open episode (breaker still `OPEN` or `HALF_OPEN`) counts
+only while that breaker fails, or opens, inside the window. A breaker only leaves `HALF_OPEN`
+when traffic probes it, so a provider that stopped receiving traffic would otherwise report a
+breach forever. Such an idle open breaker adds no sample; it still shows in
+`omniroute_circuit_breakers` and `omniroute_circuit_breaker_open`.
 
 `GET /api/telemetry/summary` `errorRate` is **not** the SLO `error_rate`. It uses the same
 denominator (success + failed routed requests) but counts **every** failed outcome in the

@@ -306,7 +306,9 @@ export class RoutingMetricsRegistry {
     const provider = this.providers.resolve(event.provider);
     const outcome = event.outcome;
     this.requests.inc([provider, outcome]);
-    this.modelRequests.inc([this.models.resolve(event.model), outcome]);
+    // Only a model that served a response takes a model label slot: a client can send any model
+    // id, and failed requests for invented ids must not crowd real models into "other".
+    this.modelRequests.inc([this.models.resolve(event.model, outcome === "success"), outcome]);
     this.statusClasses.inc([statusClassOf(event.status)]);
     this.strategyRequests.inc([this.strategies.resolve(event.strategy), outcome]);
     this.attempts.inc([provider]);

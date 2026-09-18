@@ -4,6 +4,8 @@
  * Every call goes through an in-process fake fetch — no network, no provider calls.
  */
 import assert from "node:assert/strict";
+import { createServer, type IncomingHttpHeaders, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
 import { describe, it } from "node:test";
 import { inspect } from "node:util";
 
@@ -66,6 +68,7 @@ describe("OmniRouteClient retries", () => {
       sleep: async (ms) => {
         delays.push(ms);
       },
+      random: () => 0,
     });
     const response = await client.models.list();
     assert.equal(response.status, 200);
@@ -144,6 +147,194 @@ describe("OmniRouteClient retries", () => {
     const error = await captureError(client.health({ signal: controller.signal }));
     assert.equal(error.code, CLIENT_ERROR_CODES.aborted);
     assert.ok(Date.now() - started < 5_000, "backoff sleep must be interrupted");
+  });
+});
+
+async function listen(server: Server): Promise<string> {
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+}
+
+/**
+ * Closes a loopback server and lets fetch's pooled sockets finish closing: with --test-force-exit
+ * on Windows, exiting while they close trips a libuv assertion (src/win/async.c).
+ */
+function close(server: Server): Promise<void> {
+  server.closeAllConnections();
+  return new Promise((resolve) => server.close(() => setTimeout(resolve, 50)));
+}
+
+/** Two loopback servers on different ports: `origin` answers 302 to `target`. */
+async function withRedirect(
+  run: (originUrl: string, targetHeaders: IncomingHttpHeaders[]) => Promise<void>
+): Promise<void> {
+  const targetHeaders: IncomingHttpHeaders[] = [];
+  const target = createServer((req, res) => {
+    targetHeaders.push(req.headers);
+    res.setHeader("connection", "close");
+    res.setHeader("content-type", "application/json");
+    res.end(JSON.stringify({ object: "list", data: [] }));
+  });
+  const targetUrl = await listen(target);
+  const origin = createServer((_req, res) => {
+    res.statusCode = 302;
+    res.setHeader("connection", "close");
+    res.setHeader("location", `${targetUrl}/elsewhere`);
+    res.end();
+  });
+  const originUrl = await listen(origin);
+  try {
+    await run(originUrl, targetHeaders);
+  } finally {
+    await Promise.all([close(origin), close(target)]);
+  }
+}
+
+describe("OmniRouteClient redirects (loopback servers only)", () => {
+  it("never forwards a credential to a cross-origin redirect target", async () => {
+    await withRedirect(async (originUrl, targetHeaders) => {
+      const bearerOnly = new OmniRouteClient({
+        baseUrl: originUrl,
+        apiKey: "sk-redirect",
+        retry: false,
+      });
+      assert.equal((await bearerOnly.models.list()).status, 200);
+      assert.equal(targetHeaders.length, 1);
+      assert.equal(targetHeaders[0]?.authorization, undefined, "fetch strips Authorization");
+
+      const customCredential = new OmniRouteClient({
+        baseUrl: originUrl,
+        apiKey: "sk-redirect",
+        headers: { "x-goog-api-key": "sk-goog", "x-api-key": "sk-anthropic-style" },
+        retry: false,
+      });
+      const error = await captureError(customCredential.models.list());
+      assert.equal(error.status, 302, "the redirect surfaces instead of being followed");
+      assert.equal(targetHeaders.length, 1, "the redirect target must not be contacted again");
+    });
+  });
+});
+
+function refused(): TypeError {
+  const cause = Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:1"), {
+    code: "ECONNREFUSED",
+  });
+  return new TypeError("fetch failed", { cause });
+}
+
+describe("OmniRouteClient retries of non-idempotent POST requests", () => {
+  const hangUntilAborted: FetchLike = (_url, init) =>
+    new Promise((_resolve, reject) => {
+      init.signal?.addEventListener("abort", () => reject(new Error("aborted by signal")), {
+        once: true,
+      });
+    });
+
+  it("never retries a chat completion after a timeout (the upstream may be generating)", async () => {
+    let calls = 0;
+    const client = new OmniRouteClient({
+      fetch: (url, init) => {
+        calls++;
+        return hangUntilAborted(url, init);
+      },
+      timeoutMs: 20,
+      retry: { maxRetries: 2, baseDelayMs: 0 },
+      sleep: async () => {},
+    });
+    const error = await captureError(client.chat.completions.create(CHAT));
+    assert.equal(error.code, CLIENT_ERROR_CODES.timeout);
+    assert.equal(calls, 1);
+  });
+
+  it("does not retry a POST after a network error once the request may have been sent", async () => {
+    let calls = 0;
+    const client = new OmniRouteClient({
+      fetch: async () => {
+        calls++;
+        throw new TypeError("fetch failed", { cause: new Error("socket hang up") });
+      },
+      retry: { maxRetries: 2, baseDelayMs: 0 },
+      sleep: async () => {},
+    });
+    assert.equal(
+      (await captureError(client.chat.completions.create(CHAT))).code,
+      CLIENT_ERROR_CODES.network
+    );
+    assert.equal(calls, 1);
+  });
+
+  it("retries a POST whose connection was refused (nothing reached the server)", async () => {
+    let calls = 0;
+    const client = new OmniRouteClient({
+      fetch: async () => {
+        calls++;
+        if (calls === 1) throw refused();
+        return jsonResponse({ id: "chatcmpl-1", object: "chat.completion", choices: [] });
+      },
+      retry: { maxRetries: 2, baseDelayMs: 0 },
+      sleep: async () => {},
+    });
+    assert.equal((await client.chat.completions.create(CHAT)).status, 200);
+    assert.equal(calls, 2);
+  });
+
+  it("recognises a real refused connection from fetch as not sent", async () => {
+    const server = createServer();
+    const baseUrl = await listen(server);
+    await close(server);
+    const attempts: number[] = [];
+    const client = new OmniRouteClient({
+      baseUrl,
+      retry: { maxRetries: 1, baseDelayMs: 0 },
+      onRequest: (info) => attempts.push(info.attempt),
+      sleep: async () => {},
+    });
+    const error = await captureError(client.chat.completions.create(CHAT));
+    assert.equal(error.code, CLIENT_ERROR_CODES.network);
+    assert.deepEqual(attempts, [0, 1]);
+  });
+
+  it("retryNonIdempotent restores retries after a POST timeout", async () => {
+    let calls = 0;
+    const client = new OmniRouteClient({
+      fetch: (url, init) => {
+        calls++;
+        return hangUntilAborted(url, init);
+      },
+      timeoutMs: 20,
+      retry: { maxRetries: 1, baseDelayMs: 0, retryNonIdempotent: true },
+      sleep: async () => {},
+    });
+    await captureError(client.chat.completions.create(CHAT));
+    assert.equal(calls, 2);
+  });
+
+  it("jitters exponential backoff within (delay/2, delay] and never above maxDelayMs", async () => {
+    const delays: number[] = [];
+    const client = new OmniRouteClient({
+      fetch: async () => {
+        throw new TypeError("fetch failed");
+      },
+      retry: { maxRetries: 3, baseDelayMs: 1_000, maxDelayMs: 1_500 },
+      sleep: async (ms) => {
+        delays.push(ms);
+      },
+      random: () => 0.999,
+    });
+    await captureError(client.models.list());
+    assert.deepEqual(delays, [501, 751, 751]);
+    const low = new OmniRouteClient({
+      fetch: async () => {
+        throw new TypeError("fetch failed");
+      },
+      retry: { maxRetries: 1, baseDelayMs: 1_000 },
+      sleep: async (ms) => {
+        delays.push(ms);
+      },
+      random: () => 0,
+    });
+    await captureError(low.models.list());
+    assert.equal(delays.at(-1), 1_000);
   });
 });
 
@@ -297,6 +488,34 @@ describe("OmniRouteClient request shaping", () => {
     const dump = `${inspect(client, { depth: 5 })} ${JSON.stringify(client)} ${JSON.stringify(seen)}`;
     assert.ok(!dump.includes("sk-super-secret"), "API key leaked");
     assert.ok(!dump.includes("mgmt-super-secret"), "management key leaked");
+  });
+
+  it("redacts every credential header variant in the debug hook", async () => {
+    const credentialHeaders: Record<string, string> = {
+      authorization: "Bearer sk-a",
+      "proxy-authorization": "Basic sk-b",
+      cookie: "session=sk-c",
+      "x-api-key": "sk-d",
+      "x-goog-api-key": "sk-e",
+      "x-omniroute-cli-token": "sk-f",
+      "x-custom-secret": "sk-g",
+    };
+    const seen: RequestDebugInfo[] = [];
+    const client = new OmniRouteClient({
+      apiKey: "sk-h",
+      headers: { ...credentialHeaders, "x-trace": "visible" },
+      fetch: async () => jsonResponse({ object: "list", data: [] }),
+      onRequest: (info) => seen.push(info),
+      retry: false,
+    });
+    await client.models.list();
+    const snapshot = seen[0]?.headers ?? {};
+    for (const name of Object.keys(credentialHeaders)) {
+      assert.equal(snapshot[name], "[REDACTED]", name);
+    }
+    assert.equal(snapshot["x-trace"], "visible");
+    assert.equal(snapshot["x-request-id"], seen[0]?.clientRequestId);
+    assert.ok(!JSON.stringify(seen).includes("sk-"), "a credential leaked into the debug hook");
   });
 
   it("normalizes the base URL, honours a per-call request id and generates UUIDs by default", async () => {

@@ -58,6 +58,8 @@ Open `http://localhost:20128`. What you see depends on `INITIAL_PASSWORD`:
 | not set            | The onboarding wizard (`/dashboard/onboarding`) asks you to set a dashboard password (or explicitly continue without one for local-only use).                                                                  |
 | set                | **The onboarding wizard is skipped.** On first settings read OmniRoute stores `setupComplete=true` and `requireLogin=true` (`src/lib/db/settings.ts`), so you land on `/login` and sign in with that password. |
 
+The bootstrap runs once. After signing in you can still run the guided setup at `/dashboard/onboarding?rerun=1`: it keeps the password you already have and walks through adding a provider, validating the credential, choosing a model, a test request, the client configuration and the first request in the logs. `PATCH /api/settings` with `{"setupComplete": false}` also brings the wizard back, and the setting is no longer re-forced on the next read.
+
 If the password is the `.env.example` placeholder `CHANGEME`, change it right away in **Settings → Security** (`/dashboard/settings/security`). Forgot it? Run `omniroute-reset-password` (from source: `node bin/reset-password.mjs`).
 
 **Confirm:** you see the dashboard home while logged in.
@@ -159,7 +161,7 @@ Model:    <model-id-from-/v1/models>
 
 ## Known caveats
 
-- Setting `INITIAL_PASSWORD` skips onboarding entirely (see the table above). Use it for headless deploys, not for a first local try if you want the wizard.
+- Setting `INITIAL_PASSWORD` skips the onboarding wizard on first boot (see the table above). Use it for headless deploys; to get the guided setup anyway, sign in and open `/dashboard/onboarding?rerun=1`.
 - Data location: `DATA_DIR` when set; otherwise an existing `~/.omniroute` is kept, then `%APPDATA%\omniroute` on Windows, `$XDG_CONFIG_HOME/omniroute` when `XDG_CONFIG_HOME` is set, else `~/.omniroute` (`src/lib/dataPaths.ts`). Back it up before upgrading: [BACKUP_RESTORE.md](../ops/BACKUP_RESTORE.md).
 - `:next` Docker images change under you. Upgrades, pinning and rollback: [MIGRATION_GUIDE.md](../guides/MIGRATION_GUIDE.md).
 - Binding to `127.0.0.1` (as in the Docker example) keeps the gateway local. Before exposing it, read [SECURITY.md](../../SECURITY.md) and [VM_DEPLOYMENT_GUIDE.md](../ops/VM_DEPLOYMENT_GUIDE.md).

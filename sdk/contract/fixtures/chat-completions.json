@@ -75,7 +75,7 @@
       }
     },
     {
-      "name": "a 503 is retried with exponential backoff and the same x-request-id",
+      "name": "a 503 with Retry-After is retried with the same x-request-id",
       "operation": "chatCompletions",
       "client": {
         "apiKey": "sk-contract-key",
@@ -108,7 +108,11 @@
       "responses": [
         {
           "status": 503,
-          "headers": { "content-type": "application/json", "x-request-id": "srv-503" },
+          "headers": {
+            "content-type": "application/json",
+            "retry-after": "0.25",
+            "x-request-id": "srv-503"
+          },
           "json": {
             "error": {
               "message": "All upstream providers failed",
@@ -219,6 +223,89 @@
           "code": null,
           "requestId": "srv-429-b",
           "retryAfterMs": 2000
+        }
+      }
+    },
+    {
+      "name": "a 503 without Retry-After is not retried because the POST may already have run",
+      "operation": "chatCompletions",
+      "client": {
+        "apiKey": "sk-contract-key",
+        "requestId": "req-contract-1",
+        "retry": { "maxRetries": 2, "baseDelayMs": 250 }
+      },
+      "input": { "model": "auto", "messages": [{ "role": "user", "content": "Hello" }] },
+      "expectedRequests": [
+        {
+          "method": "POST",
+          "path": "/api/v1/chat/completions",
+          "headers": { "x-request-id": "req-contract-1" }
+        }
+      ],
+      "responses": [
+        {
+          "status": 503,
+          "headers": { "content-type": "application/json", "x-request-id": "srv-503" },
+          "json": {
+            "error": {
+              "message": "All upstream providers failed",
+              "type": "server_error",
+              "code": "upstream_unavailable"
+            }
+          }
+        }
+      ],
+      "expectedDelaysMs": [],
+      "expected": {
+        "error": {
+          "status": 503,
+          "message": "All upstream providers failed",
+          "code": "upstream_unavailable",
+          "requestId": "srv-503",
+          "retryAfterMs": null
+        }
+      }
+    },
+    {
+      "name": "retryNonIdempotent opts a POST back into retrying a 503 without Retry-After",
+      "operation": "chatCompletions",
+      "client": {
+        "apiKey": "sk-contract-key",
+        "requestId": "req-contract-1",
+        "retry": { "maxRetries": 1, "baseDelayMs": 250, "retryNonIdempotent": true }
+      },
+      "input": { "model": "auto", "messages": [{ "role": "user", "content": "Hello" }] },
+      "expectedRequests": [
+        {
+          "method": "POST",
+          "path": "/api/v1/chat/completions",
+          "headers": { "x-request-id": "req-contract-1" }
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/chat/completions",
+          "headers": { "x-request-id": "req-contract-1" }
+        }
+      ],
+      "responses": [
+        {
+          "status": 503,
+          "headers": { "content-type": "application/json", "x-request-id": "srv-503" },
+          "json": { "error": { "message": "All upstream providers failed" } }
+        },
+        {
+          "status": 200,
+          "headers": { "content-type": "application/json", "x-request-id": "srv-200" },
+          "json": { "id": "chatcmpl-3", "object": "chat.completion", "choices": [] }
+        }
+      ],
+      "expectedDelaysMs": [250],
+      "expected": {
+        "result": {
+          "status": 200,
+          "requestId": "srv-200",
+          "clientRequestId": "req-contract-1",
+          "data": { "id": "chatcmpl-3", "object": "chat.completion", "choices": [] }
         }
       }
     }

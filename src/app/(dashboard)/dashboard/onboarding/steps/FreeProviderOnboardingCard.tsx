@@ -15,13 +15,22 @@ interface SetupResult {
   providerId: string;
   status: "created" | "skipped" | "failed";
   reason?: string;
+  connectionId?: string;
 }
 
 async function readJson(response: Response): Promise<Record<string, unknown>> {
   return (await response.json().catch(() => ({}))) as Record<string, unknown>;
 }
 
-export function FreeProviderOnboardingCard() {
+/**
+ * @param onConnectionsCreated receives the ids of the connections this card created, so the
+ *   wizard's test step validates one of them instead of an arbitrary existing connection.
+ */
+export function FreeProviderOnboardingCard({
+  onConnectionsCreated,
+}: {
+  onConnectionsCreated?: (connectionIds: string[]) => void;
+} = {}) {
   const t = useTranslations("onboarding.freeProviders");
   const [providers, setProviders] = useState<FreeProviderOption[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -80,7 +89,14 @@ export function FreeProviderOnboardingCard() {
       });
       const data = await readJson(response);
       if (!response.ok) throw new Error("setup-failed");
-      setResults(Array.isArray(data.results) ? (data.results as SetupResult[]) : []);
+      const nextResults = Array.isArray(data.results) ? (data.results as SetupResult[]) : [];
+      setResults(nextResults);
+      const createdIds = nextResults.flatMap((result) =>
+        result.status === "created" && typeof result.connectionId === "string"
+          ? [result.connectionId]
+          : []
+      );
+      if (createdIds.length > 0) onConnectionsCreated?.(createdIds);
     } catch {
       setError(t("setupFailed"));
     } finally {

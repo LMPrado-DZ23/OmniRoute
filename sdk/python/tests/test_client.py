@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import socket
 import unittest
+import urllib.error
+import urllib.request
 from email.utils import formatdate
 from typing import Any, Dict, List
 
@@ -15,6 +17,7 @@ from omniroute_sdk import (
     iter_sse_data,
     parse_retry_after_ms,
 )
+from omniroute_sdk import client as client_module
 from tests._fake_server import FakeOmniRoute
 
 CHAT = {"model": "auto", "messages": [{"role": "user", "content": "Hi"}]}
@@ -43,6 +46,7 @@ class ClientBehaviourTest(unittest.TestCase):
             retry=RetryConfig(max_retries=2, base_delay_ms=100),
             sleep=lambda seconds: delays.append(int(round(seconds * 1000))),
             use_env_proxies=False,
+            random=lambda: 0.0,
         )
         with self.assertRaises(OmniRouteError) as ctx:
             client.list_models()
@@ -109,10 +113,137 @@ class ClientBehaviourTest(unittest.TestCase):
         self.assertNotIn("sk-super-secret", dump)
         self.assertNotIn("mgmt-super-secret", dump)
 
+    def test_debug_hook_redacts_every_credential_header_variant(self) -> None:
+        credential_headers = {
+            "Authorization": "Bearer sk-a",
+            "Proxy-Authorization": "Basic sk-b",
+            "Cookie": "session=sk-c",
+            "X-Api-Key": "sk-d",
+            "X-Goog-Api-Key": "sk-e",
+            "X-OmniRoute-Cli-Token": "sk-f",
+            "X-Custom-Secret": "sk-g",
+        }
+        seen: List[Dict[str, Any]] = []
+        with FakeOmniRoute([{"status": 200, "json": {"object": "list", "data": []}}]) as server:
+            client = OmniRouteClient(
+                server.base_url,
+                "sk-h",
+                headers={**credential_headers, "X-Trace": "visible"},
+                on_request=seen.append,
+                retry=False,
+                use_env_proxies=False,
+            )
+            client.list_models()
+        snapshot = seen[0]["headers"]
+        for name in credential_headers:
+            self.assertEqual(snapshot[name.lower()], "[REDACTED]", name)
+        self.assertEqual(snapshot["x-trace"], "visible")
+        self.assertEqual(snapshot["x-request-id"], seen[0]["client_request_id"])
+        self.assertNotIn("sk-", repr(seen))
+
     def test_base_url_is_validated_and_normalized(self) -> None:
         self.assertEqual(OmniRouteClient("http://gateway.test/omniroute///").base_url, "http://gateway.test/omniroute")
         with self.assertRaises(ValueError):
             OmniRouteClient("gateway.test")
+
+
+class NonIdempotentRetryTest(unittest.TestCase):
+    """A chat completion POST that may have reached the server is never replayed by default."""
+
+    def _client(self, base_url: str, **retry: Any) -> OmniRouteClient:
+        return OmniRouteClient(base_url, "sk-test", retry=RetryConfig(base_delay_ms=0, **retry), sleep=lambda _s: None, use_env_proxies=False, timeout_ms=150)
+
+    def test_post_is_not_retried_after_a_timeout(self) -> None:
+        with FakeOmniRoute([{"status": 200, "json": {}, "delay_s": 0.6}] * 3) as server:
+            with self.assertRaises(OmniRouteError) as ctx:
+                self._client(server.base_url, max_retries=2).chat_completions(CHAT)
+            self.assertEqual(len(server.requests), 1)
+        self.assertEqual(ctx.exception.code, CLIENT_ERROR_CODES["timeout"])
+
+    def test_post_is_retried_when_the_connection_is_refused(self) -> None:
+        attempts: List[int] = []
+        client = OmniRouteClient(
+            f"http://127.0.0.1:{_unused_port()}",
+            retry=RetryConfig(max_retries=2, base_delay_ms=0),
+            on_request=lambda info: attempts.append(info["attempt"]),
+            sleep=lambda _s: None,
+            use_env_proxies=False,
+        )
+        with self.assertRaises(OmniRouteError) as ctx:
+            client.chat_completions(CHAT)
+        self.assertEqual(ctx.exception.code, CLIENT_ERROR_CODES["network"])
+        self.assertEqual(attempts, [0, 1, 2])
+
+    def test_post_is_not_retried_after_a_reset_once_sent(self) -> None:
+        error = urllib.error.URLError(ConnectionResetError(10054, "reset"))
+        self.assertFalse(client_module._may_retry_failure("POST", RetryConfig(), False, error))
+        self.assertTrue(client_module._may_retry_failure("GET", RetryConfig(), False, error))
+        refused = urllib.error.URLError(ConnectionRefusedError(10061, "refused"))
+        self.assertTrue(client_module._may_retry_failure("POST", RetryConfig(), False, refused))
+        self.assertFalse(client_module._may_retry_failure("POST", RetryConfig(), True, refused))
+
+    def test_retry_non_idempotent_restores_post_retries_after_a_timeout(self) -> None:
+        with FakeOmniRoute([{"status": 200, "json": {}, "delay_s": 0.6}] * 2) as server:
+            with self.assertRaises(OmniRouteError):
+                self._client(server.base_url, max_retries=1, retry_non_idempotent=True).chat_completions(CHAT)
+            self.assertEqual(len(server.requests), 2)
+
+    def test_backoff_jitter_stays_within_half_and_max_delay(self) -> None:
+        delays: List[int] = []
+        client = OmniRouteClient(
+            f"http://127.0.0.1:{_unused_port()}",
+            retry=RetryConfig(max_retries=3, base_delay_ms=1_000, max_delay_ms=1_500),
+            sleep=lambda seconds: delays.append(int(round(seconds * 1000))),
+            random=lambda: 0.999,
+            use_env_proxies=False,
+        )
+        with self.assertRaises(OmniRouteError):
+            client.list_models()
+        self.assertEqual(delays, [501, 751, 751])
+
+
+class RedirectCredentialTest(unittest.TestCase):
+    """A redirect must never carry the API key (or any credential header) to another origin."""
+
+    def test_cross_origin_redirect_drops_credentials(self) -> None:
+        with FakeOmniRoute([{"status": 200, "json": {"object": "list", "data": []}}]) as target:
+            redirect = {"status": 302, "headers": {"location": f"{target.base_url}/elsewhere"}, "text": ""}
+            with FakeOmniRoute([redirect]) as origin:
+                client = OmniRouteClient(
+                    origin.base_url,
+                    "sk-redirect-secret",
+                    headers={"X-Api-Key": "sk-extra-secret", "Cookie": "session=secret", "X-Trace": "kept"},
+                    retry=False,
+                    use_env_proxies=False,
+                )
+                self.assertEqual(client.list_models().status, 200)
+                self.assertEqual(origin.requests[0]["headers"]["authorization"], "Bearer sk-redirect-secret")
+        self.assertEqual(len(target.requests), 1)
+        received = target.requests[0]["headers"]
+        for name in ("authorization", "x-api-key", "cookie"):
+            self.assertNotIn(name, received)
+        self.assertEqual(received["x-trace"], "kept")
+        self.assertNotIn("secret", repr(received))
+
+    def test_same_origin_redirect_keeps_credentials(self) -> None:
+        with FakeOmniRoute([]) as server:
+            server.enqueue(
+                {"status": 307, "headers": {"location": f"{server.base_url}/api/v1/models/"}, "text": ""},
+                {"status": 200, "json": {"object": "list", "data": []}},
+            )
+            client = OmniRouteClient(server.base_url, "sk-same-origin", retry=False, use_env_proxies=False)
+            self.assertEqual(client.list_models().status, 200)
+            self.assertEqual([r["path"] for r in server.requests], ["/api/v1/models", "/api/v1/models/"])
+            self.assertEqual(server.requests[1]["headers"].get("authorization"), "Bearer sk-same-origin")
+
+    def test_https_to_http_redirect_is_refused(self) -> None:
+        client = OmniRouteClient("https://gateway.test", "sk-downgrade", use_env_proxies=False)
+        handler = next(h for h in client._opener.handlers if isinstance(h, urllib.request.HTTPRedirectHandler))
+        request = urllib.request.Request("https://gateway.test/api/v1/models", headers={"Authorization": "Bearer sk-downgrade"})
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            handler.redirect_request(request, None, 302, "Found", {}, "http://gateway.test/api/v1/models")
+        self.assertEqual(ctx.exception.code, 302)
+        ctx.exception.close()
 
 
 class HelpersTest(unittest.TestCase):

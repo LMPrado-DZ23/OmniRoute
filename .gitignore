@@ -298,3 +298,7 @@ docker-compose.yml.bak
 
 # check:install-upgrade work trees (~12 GB, disposable)
 /.install-upgrade/
+
+# Python bytecode (sdk/python tests)
+__pycache__/
+*.py[cod]
