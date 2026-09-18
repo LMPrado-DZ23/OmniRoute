@@ -100,8 +100,17 @@ function DecisionDetails({ decision, t }: { decision: RoutingDecision; t: Transl
           </tbody>
         </table>
       </div>
+      {decision.omittedCandidates ? (
+        <p className="text-xs text-text-muted">{omittedLabel(t, decision.omittedCandidates)}</p>
+      ) : null}
     </div>
   );
+}
+
+function omittedLabel(t: Translator, count: number): string {
+  const key = "routeDecisionOmittedCandidates";
+  if (typeof t.has === "function" && t.has(key)) return t(key, { count });
+  return `${count} lower-ranked candidates are not listed.`;
 }
 
 /** Look up a recent live routing decision by request id or decision id. */

@@ -94,6 +94,11 @@ export interface RoutingDecision {
   selectionMode?: RoutingSelectionMode;
   /** Router strategy that chose the candidate ("rules" is the scoring engine). */
   strategy?: string;
+  /**
+   * Candidates left out of `candidates` when the decision was retained in its compact form (live
+   * decisions keep a bounded number of candidates). Absent when every candidate is listed.
+   */
+  omittedCandidates?: number;
 }
 
 /** Result class of one provider attempt. */

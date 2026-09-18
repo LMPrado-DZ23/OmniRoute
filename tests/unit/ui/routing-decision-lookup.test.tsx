@@ -85,6 +85,22 @@ describe("RoutingDecisionLookup", () => {
     expect(screen.getByRole("table")).toBeTruthy();
   });
 
+  it("says how many candidates a compact decision left out", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ decision: { ...decision, omittedCandidates: 260 } }))
+    );
+    render(<RoutingDecisionLookup />);
+
+    fireEvent.change(screen.getByLabelText("Request id or decision id"), {
+      target: { value: "req-ui-1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /look up/i }));
+
+    await waitFor(() => expect(screen.getByRole("table")).toBeTruthy());
+    expect(screen.getByText("260 lower-ranked candidates are not listed.")).toBeTruthy();
+  });
+
   it("announces a not-found id without showing stale details", async () => {
     vi.stubGlobal(
       "fetch",

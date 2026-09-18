@@ -2264,6 +2264,7 @@
     "routeDecisionPolicyVersion": "Policy",
     "routeDecisionSelected": "Selected",
     "routeDecisionNoneSelected": "No candidate was selected.",
+    "routeDecisionOmittedCandidates": "{count} lower-ranked candidates are not listed.",
     "routeDecisionCandidate": "Candidate",
     "routeDecisionEligibility": "Eligibility",
     "routeDecisionQuota": "Quota",

@@ -2264,6 +2264,7 @@
     "routeDecisionPolicyVersion": "Política",
     "routeDecisionSelected": "Selecionado",
     "routeDecisionNoneSelected": "Nenhum candidato foi selecionado.",
+    "routeDecisionOmittedCandidates": "{count} candidatos de menor pontuação não estão listados.",
     "routeDecisionCandidate": "Candidato",
     "routeDecisionEligibility": "Elegibilidade",
     "routeDecisionQuota": "Cota",

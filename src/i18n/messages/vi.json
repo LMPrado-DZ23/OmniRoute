@@ -2264,6 +2264,7 @@
     "routeDecisionPolicyVersion": "Chính sách",
     "routeDecisionSelected": "Đã chọn",
     "routeDecisionNoneSelected": "Không có ứng viên nào được chọn.",
+    "routeDecisionOmittedCandidates": "{count} ứng viên xếp hạng thấp hơn không được liệt kê.",
     "routeDecisionCandidate": "Ứng viên",
     "routeDecisionEligibility": "Điều kiện",
     "routeDecisionQuota": "Hạn mức",
