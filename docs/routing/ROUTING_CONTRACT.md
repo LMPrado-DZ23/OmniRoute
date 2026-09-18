@@ -75,8 +75,10 @@ model. An invalid body gets a 400 whose `error` string lists the invalid fields.
 
 1. The v1 chat completions, responses and messages routes run inside the request id the
    authorization pipeline stamps, so the router records its decision under that id.
-2. Non-streaming responses carry `X-OmniRoute-Decision-Id` and `X-OmniRoute-Policy-Version`.
-   Streaming responses are sent before routing finishes; use the request id instead.
+2. Responses carry `X-OmniRoute-Decision-Id` and `X-OmniRoute-Policy-Version` when a decision
+   was recorded, streaming responses included (the target is chosen before the stream starts).
+   The headers are absent when the request was not routed by an `auto` combo or when the response
+   headers cannot be changed; the request id lookup below still works.
 3. `GET /api/omniroute/route/decisions/{id}` returns a decision by decision id or request id.
    Decisions are kept in memory for 30 minutes; unknown and malformed ids both return 404.
 4. `GET /api/usage/route-explain/{id}` adds `routingDecision` to the call-log explanation when a
