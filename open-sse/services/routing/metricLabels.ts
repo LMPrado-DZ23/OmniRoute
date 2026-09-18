@@ -11,7 +11,10 @@
  *    an API key, connection id, account id, prompt or response.
  *  - Every dynamic label dimension goes through a `BoundedLabelSet`: the first N
  *    distinct values are kept, everything after that collapses into "other", so
- *    10k distinct model ids can never create 10k series.
+ *    10k distinct model ids can never create 10k series. The fixed values
+ *    ("redacted", "unknown", "other") never take a slot, and a caller can refuse
+ *    new members (e.g. model ids of failed requests, which a client can invent)
+ *    so junk values cannot crowd real ones out of the cap.
  */
 
 /** Maximum length of a single label value after normalization. */
@@ -59,20 +62,28 @@ export function statusClassOf(status: number | null | undefined): string {
   return cls >= 1 && cls <= 5 ? `${cls}xx` : "none";
 }
 
+const FIXED_LABEL_VALUES: ReadonlySet<string> = new Set([
+  OTHER_LABEL_VALUE,
+  REDACTED_LABEL_VALUE,
+  UNKNOWN_LABEL_VALUE,
+]);
+
 /**
  * A label dimension with a hard cardinality cap. `resolve()` returns the
  * sanitized value when it is already tracked or there is room, otherwise
  * "other". Membership is first-come; the set never grows past `capacity`.
+ * Fixed values (redacted/unknown/other) pass through without taking a slot.
+ * With `admit = false` an untracked value is not added and reads as "other".
  */
 export class BoundedLabelSet {
   private readonly values = new Set<string>();
 
   constructor(readonly capacity: number) {}
 
-  resolve(raw: unknown): string {
+  resolve(raw: unknown, admit = true): string {
     const value = sanitizeLabelValue(raw);
-    if (this.values.has(value)) return value;
-    if (this.values.size < this.capacity) {
+    if (FIXED_LABEL_VALUES.has(value) || this.values.has(value)) return value;
+    if (admit && this.values.size < this.capacity) {
       this.values.add(value);
       return value;
     }

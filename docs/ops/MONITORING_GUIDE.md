@@ -499,6 +499,9 @@ Enforced by `open-sse/services/routing/metricLabels.ts`:
 - Bounded values: first 64 providers, 100 models, 16 strategies, 16 engines are kept;
   later distinct values collapse into `other`. Each family is additionally capped at
   2000 series. Combo names, connection ids, request ids and finish reasons are never labels.
+  The fixed values `redacted`, `unknown` and `other` never take a slot, and only a model
+  that served a successful response takes a model slot: failed requests for model ids a
+  client made up are counted under `other` unless the model is already tracked.
 - Values are restricted to `[A-Za-z0-9._:/-]`, truncated to 80 chars, and replaced by
   `redacted` when they look like a credential (API-key prefixes such as `sk-`, `ghp_`),
   an opaque token (32+ alphanumerics), an e-mail address or a UUID.
