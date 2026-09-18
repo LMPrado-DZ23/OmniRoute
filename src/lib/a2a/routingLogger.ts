@@ -7,13 +7,9 @@
  */
 
 import { randomUUID } from "crypto";
+import type { RoutingFactor } from "@/shared/contracts/routing";
 
-export interface RoutingFactor {
-  name: string; // "quota", "health", "cost", "latency", "task_fit"
-  value: number;
-  weight: number;
-  contribution: number;
-}
+export type { RoutingFactor };
 
 export interface FallbackEntry {
   provider: string;

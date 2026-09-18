@@ -19,6 +19,7 @@ Simple guides for using OmniRoute — no technical background needed.
 ### getting-started/
 
 - [QUICK-START.md](getting-started/QUICK-START.md) — install and run OmniRoute in 3 minutes.
+- [FIRST_10_MINUTES.md](getting-started/FIRST_10_MINUTES.md) — install → password → provider → validated credential → first request → logs, with checks at every step.
 - [AUTO-COMBO-GUIDE.md](getting-started/AUTO-COMBO-GUIDE.md) — let OmniRoute pick the best AI for you.
 - [PROVIDERS-GUIDE.md](getting-started/PROVIDERS-GUIDE.md) — how to connect AI providers.
 - [FREE-TIERS-GUIDE.md](getting-started/FREE-TIERS-GUIDE.md) — get free AI with no credit card.
@@ -27,6 +28,7 @@ Simple guides for using OmniRoute — no technical background needed.
 ### guides/
 
 - [SETUP_GUIDE.md](guides/SETUP_GUIDE.md) — first-time setup of OmniRoute.
+- [MIGRATION_GUIDE.md](guides/MIGRATION_GUIDE.md) — upgrading between versions (Docker, source, npm, desktop), automatic DB migrations, rollback.
 - [USER_GUIDE.md](guides/USER_GUIDE.md) — daily usage of the dashboard and API.
 - [THINKING_BUDGET.md](guides/THINKING_BUDGET.md) — thinking/reasoning budget modes (passthrough vs auto-strip).
 - [FEATURES.md](guides/FEATURES.md) — dashboard feature gallery.
@@ -84,6 +86,7 @@ Lookup material — API surface, environment variables, CLI flags, provider cata
 - [PROVIDER_PLUGIN_MANIFEST.md](reference/PROVIDER_PLUGIN_MANIFEST.md) — sidecar-safe provider plugin contract for Bifrost and CLIProxyAPI migration.
 - [openapi.yaml](openapi.yaml) — OpenAPI spec for the public API.
 - [ENVIRONMENT.md](reference/ENVIRONMENT.md) — environment variables reference.
+- [COMPATIBILITY_MATRIX.md](reference/COMPATIBILITY_MATRIX.md) — Node.js/OS/install methods/Docker images/client protocols, tested in CI vs declared.
 - [FEATURE_FLAGS.md](reference/FEATURE_FLAGS.md) — feature flags and their defaults.
 - [CLI-TOOLS.md](reference/CLI-TOOLS.md) — bundled CLI commands.
 - [FREE_TIERS.md](reference/FREE_TIERS.md) — free-tier LLM provider directory.
@@ -191,6 +194,7 @@ Release, deployment, proxies, tunnels, coverage, database, monitoring.
 - [CONTRIBUTION_GOLDEN_PATH.md](ops/CONTRIBUTION_GOLDEN_PATH.md) — contribution golden path (focused checks per change type).
 - [COVERAGE_PLAN.md](ops/COVERAGE_PLAN.md) — test coverage plan.
 - [DATABASE_GUIDE.md](ops/DATABASE_GUIDE.md) — DB schema and operations.
+- [BACKUP_RESTORE.md](ops/BACKUP_RESTORE.md) — backup and restore runbook (data directory, snapshots, Docker volumes, restore verification).
 - [SQLITE_RUNTIME.md](ops/SQLITE_RUNTIME.md) — SQLite driver resolution chain.
 - [REDIS_PRODUCTION_CONFIG.md](ops/REDIS_PRODUCTION_CONFIG.md) — Redis production configuration.
 - [MONITORING_GUIDE.md](ops/MONITORING_GUIDE.md) — monitoring & observability.

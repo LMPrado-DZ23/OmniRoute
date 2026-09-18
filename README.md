@@ -1302,6 +1302,8 @@ Métricas canônicas em 2026-08-24: **1.029 vídeos únicos** · **11.132.922 vi
   <tr><td nowrap><b><a href="docs/guides/REMOTE-MODE.md">Remote Mode</a></b></td><td>Drive a remote OmniRoute (VPS) from your laptop CLI via scoped access tokens</td></tr>
   <tr><td nowrap><b><a href="docs/guides/CLAUDE-CODE-CONFIGURATION.md">Claude Code Config</a></b></td><td>Point Claude Code at OmniRoute (local/remote) with <code>launch</code> + per-model profiles</td></tr>
   <tr><td nowrap><b><a href="README.md#-quick-start">Quick Start</a></b></td><td>3-step install → connect → configure</td></tr>
+  <tr><td nowrap><b><a href="docs/getting-started/FIRST_10_MINUTES.md">First 10 Minutes</a></b></td><td>Install → password → provider → first request → logs, verified step by step</td></tr>
+  <tr><td nowrap><b><a href="docs/reference/COMPATIBILITY_MATRIX.md">Compatibility Matrix</a></b></td><td>Node.js, OS, install methods, Docker images, client protocols: tested in CI vs declared</td></tr>
 </table>
 
 ### 🔧 Operations & Deployment
@@ -1312,6 +1314,8 @@ Métricas canônicas em 2026-08-24: **1.029 vídeos únicos** · **11.132.922 vi
   <tr><td nowrap><b><a href="contrib/podman/README.md">Podman Guide</a></b></td><td>Quadlet systemd integration, podman-compose, SELinux</td></tr>
   <tr><td nowrap><b><a href="docs/ops/VM_DEPLOYMENT_GUIDE.md">VM Deployment</a></b></td><td>Complete guide: VM + nginx + Cloudflare setup</td></tr>
   <tr><td nowrap><b><a href="docs/ops/FLY_IO_DEPLOYMENT_GUIDE.md">Fly.io Deployment</a></b></td><td>Deploy to Fly.io with persistent storage</td></tr>
+  <tr><td nowrap><b><a href="docs/ops/BACKUP_RESTORE.md">Backup &amp; Restore</a></b></td><td>Data directory, snapshots, Docker volumes, restore verification</td></tr>
+  <tr><td nowrap><b><a href="docs/guides/MIGRATION_GUIDE.md">Upgrade &amp; Migration</a></b></td><td>Upgrade paths, automatic DB migrations, rollback</td></tr>
   <tr><td nowrap><b><a href="docs/guides/TERMUX_GUIDE.md">Termux Guide</a></b></td><td>Run OmniRoute on Android via Termux</td></tr>
   <tr><td nowrap><b><a href="docs/guides/PWA_GUIDE.md">PWA Guide</a></b></td><td>Progressive Web App install, caching, architecture</td></tr>
   <tr><td nowrap><b><a href="docs/guides/UNINSTALL.md">Uninstall Guide</a></b></td><td>Clean removal for all install methods</td></tr>

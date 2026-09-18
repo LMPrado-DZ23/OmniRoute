@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /**
- * Validates that openapi.yaml documents ≥ 99% of implemented routes.
- * Routes marked x-internal: true in openapi.yaml count as "covered" because
- * they are acknowledged as existing — just not part of the public API surface.
+ * Validates that docs/openapi.yaml documents every implemented route.
+ * Internal routes are documented too, tagged `x-stability: internal` (and
+ * `x-internal` / `x-loopback-only` where applicable) — documented is not the same
+ * as public. Per-operation governance rules live in check-api-governance.mjs.
  *
- * Fails if coverage < 99%.
+ * Fails if coverage < 100%.
  */
 
 import fs from "node:fs";
@@ -15,14 +16,11 @@ import { apiRoot, collectApiRouteUrlPaths } from "./lib/apiRoutes.mjs";
 const ROOT = process.cwd();
 const API_ROOT = apiRoot(ROOT);
 const OPENAPI_PATH = path.join(ROOT, "docs", "openapi.yaml");
-// Floor recorded on 2026-05-26 for release/v3.8.4: 137/365 routes documented.
-// The original ≥99% target tracks the OpenAPI audit follow-up (#2701);
-// until the backlog (services, free-proxies, relay-tokens, key-groups,
-// middleware/hooks, etc.) is documented, the gate enforces "no regressions"
-// instead of the absolute target. Raise this back to 99 once the backlog clears.
-// Velocity phase (2026-08-30, until v4.0): 36 → 30, same 20% relaxation as the ratchet
-// baselines (config/quality/quality-baseline.json `_policy`). Re-tighten at 4.0.
-const THRESHOLD = 30;
+// History: a "no regressions" floor (36, then 30 in the 2026-08-30 velocity phase) while
+// the backlog tracked by #2701 was undocumented. The 2026-08-31 docs audit documented the
+// backlog (704/709) and the 2026-09-14 API-governance change documented the last five
+// routes, so the gate now enforces the absolute target: no new route without docs.
+const THRESHOLD = 100;
 
 if (!fs.existsSync(API_ROOT)) {
   console.error(`[openapi-coverage] FAIL — API root not found: ${API_ROOT}`);

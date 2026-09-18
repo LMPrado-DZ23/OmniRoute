@@ -3,6 +3,7 @@
   "description": "Technical guides for operators and developers",
   "pages": [
     "SETUP_GUIDE",
+    "MIGRATION_GUIDE",
     "USER_GUIDE",
     "THINKING_BUDGET",
     "DOCKER_GUIDE",

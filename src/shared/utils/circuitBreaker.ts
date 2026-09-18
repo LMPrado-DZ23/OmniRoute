@@ -172,6 +172,11 @@ interface CircuitBreakerOptions {
    * Default: 3.
    */
   backoffEscalationCount?: number;
+  /**
+   * Clock in epoch milliseconds. Defaults to `Date.now`; tests inject a fake clock so cooldown
+   * and half-open transitions are deterministic.
+   */
+  now?: () => number;
 }
 
 /**
@@ -243,9 +248,12 @@ export class CircuitBreaker {
   transitionHistory: TransitionRecord[];
   /** Max transition history entries */
   maxTransitionHistory: number;
+  /** Clock used for failure times, cooldowns and transition timestamps. */
+  now: () => number;
 
   constructor(name: string, options: CircuitBreakerOptions = {}) {
     this.name = name;
+    this.now = options.now ?? (() => Date.now());
     this.failureThreshold = options.failureThreshold ?? 5;
     this.resetTimeout = options.resetTimeout ?? 30000;
     this.halfOpenRequests = options.halfOpenRequests ?? 1;
@@ -394,6 +402,16 @@ export class CircuitBreaker {
     return false;
   }
 
+  /**
+   * Effective state without side effects: an OPEN breaker whose cooldown has elapsed reads as
+   * HALF_OPEN, but nothing transitions, persists or consumes a half-open probe. For route previews
+   * and dashboards, which must not change routing state by looking at it.
+   */
+  peekState(): CircuitState {
+    if (this.state === STATE.OPEN && this._shouldAttemptReset()) return STATE.HALF_OPEN;
+    return this.state;
+  }
+
   getStatus(): CircuitBreakerStatus {
     this._refreshOpenState();
     return {
@@ -482,7 +500,7 @@ export class CircuitBreaker {
   _onFailure(kind?: FailureKind | null) {
     const failureKind = kind ?? null;
     this.failureCount++;
-    this.lastFailureTime = Date.now();
+    this.lastFailureTime = this.now();
     this.lastFailureKind = failureKind;
 
     // Track per-kind failure counts
@@ -543,7 +561,7 @@ export class CircuitBreaker {
   _shouldAttemptReset() {
     if (!this.lastFailureTime) return true;
     const cooldown = this._effectiveCooldown();
-    return Date.now() - this.lastFailureTime >= cooldown;
+    return this.now() - this.lastFailureTime >= cooldown;
   }
 
   _effectiveCooldown() {
@@ -560,7 +578,7 @@ export class CircuitBreaker {
   _timeUntilReset() {
     if (!this.lastFailureTime) return 0;
     const cooldown = this._effectiveCooldown();
-    return Math.max(0, cooldown - (Date.now() - this.lastFailureTime));
+    return Math.max(0, cooldown - (this.now() - this.lastFailureTime));
   }
 
   _refreshOpenState() {
@@ -582,7 +600,7 @@ export class CircuitBreaker {
     this.transitionHistory.push({
       from: oldState,
       to: newState,
-      timestamp: Date.now(),
+      timestamp: this.now(),
       failureCount: this.failureCount,
       reason,
     });

@@ -1,0 +1,172 @@
+name: Provider Failure
+description: A specific AI provider or model fails, times out, or returns wrong results through OmniRoute
+title: "[Provider] "
+labels: ["bug", "provider"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form when a request routed to a specific provider/model fails. For general bugs use **Bug Report**; for something that used to work in an earlier version use **Regression**.
+
+        > **Security issues must not be reported here.** Use the private security advisory link on the "New issue" page (see SECURITY.md).
+
+  - type: input
+    id: version
+    attributes:
+      label: OmniRoute Version
+      description: "Run `omniroute --version` (from source: `node bin/omniroute.mjs --version`) or check the dashboard sidebar."
+      placeholder: "e.g. 3.8.53"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: Installation Method
+      options:
+        - Docker / Docker Compose
+        - Electron desktop app
+        - Built from source
+        - npm (global)
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: runtime
+    attributes:
+      label: Runtime
+      description: "`node --version` (or `bun --version`). For Docker, the image tag or digest."
+      placeholder: "e.g. Node 24.14.1, or ghcr.io/lmprado-dz23/omniroute:next@sha256:..."
+    validations:
+      required: true
+
+  - type: input
+    id: provider
+    attributes:
+      label: Provider
+      description: "Provider ID or name as shown under Providers in the dashboard."
+      placeholder: "e.g. openrouter, anthropic, kiro"
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Model
+      description: "Exact model ID sent in the request (or the combo name)."
+      placeholder: "e.g. openrouter/some-model or my-combo"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: auth-type
+    attributes:
+      label: Credential Type
+      options:
+        - API key
+        - OAuth
+        - Web session / cookie
+        - No authentication (free tier)
+        - Unsure
+    validations:
+      required: true
+
+  - type: input
+    id: endpoint
+    attributes:
+      label: OmniRoute Endpoint Used
+      placeholder: "e.g. POST /v1/chat/completions, POST /v1/messages, POST /v1/responses"
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: Command or Request
+      description: "The exact command or request that fails (curl, CLI tool, SDK call). Replace keys with placeholders."
+      placeholder: |
+        curl -s http://localhost:20128/v1/chat/completions \
+          -H "Authorization: Bearer sk-your-omniroute-key" \
+          -H "Content-Type: application/json" \
+          -d '{"model":"...","messages":[{"role":"user","content":"test"}]}'
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: connection-test
+    attributes:
+      label: Connection Test Result
+      description: "Result of the provider connection test in the dashboard (Providers → the connection → test) or `omniroute test <provider> <model>`."
+    validations:
+      required: false
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Add provider '...' with credential type '...'
+        2. Send request '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: "Status code, error type/message, fallback behaviour observed."
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ### ⚠️ Redact before pasting logs
+        Remove **API keys, OAuth/refresh tokens, cookies, `Authorization` headers, passwords, account e-mails, and prompt/response content you do not want public**. Replace them with placeholders such as `sk-your-omniroute-key` or `<redacted>`. Anything posted here is public.
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted Logs
+      description: "Relevant lines from Dashboard → Logs (request detail) or `omniroute logs`, with secrets and private prompts removed."
+      render: shell
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: redaction
+    attributes:
+      label: Redaction Confirmation
+      options:
+        - label: I removed keys, tokens, cookies and private prompt content from everything above.
+          required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: "Proxy/tunnel in use, number of accounts, region, whether the provider works outside OmniRoute with the same credential."
+    validations:
+      required: false
