@@ -179,6 +179,48 @@ test("provider recovery time comes from OPEN→CLOSED transitions, including ong
   assert.equal(report.provider_recovery.provider, "openai");
 });
 
+test("an idle breaker left open or half-open does not breach provider recovery forever", () => {
+  const windowStart = NOW - 15 * 60_000;
+  const idleHalfOpen: BreakerHistoryInput = {
+    name: "retired-provider",
+    state: "HALF_OPEN",
+    lastFailureTime: NOW - 2 * 60 * 60_000,
+    transitionHistory: [
+      { to: "OPEN", timestamp: NOW - 2 * 60 * 60_000 },
+      { to: "HALF_OPEN", timestamp: NOW - 2 * 60 * 60_000 + 30_000 },
+    ],
+  };
+  const idleOpen: BreakerHistoryInput = {
+    name: "idle-open",
+    state: "OPEN",
+    lastFailureTime: NOW - 60 * 60_000,
+    transitionHistory: [{ to: "OPEN", timestamp: NOW - 60 * 60_000 }],
+  };
+  const idle = computeProviderRecovery([idleHalfOpen, idleOpen], windowStart, NOW);
+  assert.equal(idle.samples, 0);
+  assert.equal(idle.worstMs, null);
+
+  const report = evaluateSlo(
+    resolveSloSettings({ providerRecoveryMaxMs: 120_000 }),
+    windowWith(0, 0),
+    [idleHalfOpen, idleOpen],
+    NOW
+  );
+  assert.equal(byKey(report).provider_recovery.status, "insufficient_data");
+  assert.notEqual(report.status, "breached");
+
+  // Still failing inside the window: the whole ongoing episode counts and breaches.
+  const stillFailing: BreakerHistoryInput = {
+    ...idleHalfOpen,
+    name: "still-failing",
+    lastFailureTime: NOW - 60_000,
+  };
+  const failing = computeProviderRecovery([stillFailing], windowStart, NOW);
+  assert.equal(failing.samples, 1);
+  assert.equal(failing.worstMs, 2 * 60 * 60_000);
+  assert.equal(failing.provider, "still-failing");
+});
+
 test("SloAlertTracker emits breach/recovery/circuit-open once per state change", () => {
   const settings = resolveSloSettings({ minSamples: 10 });
   const tracker = new SloAlertTracker();
