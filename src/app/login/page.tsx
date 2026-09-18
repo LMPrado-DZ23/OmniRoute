@@ -146,7 +146,11 @@ export default function LoginPage() {
     (oidcEnabled && oidcDisablePasswordLogin === null)
   ) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="outline-none min-h-screen flex flex-col items-center justify-center p-6"
+      >
         {nodeWarningBanner}
         <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
           <div className="relative" aria-hidden="true">
@@ -155,13 +159,17 @@ export default function LoginPage() {
           </div>
           <span className="text-sm text-text-muted">{t("loading")}</span>
         </div>
-      </div>
+      </main>
     );
   }
 
   if (!hasPassword && !setupComplete) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="outline-none min-h-screen flex flex-col items-center justify-center p-6"
+      >
         {nodeWarningBanner}
         <div
           className={`w-full max-w-md transition-all duration-700 ease-out ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
@@ -196,13 +204,17 @@ export default function LoginPage() {
             OmniRoute — {t("unifiedProxy")}
           </p>
         </div>
-      </div>
+      </main>
     );
   }
 
   if (!hasPassword && setupComplete) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="outline-none min-h-screen flex flex-col items-center justify-center p-6"
+      >
         {nodeWarningBanner}
         <div
           className={`w-full max-w-md transition-all duration-700 ease-out ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
@@ -239,12 +251,12 @@ export default function LoginPage() {
             OmniRoute — {t("unifiedAiApiProxy")}
           </p>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <main id="main-content" tabIndex={-1} className="outline-none min-h-screen flex flex-col">
       {nodeWarningBanner && (
         <div className="flex justify-center pt-6 px-6">{nodeWarningBanner}</div>
       )}
@@ -425,6 +437,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

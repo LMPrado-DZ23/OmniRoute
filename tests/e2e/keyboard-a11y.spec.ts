@@ -57,7 +57,8 @@ test.describe("Keyboard operability", () => {
   });
 
   test("the skip link is the first tab stop on the dashboard", async ({ page }) => {
-    // Desktop width so the persistent sidebar (which owns the skip link) is displayed.
+    // Desktop width so the persistent sidebar is displayed (the skip link itself lives in the
+    // root layout and is the only one on the page — audit C L9).
     await page.setViewportSize({ width: 1280, height: 800 });
     // `/home` directly: `/dashboard` redirects there client-side, racing the helper's auth probe.
     await gotoDashboardRoute(page, "/home");
@@ -77,6 +78,19 @@ test.describe("Keyboard operability", () => {
     await expect(skipLink, `first Tab focused: ${focused}`).toBeFocused();
     const box = await skipLink.boundingBox();
     expect(box?.width ?? 0).toBeGreaterThan(1);
+    // Exactly one skip link (the sidebar used to render a second one), and activating it
+    // moves focus into <main>, not just the scroll position.
+    await expect(page.locator('a[href="#main-content"]')).toHaveCount(1);
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#main-content")).toBeFocused();
+  });
+
+  test("the login page has a main landmark the skip link can reach", async ({ page }) => {
+    await page.context().clearCookies();
+    await page.goto("/login", { waitUntil: "load" });
+    test.skip(!page.url().includes("/login"), "Instance does not require login.");
+    await expect(page.locator("main#main-content")).toHaveCount(1);
+    await expect(page.locator('a[href="#main-content"]')).toHaveCount(1);
   });
 
   test("sidebar section headers toggle with Enter and Space", async ({ page }) => {
