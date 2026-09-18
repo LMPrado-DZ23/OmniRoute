@@ -24,6 +24,10 @@ type AnalyticsTranslator = ((key: string, values?: Record<string, unknown>) => s
   has?: (key: string) => boolean;
 };
 
+// Audit C M3: the "Request log" label must name its <select> (axe select-name, critical).
+// The tab renders once per page, so a fixed id is unique.
+const REQUEST_LOG_SELECT_ID = "route-trace-request-log";
+
 function analyticsText(t: AnalyticsTranslator, key: string, fallback: string) {
   return typeof t.has === "function" && t.has(key) ? t(key) : fallback;
 }
@@ -572,10 +576,14 @@ export default function RouteExplainabilityTab({
           </p>
         </div>
         <div className="flex min-w-0 flex-col gap-2 sm:min-w-90">
-          <label className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+          <label
+            htmlFor={REQUEST_LOG_SELECT_ID}
+            className="text-xs font-semibold uppercase tracking-wider text-text-muted"
+          >
             {analyticsText(t, "routeTraceRequestLog", "Request log")}
           </label>
           <select
+            id={REQUEST_LOG_SELECT_ID}
             value={selectedId}
             onChange={(event) => setSelectedId(event.target.value)}
             disabled={logsLoading || logs.length === 0}
