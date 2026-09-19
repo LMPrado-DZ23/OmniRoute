@@ -161,7 +161,7 @@ async function rebuildHealthPayload(): Promise<unknown> {
     circuitBreakerModule.status === "fulfilled"
       ? readHealthValue(
           "circuit breakers",
-          () => circuitBreakerModule.value.getAllCircuitBreakerStatuses(),
+          () => circuitBreakerModule.value.getAllCircuitBreakerSnapshots(),
           []
         )
       : [];

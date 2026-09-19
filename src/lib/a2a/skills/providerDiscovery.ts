@@ -5,6 +5,7 @@
  */
 
 import type { A2ATask, TaskArtifact } from "../taskManager";
+import type { CircuitBreakerStatus } from "@/shared/utils/circuitBreaker";
 import {
   AI_PROVIDERS,
   AUDIO_ONLY_PROVIDERS,
@@ -119,7 +120,7 @@ export interface ProviderDiscoveryResult {
 }
 
 export async function executeProviderDiscovery(task: A2ATask): Promise<ProviderDiscoveryResult> {
-  const [{ getProviderConnections }, { getAllCircuitBreakerStatuses }] = await Promise.all([
+  const [{ getProviderConnections }, { getAllCircuitBreakerSnapshots }] = await Promise.all([
     import("@/lib/db/providers"),
     import("@/shared/utils/circuitBreaker"),
   ]);
@@ -137,11 +138,11 @@ export async function executeProviderDiscovery(task: A2ATask): Promise<ProviderD
       .filter((connection) => connection.provider)
       .map((connection) => connection.provider as string)
   );
-  const breakers = new Map(
-    getAllCircuitBreakerStatuses().map((breaker: CircuitBreakerLike) => [
-      breaker.name || "",
-      breaker,
-    ])
+  // Read-only: discovery only reports each provider's health, so it reads breakers through
+  // `peekStatus()`. Listing providers must not transition an elapsed OPEN breaker into HALF_OPEN,
+  // persist that, or hand the next request a probe into a provider that is still broken.
+  const breakers = new Map<string, CircuitBreakerStatus>(
+    getAllCircuitBreakerSnapshots().map((breaker) => [breaker.name, breaker])
   );
 
   const candidates = Object.entries(AI_PROVIDERS)

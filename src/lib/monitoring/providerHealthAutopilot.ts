@@ -258,7 +258,7 @@ export async function buildProviderHealthAutopilotReport(
   const includeActions = options.includeActions !== false;
   const providerFilter = canonicalProviderId(options.provider);
 
-  const [{ getAllCircuitBreakerStatuses }, { getAllModelLockouts }, quotaMonitor] =
+  const [{ getAllCircuitBreakerSnapshots }, { getAllModelLockouts }, quotaMonitor] =
     await Promise.all([
       import("@/shared/utils/circuitBreaker"),
       import("@omniroute/open-sse/services/accountFallback"),
@@ -272,7 +272,7 @@ export async function buildProviderHealthAutopilotReport(
     const provider = canonicalProviderId(connection.provider);
     return provider && (!providerFilter || provider === providerFilter);
   });
-  const breakers = getAllCircuitBreakerStatuses().filter((breaker) => {
+  const breakers = getAllCircuitBreakerSnapshots().filter((breaker) => {
     const name = toString(breaker.name);
     const provider = canonicalProviderId(name);
     if (!name || !provider || name.startsWith("test-") || name.startsWith("test_")) return false;

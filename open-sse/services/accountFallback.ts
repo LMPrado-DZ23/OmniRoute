@@ -32,7 +32,7 @@ import {
 } from "../../src/lib/resilience/settings";
 import { resolveModelLockoutSettings } from "../../src/lib/resilience/modelLockoutSettings";
 import {
-  getAllCircuitBreakerStatuses,
+  getBlockedCircuitBreakerSnapshots,
   getCircuitBreaker,
 } from "../../src/shared/utils/circuitBreaker";
 import {
@@ -1302,6 +1302,10 @@ export function clearProviderFailure(provider: string | null | undefined): void 
 
 /**
  * Get all providers currently blocked by the shared breaker.
+ *
+ * Read-only: the blocked set comes from the `peek*` API, so asking which providers are in
+ * cooldown never probes an elapsed OPEN breaker into HALF_OPEN and never persists such a
+ * transition. Looking at health must not be what lets a request through to a broken provider.
  */
 export function getProvidersInCooldown(): Array<{
   provider: string;
@@ -1309,17 +1313,12 @@ export function getProvidersInCooldown(): Array<{
   cooldownRemainingMs: number | null;
   lastFailureAt: number | null;
 }> {
-  return getAllCircuitBreakerStatuses()
-    .filter((status) => {
-      const breaker = getProviderBreaker(status.name);
-      return Boolean(breaker && !breaker.canExecute());
-    })
-    .map((status) => ({
-      provider: status.name,
-      failureCount: status.failureCount,
-      cooldownRemainingMs: status.retryAfterMs || null,
-      lastFailureAt: status.lastFailureTime,
-    }));
+  return getBlockedCircuitBreakerSnapshots().map((status) => ({
+    provider: status.name,
+    failureCount: status.failureCount,
+    cooldownRemainingMs: status.retryAfterMs || null,
+    lastFailureAt: status.lastFailureTime,
+  }));
 }
 
 /**

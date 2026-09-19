@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { getRawProviderConnections, getProviderConnectionsCount } from "@/lib/db/providers";
-import { getAllCircuitBreakerStatuses } from "@/shared/utils/circuitBreaker";
+import { getAllCircuitBreakerSnapshots } from "@/shared/utils/circuitBreaker";
 import { resolveProviderId } from "@/shared/constants/providers";
 import { TERMINAL_CONNECTION_STATUSES } from "@/lib/quota/connectionRecovery";
 import { sanitizeErrorMessage, buildErrorBody } from "@omniroute/open-sse/utils/error";
@@ -143,14 +143,16 @@ export async function GET(req: NextRequest) {
       console.error("[API] resilience/connections database error:", err);
     }
 
-    // NOTE: getAllCircuitBreakerStatuses() calls getStatus() internally. If a single
-    // getStatus() throws (e.g., onStateChange callback error), the entire function
-    // throws before reaching our loop. This is an accepted limitation - per-item
-    // fault tolerance is not possible with the current getAllCircuitBreakerStatuses()
-    // API. The outer try/catch handles this case.
+    // Read-only: getAllCircuitBreakerSnapshots() calls peekStatus(), so listing connections
+    // reports an elapsed OPEN breaker's effective state without transitioning it, persisting
+    // that transition or consuming its half-open probe. Reading health must not let a request
+    // through to a provider that is still broken.
+    // NOTE: if a single peekStatus() throws, the whole call throws before reaching our loop.
+    // This is an accepted limitation - per-item fault tolerance is not possible with the
+    // current API. The outer try/catch handles this case.
     let breakers: BreakerWithHistory[] = [];
     try {
-      const allStatuses = getAllCircuitBreakerStatuses();
+      const allStatuses = getAllCircuitBreakerSnapshots();
       breakers = allStatuses.map((status) => ({
         name: status.name,
         state: status.state,
