@@ -8,6 +8,7 @@ import {
   networkError,
   parseJson,
   parseRetryAfterMs,
+  redirectRefusedError,
   timeoutError,
 } from "./errors.ts";
 import { ChatCompletionStream } from "./stream.ts";
@@ -179,25 +180,62 @@ function isSensitiveHeader(name: string): boolean {
   return SENSITIVE_HEADERS.has(lowered) || SENSITIVE_HEADER_PATTERN.test(lowered);
 }
 
-/** The credential headers `fetch` itself removes when a redirect changes origin. */
-const STRIPPED_BY_FETCH_ON_REDIRECT: ReadonlySet<string> = new Set([
-  "authorization",
-  "proxy-authorization",
-  "cookie",
-]);
+/** The statuses `fetch` would follow on its own; the SDK vets each one instead. */
+const REDIRECT_STATUSES: ReadonlySet<number> = new Set([301, 302, 303, 307, 308]);
+
+/** How many same-origin redirects one request may follow before the SDK gives up. */
+const MAX_REDIRECTS = 5;
 
 /**
- * `fetch` would forward any other credential header (e.g. `x-api-key` passed through `headers`)
- * to a cross-origin redirect target, so such requests do not follow redirects: the 3xx surfaces
- * as an `OmniRouteError` instead.
+ * Verdict on a redirect. `reason` is null exactly when `allowed` is true; `url` carries the
+ * resolved target only then. Kept as flags rather than a discriminated union so the type still
+ * reads correctly where `strictNullChecks` is off.
  */
-function redirectModeFor(headers: Headers): RequestRedirect {
-  let forwardsCredential = false;
-  headers.forEach((_value, key) => {
-    if (isSensitiveHeader(key) && !STRIPPED_BY_FETCH_ON_REDIRECT.has(key))
-      forwardsCredential = true;
-  });
-  return forwardsCredential ? "manual" : "follow";
+export interface RedirectDecision {
+  allowed: boolean;
+  /** Why the redirect was refused, or null when it may be followed. */
+  reason: string | null;
+  /** Scheme and host of the target, without userinfo, path or query; null when unparseable. */
+  origin: string | null;
+  /** The resolved absolute target, set only when the redirect may be followed. */
+  url: string | null;
+}
+
+function originOf(url: URL): string {
+  return `${url.protocol}//${url.host}`;
+}
+
+/**
+ * Vets a redirect before the SDK follows it, mirroring the Python SDK's
+ * `_CredentialSafeRedirectHandler`: an `https` -> non-`https` downgrade is refused, and so is any
+ * change of origin. Refusing cross-origin (rather than merely dropping credential headers) is what
+ * keeps `fetch` from replaying the request body — the prompt — to a host the caller never chose.
+ *
+ * The verdict is built from the response's own status and Location only: no header value and no
+ * part of the request body can reach it, and userinfo in the Location is dropped.
+ */
+export function vetRedirect(sourceUrl: string, location: string | null): RedirectDecision {
+  if (location === null || location.trim().length === 0)
+    return { allowed: false, reason: "the response carries no Location", origin: null, url: null };
+  let source: URL;
+  let target: URL;
+  try {
+    source = new URL(sourceUrl);
+    target = new URL(location, sourceUrl);
+  } catch {
+    return { allowed: false, reason: "the Location is not a valid URL", origin: null, url: null };
+  }
+  const origin = originOf(target);
+  if (source.protocol === "https:" && target.protocol !== "https:")
+    return {
+      allowed: false,
+      reason: "it downgrades https to a non-https scheme",
+      origin,
+      url: null,
+    };
+  if (originOf(source) !== origin)
+    return { allowed: false, reason: "it points at another origin", origin, url: null };
+  return { allowed: true, reason: null, origin, url: target.toString() };
 }
 
 export function redactHeaders(headers: Headers): Record<string, string> {
@@ -365,6 +403,34 @@ export class OmniRouteClient {
     return headers;
   }
 
+  /**
+   * One fetch attempt with redirects handled here rather than by `fetch`. Redirects are always
+   * `manual` so the SDK sees the 3xx itself: a target that `vetRedirect` refuses raises an
+   * `OmniRouteError` and the target is never contacted, so the request body is never replayed.
+   */
+  async #fetchVetted(
+    url: string,
+    init: { method: string; headers: Headers; body: string | undefined; signal: AbortSignal },
+    clientRequestId: string
+  ): Promise<Response> {
+    let current = url;
+    for (let hop = 0; ; hop++) {
+      const response = await this.#fetch(current, { ...init, redirect: "manual" });
+      if (!REDIRECT_STATUSES.has(response.status)) return response;
+      const decision = vetRedirect(current, response.headers.get("location"));
+      await discardBody(response);
+      if (!decision.allowed || decision.url === null) {
+        const reason = decision.reason ?? "it could not be verified";
+        throw redirectRefusedError(response.status, clientRequestId, reason, decision.origin);
+      }
+      if (hop >= MAX_REDIRECTS) {
+        const reason = `it exceeds the limit of ${MAX_REDIRECTS} redirects`;
+        throw redirectRefusedError(response.status, clientRequestId, reason, decision.origin);
+      }
+      current = decision.url;
+    }
+  }
+
   async #execute(
     op: OperationSpec,
     body: unknown,
@@ -397,15 +463,15 @@ export class OmniRouteClient {
 
       let response: Response;
       try {
-        response = await this.#fetch(url, {
-          method: op.method,
-          headers,
-          body: payload,
-          redirect: redirectModeFor(headers),
-          signal: attempt.signal,
-        });
+        response = await this.#fetchVetted(
+          url,
+          { method: op.method, headers, body: payload, signal: attempt.signal },
+          clientRequestId
+        );
       } catch (cause) {
         attempt.dispose();
+        // A refused redirect is a policy decision, not a transient failure: never retry it.
+        if (cause instanceof OmniRouteError) throw cause;
         if (attempt.abortedByCaller) throw abortedError(clientRequestId, cause);
         const error = attempt.timedOut
           ? timeoutError(timeoutMs, clientRequestId, cause)
