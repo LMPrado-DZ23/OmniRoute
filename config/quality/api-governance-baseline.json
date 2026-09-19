@@ -38,8 +38,6 @@
     "/api/providers/zed/discover",
     "/api/providers/zed/manual-import",
     "/api/providers/{id}/claude-auth/apply-local",
-    "/api/providers/{id}/claude-auth/export",
-    "/api/providers/{id}/codex-auth/export",
     "/api/providers/{id}/interception-rules",
     "/api/proxy-fallback/test",
     "/api/rate-limit",
@@ -112,9 +110,7 @@
     "/api/version-manager/start",
     "/api/version-manager/status",
     "/api/version-manager/stop",
-    "/api/vnc-session/{params}",
-    "/api/webhooks/validate-url",
-    "/api/webhooks/{id}/deliveries"
+    "/api/vnc-session/{params}"
   ],
   "phantomOperations": [
     "DELETE /api/policies",
