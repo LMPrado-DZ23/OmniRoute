@@ -8,14 +8,18 @@
 
 ---
 
-## [3.8.54] — TBD
+## [3.8.54] — 2026-09-18
 
 _Evolution release of the `LMPrado-DZ23/OmniRoute` fork: the phased stabilization and evolution plan tracked in `docs/EVOLUTION_STATUS.md`. HTTP contracts are kept; new fields, headers and endpoints are additive, and behavior that could surprise an existing installation is opt-in._
 
 ### ✨ New Features
 
 - **feat(routing):** shared router contract (`RoutingRequest`, `RoutingCandidate`, `RoutingDecision`, `ProviderAttempt`) with explainable decisions: score factors, explicit exclusion reasons, unknown quota distinct from exhausted, a policy version on every decision, and preview and live selection running the same engine without the preview touching routing state. `POST /api/omniroute/route/preview` gains an additive `engine: "auto"` mode. Failover keeps inside the request cost cap; permanent provider errors are never retried on the same candidate ([#30](https://github.com/LMPrado-DZ23/OmniRoute/pull/30))
+- **feat(routing):** route explanation — every routed response carries `X-OmniRoute-Decision-Id` and `X-OmniRoute-Policy-Version` (streaming responses included), `GET /api/omniroute/route/decisions/{id}` returns the decision behind a request id or a decision id under management auth, and the dashboard gains a decision lookup card. `OMNIROUTE_ROUTING_DIAGNOSTICS=1` opts the decision summary into the info log ([#34](https://github.com/LMPrado-DZ23/OmniRoute/pull/34))
 - **feat(observability):** bounded-cardinality routing metrics and `GET /api/metrics` (Prometheus text or JSON, management auth), configurable SLOs and opt-in `slo.breached` / `slo.recovered` / `provider.circuit_open` webhook alerts ([#33](https://github.com/LMPrado-DZ23/OmniRoute/pull/33))
+- **feat(settings):** an SLO settings card under Settings → Resilience, so the targets and the alert toggle are editable from the dashboard ([#39](https://github.com/LMPrado-DZ23/OmniRoute/pull/39))
+- **feat(onboarding):** end-to-end first-use flow — the `INITIAL_PASSWORD` bootstrap is one-time, the wizard can be re-run, provider errors are actionable, and the first-use path, the re-run and the narrow layouts are covered end to end ([#36](https://github.com/LMPrado-DZ23/OmniRoute/pull/36))
+- **feat(authz):** management roles derived from the existing scopes, an admin audit trail for budget, CLI token and API key mutations, and a `budget.threshold_reached` webhook for internal budget warnings; the workspaces and budgets design is recorded as an ADR ([#31](https://github.com/LMPrado-DZ23/OmniRoute/pull/31))
 - **feat(api):** every OpenAPI operation classified with `x-stability`, `x-owner`, `x-since`, `x-rate-limit` and `x-contract-test`; OpenAPI coverage gate at 100%; `check:api-governance` gate; RFC 9745/8594 deprecation headers ([#26](https://github.com/LMPrado-DZ23/OmniRoute/pull/26))
 - **feat(sdk):** experimental, unpublished TypeScript and Python SDKs with shared contract fixtures and an OpenAPI drift test ([#29](https://github.com/LMPrado-DZ23/OmniRoute/pull/29))
 
@@ -23,15 +27,20 @@ _Evolution release of the `LMPrado-DZ23/OmniRoute` fork: the phased stabilizatio
 
 - **fix:** 22 runtime bugs found while bringing the core, API, dashboard and open-sse typechecks to 0 errors, each with a red-first regression test — including `PATCH /api/keys/[id]` silently dropping `blockedModels` and `POST /api/omniroute/route/preview` failing for every valid request ([#24](https://github.com/LMPrado-DZ23/OmniRoute/pull/24))
 - **fix(telemetry):** `/api/telemetry/summary` `errorRate` is now failed / routed requests instead of quota-monitor errors / requests ([#33](https://github.com/LMPrado-DZ23/OmniRoute/pull/33))
+- **fix(security):** provider credentials are revealed only to a pipeline-stamped dashboard subject, so a programmatic management credential can no longer read a stored credential back ([#31](https://github.com/LMPrado-DZ23/OmniRoute/pull/31), [#37](https://github.com/LMPrado-DZ23/OmniRoute/pull/37))
+- **fix(sdk):** neither SDK forwards credentials on a cross-origin redirect (and an https→http downgrade is refused); a chat completion `POST` that may already have run is no longer replayed; retry backoff has jitter; every credential header variant is redacted in the debug hooks ([#37](https://github.com/LMPrado-DZ23/OmniRoute/pull/37))
+- **fix(routing):** the live decision store is bounded by size as well as by count; an explicit router strategy keeps its own pick and reports it as the selected candidate; scraping reads the circuit breakers without changing them; an idle open breaker no longer breaches `provider_recovery` forever; SLO alert state resets when alerts are turned off; junk model ids no longer crowd real models out of the metric label slots ([#38](https://github.com/LMPrado-DZ23/OmniRoute/pull/38))
+- **fix(dashboard):** the webhook wizard offers only API-valid events, shows readable errors instead of `[object Object]`, and leaves no enabled all-events draft behind when it is cancelled (`POST /api/webhooks` takes an optional `enabled`, default `true`); route preview `400`s carry a readable message and the decision lookup card is localized and tells auth errors apart ([#39](https://github.com/LMPrado-DZ23/OmniRoute/pull/39), [#38](https://github.com/LMPrado-DZ23/OmniRoute/pull/38))
 
 ### 📝 Maintenance
 
 - **test:** live tests require `RUN_LIVE_TESTS=1`; `npm test` runs the serialized suite; the PR unit fast-path runs in 5 shards and keeps failure logs ([#25](https://github.com/LMPrado-DZ23/OmniRoute/pull/25))
 - **docs:** first 10 minutes, backup/restore, migration guide and compatibility matrix (with pt-BR versions); provider failure, docs, regression and compatibility issue forms ([#28](https://github.com/LMPrado-DZ23/OmniRoute/pull/28))
+- **docs:** routing contract and route explanation, API governance reference, SDK reference, and the monitoring guide corrected for SLO alert paths and the backup encryption key ([#34](https://github.com/LMPrado-DZ23/OmniRoute/pull/34), [#38](https://github.com/LMPrado-DZ23/OmniRoute/pull/38), [#39](https://github.com/LMPrado-DZ23/OmniRoute/pull/39))
 - **security:** vulnerability register for the dependency audit (0 high/critical in production dependencies) and digest-pinned sidecar images ([#27](https://github.com/LMPrado-DZ23/OmniRoute/pull/27))
+- **a11y:** WCAG 2.2 AA pass over login, dashboard, providers and settings — dialog semantics and focus management, explicit control labels, theme-aware contrast, a single skip link with a focusable main target, and an e2e gate of zero serious axe violations from 375 to 1440 px including keyboard flows ([#32](https://github.com/LMPrado-DZ23/OmniRoute/pull/32), [#39](https://github.com/LMPrado-DZ23/OmniRoute/pull/39))
 
 ---
-
 
 ## [3.8.53] — 2026-09-13
 
