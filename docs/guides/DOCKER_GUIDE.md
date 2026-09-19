@@ -483,9 +483,14 @@ Multi-platform manifest: `linux/amd64` + `linux/arm64` native (Apple Silicon, AW
 
 ### Release Channels
 
-> **What exists today for this fork:** only `:next` and `:next-web`. No versioned release has been
-> published yet, so `:latest`, `:latest-web` and the immutable `:X.Y.Z` tags are not resolvable and the
-> examples in this guide use `:next`. The rows below describe what each channel means once releases begin.
+> **What exists today for this fork:** the first versioned release was published on 2026-09-19, so
+> `:latest`, `:latest-web` and the immutable `:X.Y.Z` tags now point at real images, alongside the
+> rolling `:next` and `:next-web` — all five resolve for an anonymous pull. **`:main` and `:main-web`
+> do not exist here** (verified: `404`); this fork develops on `release/v*` branches, not on `main`,
+> so the `:main` row below describes the channel's meaning, not something you can pull. `:latest`
+> only moves when the version being published is the highest stable SemVer —
+> `scripts/ci/should-promote-latest.sh` compares it against every `v*` tag first, and a pre-release
+> identifier never promotes it.
 
 OmniRoute publishes separate Docker channels for stable releases, active release-branch testing, and development builds.
 
