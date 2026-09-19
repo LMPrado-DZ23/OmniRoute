@@ -142,11 +142,28 @@ For a level with a budget, spend is read from the **same ledger** the per-key bu
 
 #### 3.4.3 Enforcement: what happens when a child would exceed its parent
 
-A request passes key → project → workspace, most specific first; the first `deny` wins
-(`validateBudget` in `src/shared/utils/apiKeyPolicy.ts` and `evaluateRequest` in
-`src/domain/policyEngine.ts`). Project and workspace limits are `InternalBudgetLimit`s with the new
-`project` / `workspace` scopes, evaluated by `evaluateBudget`, so a level denies when its rolled-up
-spend is **at or above** its limit (the per-key `checkBudget` keeps its own rule: strictly above).
+A request passes key → project → workspace, most specific first; the first `deny` wins. Project and
+workspace limits are `InternalBudgetLimit`s with the new `project` / `workspace` scopes, evaluated by
+`evaluateBudget`, so a level denies when its rolled-up spend is **at or above** its limit (the
+per-key `checkBudget` keeps its own rule: strictly above).
+
+**Where it runs.** The single chokepoint is `validateBudget` inside `enforceApiKeyPolicy`
+(`src/shared/utils/apiKeyPolicy.ts`), so the hierarchy covers exactly the requests that run that
+gate — the same set the per-key budget has always covered:
+
+| Path                                                                         | Runs `enforceApiKeyPolicy`                                                                               |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `/v1/chat/completions`, `/v1/messages`, `/v1/responses`                      | yes — `handleChat` (`src/sse/handlers/chat.ts`, `handleChatImplementation`) calls it before any dispatch |
+| 21 other `/v1` routes (embeddings, images, audio, search, rerank, videos, …) | yes — each route calls it directly                                                                       |
+| `/api/internal/codex-responses-ws`                                           | yes — calls it directly                                                                                  |
+| everything downstream of the gate (`open-sse/handlers/chatCore.ts`)          | no — chatCore only **records** spend (`recordCost`); it never checks a budget                            |
+
+`evaluateRequest` in `src/domain/policyEngine.ts` carries the same key → project → workspace order,
+but that module is only registered in `src/lib/container.ts` and is not resolved on any live path
+today, so it is defence in depth, not the enforcing path.
+`tests/unit/workspace-budget-chat-path.test.ts` pins the chat case from the outside: a real
+`POST /v1/chat/completions` body with an exhausted workspace is refused with 429 before any upstream
+call, and the same request from a key outside every workspace is not refused by the budget gate.
 
 - **At runtime a child can never spend past its parent.** A key whose own budget and project budget
   still have room is refused with HTTP 429 (`Workspace internal budget exhausted …`) once its
@@ -231,15 +248,16 @@ level); every reveal is audited.
 
 ## 5. Tests
 
-| File                                                 | Covers                                                                                              |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `tests/unit/authz/rbac-role-matrix.test.ts`          | 8 principals × 8 routes (PUBLIC, CLIENT_API, MANAGEMENT read/write/admin) + role resolver           |
-| `tests/unit/authz/resource-existence-matrix.test.ts` | 7 principals × 4 id-addressed routes × owned/foreign/nonexistent; no secret in responses or audit   |
-| `tests/unit/credential-listing-masking.test.ts`      | API keys, CLI tokens, provider connections never listed in full; reveal hardening                   |
-| `tests/unit/admin-audit-rbac-phase8.test.ts`         | new audit events, principal/role attribution, `budget.threshold_reached` once per period            |
-| `tests/unit/workspace-budget-rollup.test.ts`         | roll-up sums, deny at the limit, key → project → workspace order, parent cap, alert once per period |
-| `tests/unit/workspace-migration-backcompat.test.ts`  | migration 178 on a fresh DB and on a 177 DB; unchanged per-key budget with no workspace             |
-| `tests/unit/authz/workspaces-routes.test.ts`         | CRUD, membership roles, IDOR (foreign workspace/project/key = nonexistent), audit, no secrets       |
+| File                                                 | Covers                                                                                                                                                                                                  |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/unit/authz/rbac-role-matrix.test.ts`          | 8 principals × 8 routes (PUBLIC, CLIENT_API, MANAGEMENT read/write/admin) + role resolver                                                                                                               |
+| `tests/unit/authz/resource-existence-matrix.test.ts` | 7 principals × 4 id-addressed routes × owned/foreign/nonexistent; no secret in responses or audit                                                                                                       |
+| `tests/unit/credential-listing-masking.test.ts`      | API keys, CLI tokens, provider connections never listed in full; reveal hardening                                                                                                                       |
+| `tests/unit/admin-audit-rbac-phase8.test.ts`         | new audit events, principal/role attribution, `budget.threshold_reached` once per period                                                                                                                |
+| `tests/unit/workspace-budget-rollup.test.ts`         | roll-up sums, deny at the limit, key → project → workspace order, parent cap, alert once per period                                                                                                     |
+| `tests/unit/workspace-migration-backcompat.test.ts`  | migration 178 on a fresh DB and on a 177 DB; unchanged per-key budget with no workspace                                                                                                                 |
+| `tests/unit/authz/workspaces-routes.test.ts`         | CRUD, membership roles, IDOR (foreign workspace/project/key = nonexistent), audit, no secrets                                                                                                           |
+| `tests/unit/workspace-budget-chat-path.test.ts`      | which paths enforce at runtime: `POST /v1/chat/completions` through `handleChat` is refused with 429 for an exhausted workspace, before any upstream call; a key outside every workspace is not refused |
 
 ## 6. Residual risks
 
