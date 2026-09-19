@@ -412,6 +412,18 @@ export class CircuitBreaker {
     return this.state;
   }
 
+  /**
+   * `canExecute()` without the probing transition: whether live routing would be let through if it
+   * asked right now. An OPEN breaker whose cooldown has elapsed would be granted a fresh probe
+   * budget by the next live call, so it reads as executable — but nothing transitions, persists or
+   * consumes a probe here. For health reads, which must not decide a breaker's fate by looking.
+   */
+  peekCanExecute(): boolean {
+    if (this.state === STATE.CLOSED || this.state === STATE.DEGRADED) return true;
+    if (this.state === STATE.HALF_OPEN) return this.halfOpenAllowed > 0;
+    return this._shouldAttemptReset() && this.halfOpenRequests > 0;
+  }
+
   getStatus(): CircuitBreakerStatus {
     this._refreshOpenState();
     return this._statusAs(this.state);
@@ -782,6 +794,44 @@ export function getAllCircuitBreakerSnapshots(): CircuitBreakerStatus[] {
     // Use registry only
   }
   return snapshots;
+}
+
+/**
+ * Read-only view of one breaker: the registered instance, or an unregistered copy built from its
+ * persisted state. Never registers a breaker, evicts one, or transitions one. Callers must only
+ * use the `peek*` accessors on the result — the mutating ones would write through the copy.
+ */
+export function peekCircuitBreaker(name: string): CircuitBreaker | null {
+  if (!name) return null;
+  const registered = registry.get(name);
+  if (registered) return registered;
+  try {
+    return new CircuitBreaker(name);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Snapshots of every breaker that would refuse a request right now — the read-only counterpart of
+ * filtering breakers by `!canExecute()`, which probes an elapsed OPEN breaker into HALF_OPEN and
+ * persists that. Covers registered breakers plus persisted ones not loaded in this process.
+ */
+export function getBlockedCircuitBreakerSnapshots(): CircuitBreakerStatus[] {
+  const blocked: CircuitBreakerStatus[] = [];
+  for (const cb of registry.values()) {
+    if (!cb.peekCanExecute()) blocked.push(cb.peekStatus());
+  }
+  try {
+    for (const persisted of loadAllCircuitBreakerStates()) {
+      if (registry.has(persisted.name)) continue;
+      const breaker = new CircuitBreaker(persisted.name);
+      if (!breaker.peekCanExecute()) blocked.push(breaker.peekStatus());
+    }
+  } catch {
+    // Use registry only
+  }
+  return blocked;
 }
 
 export function resetAllCircuitBreakers() {

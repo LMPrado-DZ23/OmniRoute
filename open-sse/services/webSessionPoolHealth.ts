@@ -12,10 +12,9 @@
 
 import { PoolRegistry } from "./sessionPool/poolRegistry.ts";
 import {
-  isProviderInCooldown,
-  getProviderCooldownRemainingMs,
-} from "./accountFallback.ts";
-import { getAllCircuitBreakerStatuses } from "../../src/shared/utils/circuitBreaker.ts";
+  getAllCircuitBreakerSnapshots,
+  peekCircuitBreaker,
+} from "../../src/shared/utils/circuitBreaker.ts";
 import type { PoolStats, PoolSessionDetail } from "./sessionPool/types.ts";
 
 // ─── Dependency Injection (for testability) ─────────────────────────────────
@@ -34,14 +33,25 @@ export interface WebSessionPoolHealthDeps {
   } | null;
 }
 
+/**
+ * Every breaker fact this report reads comes from the `peek*` API: building a health report must
+ * not transition an elapsed OPEN breaker into HALF_OPEN, persist that, or consume its half-open
+ * probe. Looking at a pool's health may not be what lets the next request reach a broken provider.
+ * Live routing keeps the probing accessors — there, the transition is the point.
+ */
 const defaultDeps: WebSessionPoolHealthDeps = {
   listProviders: () => PoolRegistry.listProviders(),
   getStats: (p) => PoolRegistry.getStats(p),
   getSessionDetails: (p) => PoolRegistry.getSessionDetails(p),
-  isProviderInCooldown: (p) => isProviderInCooldown(p),
-  getProviderCooldownRemainingMs: (p) => getProviderCooldownRemainingMs(p),
+  isProviderInCooldown: (p) => peekCircuitBreaker(p)?.peekCanExecute() === false,
+  getProviderCooldownRemainingMs: (p) => {
+    const breaker = peekCircuitBreaker(p);
+    if (!breaker || breaker.peekCanExecute()) return null;
+    const remaining = breaker.peekStatus().retryAfterMs;
+    return remaining > 0 ? remaining : null;
+  },
   getProviderBreakerState: (p) => {
-    const statuses = getAllCircuitBreakerStatuses();
+    const statuses = getAllCircuitBreakerSnapshots();
     const match = statuses.find((s) => s.name === p);
     if (!match) return null;
     return {
