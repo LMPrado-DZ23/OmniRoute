@@ -82,6 +82,17 @@ test("text on a primary surface meets AA in both themes, at rest and on hover", 
   }
 });
 
+test("each theme's primary-tint text falls back to its own preset override", () => {
+  assert.match(
+    light,
+    /--color-primary-on-tint: var\(\s*--preset-primary-on-tint-light,\s*color-mix\(in srgb, var\(--color-primary\) 80%, #000000\)\s*\);/
+  );
+  assert.match(
+    dark,
+    /--color-primary-on-tint: var\(\s*--preset-primary-on-tint-dark,\s*color-mix\(in srgb, var\(--color-primary\) 80%, #ffffff\)\s*\);/
+  );
+});
+
 test("--color-on-primary is exposed to Tailwind (text-on-primary, text-primary-foreground)", () => {
   assert.match(globalsCss, /@theme inline \{[\s\S]*--color-on-primary: var\(--color-on-primary\);/);
   assert.match(globalsCss, /--color-primary-foreground: var\(--color-on-primary\);/);

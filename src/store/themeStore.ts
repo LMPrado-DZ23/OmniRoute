@@ -96,6 +96,8 @@ function applyColorTheme(colorTheme: string, customColor: string) {
     root.style.removeProperty("--color-primary");
     root.style.removeProperty("--color-primary-hover");
     root.style.removeProperty("--color-on-primary");
+    root.style.removeProperty("--preset-primary-on-tint-light");
+    root.style.removeProperty("--preset-primary-on-tint-dark");
     return;
   }
 
@@ -111,6 +113,11 @@ function applyColorTheme(colorTheme: string, customColor: string) {
   root.style.setProperty("--color-primary", baseColor);
   root.style.setProperty("--color-primary-hover", hoverColor);
   root.style.setProperty("--color-on-primary", onPrimary);
+  // The 80% mixes in globals.css that make brand text readable on a primary TINT are tuned
+  // for the coral brand; another hue needs another shade (white on a green tint measured
+  // 2.95:1). These two per-theme overrides are consumed by the on-tint token in each theme.
+  root.style.setProperty("--preset-primary-on-tint-light", pickOnTint(baseColor, "light"));
+  root.style.setProperty("--preset-primary-on-tint-dark", pickOnTint(baseColor, "dark"));
 }
 
 /** WCAG 2.x AA minimum for normal-size text (SC 1.4.3). */
@@ -128,6 +135,49 @@ export function pickOnPrimary(primary: string) {
   return getContrastRatio(ON_PRIMARY_LIGHT, primary) >= AA_NORMAL_TEXT
     ? ON_PRIMARY_LIGHT
     : ON_PRIMARY_DARK;
+}
+
+/**
+ * Surfaces the app paints primary TINTS on (bg-primary/10..22): the sidebar, the page
+ * background and the card/subtle surfaces, per theme. Mirrors globals.css.
+ */
+const TINT_SURFACES: Record<"light" | "dark", string[]> = {
+  light: ["#f9f9fb", "#f5f5fa", "#ffffff", "#f0f0f5"],
+  dark: ["#0b0e14", "#10141e", "#161b22", "#111520"],
+};
+/** Tint strengths in use at call sites (bg-primary/10, /15, /22). */
+const TINT_ALPHAS = [0.1, 0.15, 0.22];
+
+function mixHexColors(a: string, b: string, weightOfA: number) {
+  const left = hexChannels(a);
+  const right = hexChannels(b);
+  const channel = (index: number) =>
+    Math.round(left[index] * weightOfA + right[index] * (1 - weightOfA));
+  return `#${[0, 1, 2].map((i) => channel(i).toString(16).padStart(2, "0")).join("")}`;
+}
+
+function hexChannels(hex: string) {
+  const normalized = normalizeHexColor(hex).slice(1);
+  return [0, 2, 4].map((offset) => parseInt(normalized.slice(offset, offset + 2), 16));
+}
+
+/**
+ * Brand-coloured TEXT on a primary tint, shaded until it meets AA on every tint the app
+ * paints in `theme`: away from the tint (towards black on light surfaces, towards white on
+ * dark ones), keeping as much of the hue as the contrast allows.
+ */
+export function pickOnTint(primary: string, theme: "light" | "dark") {
+  const target = theme === "light" ? ON_PRIMARY_DARK : ON_PRIMARY_LIGHT;
+  const backdrops = TINT_SURFACES[theme].flatMap((surface) =>
+    TINT_ALPHAS.map((alpha) => mixHexColors(primary, surface, alpha))
+  );
+  for (let keep = 100; keep >= 0; keep -= 5) {
+    const candidate = mixHexColors(primary, target, keep / 100);
+    if (backdrops.every((backdrop) => getContrastRatio(candidate, backdrop) >= AA_NORMAL_TEXT)) {
+      return candidate;
+    }
+  }
+  return target;
 }
 
 function normalizeHexColor(color: string) {
