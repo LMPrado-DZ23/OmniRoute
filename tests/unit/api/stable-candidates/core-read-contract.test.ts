@@ -274,10 +274,29 @@ it("GET /api/metrics?format=json serves a JSON summary", async () => {
 
 // ── GET /api/telemetry/summary ───────────────────────────────────────────────
 
+it("GET /api/telemetry/summary answers 401 to an anonymous caller", async () => {
+  const response = await telemetryRoute.GET(req("http://localhost/api/telemetry/summary"));
+  assert.equal(response.status, 401);
+});
+
+it("GET /api/telemetry/summary stays 401 for anonymous callers under requireLogin=false", async () => {
+  await settingsDb.updateSettings({ requireLogin: false });
+  try {
+    const response = await telemetryRoute.GET(req("http://localhost/api/telemetry/summary"));
+    assert.equal(response.status, 401, "error rates and volume are never anonymous");
+  } finally {
+    await settingsDb.updateSettings({ requireLogin: true });
+  }
+});
+
+it("GET /api/telemetry/summary answers 403 for a key without the manage scope", async () => {
+  const response = await telemetryRoute.GET(
+    req("http://localhost/api/telemetry/summary", "GET", readOnlyKey)
+  );
+  assert.equal(response.status, 403);
+});
+
 it("GET /api/telemetry/summary returns the telemetry envelope", async () => {
-  // NOTE: this handler carries no auth check of its own; it is protected only by
-  // the central authz pipeline in front of /api/*. A handler-level contract
-  // test therefore cannot assert 401 here — recorded as a promotion caveat.
   const response = await telemetryRoute.GET(
     req("http://localhost/api/telemetry/summary?windowMs=60000", "GET", manageKey)
   );

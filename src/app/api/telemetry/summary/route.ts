@@ -3,8 +3,20 @@ import { buildTelemetryPayload } from "@/lib/monitoring/observability";
 import { getTelemetrySummary } from "@/shared/utils/requestTelemetry";
 import { sanitizeErrorMessage } from "@omniroute/open-sse/utils/error";
 import { routingMetrics } from "@omniroute/open-sse/services/routing/metricsSink.ts";
+import { requireManagementAuth } from "@/lib/api/requireManagementAuth";
 
-export async function GET(request) {
+/**
+ * GET /api/telemetry/summary — request volume, latency and routed error rate.
+ *
+ * Always requires management auth (dashboard session or a `manage`-scoped API
+ * key), even under requireLogin=false: error rates and request volume are as
+ * sensitive as the provider/model data /api/metrics protects. Same pattern as
+ * /api/metrics and the routing-decision lookup (finding NEW-4, #42).
+ */
+export async function GET(request: Request) {
+  const authError = await requireManagementAuth(request, { alwaysRequireAuth: true });
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(request.url);
     const windowMs = parseInt(searchParams.get("windowMs") || "300000", 10);

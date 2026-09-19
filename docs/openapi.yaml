@@ -8134,10 +8134,19 @@ paths:
       x-rate-limit: none
       tags: [Telemetry]
       summary: Get telemetry summary
-      description: Returns aggregated telemetry data including request metrics and performance stats.
+      description: >-
+        Returns aggregated telemetry data including request metrics and performance stats.
+        Always requires management auth (dashboard session or a manage-scoped API key),
+        even when requireLogin is disabled — enforced by the handler.
+      security:
+        - BearerAuth: []
       responses:
         "200":
           description: Telemetry summary data
+        "401":
+          description: Management authentication required
+        "403":
+          description: API key lacks the manage scope
 
   /api/token-health:
     get:
