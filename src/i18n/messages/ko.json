@@ -1452,13 +1452,20 @@
       "webhookUrl": "Discord 웹훅 URL",
       "webhookUrlPlaceholder": "https://discord.com/api/webhooks/...",
       "webhookUrlHint": "Discord 채널 연동 설정에서 복사한 웹훅 URL입니다.",
-      "tutorial": "Discord 웹훅 생성 방법:"
+      "tutorial": "Discord 웹훅 생성 방법:",
+      "tutorialStep1": "Open the settings of the target channel and go to Integrations, then Webhooks.",
+      "tutorialStep2": "Create a webhook, give it a name, and confirm the channel it posts to.",
+      "tutorialStep3": "Copy the webhook URL and paste it in the field above."
     },
     "slack": {
       "webhookUrl": "Slack 웹훅 URL",
       "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
       "webhookUrlHint": "Slack 수신 웹훅(Incoming Webhooks) 연동에서 복사한 웹훅 URL입니다.",
-      "tutorial": "Slack 웹훅 생성 방법:"
+      "tutorial": "Slack 웹훅 생성 방법:",
+      "tutorialStep1": "Open api.slack.com/apps and create an app, or pick an existing one, in your workspace.",
+      "tutorialStep2": "Enable Incoming Webhooks, then choose Add New Webhook to Workspace.",
+      "tutorialStep3": "Pick the channel that should receive the alerts and authorise the app.",
+      "tutorialStep4": "Copy the generated webhook URL and paste it in the field above."
     },
     "telegram": {
       "botToken": "Telegram 봇 토큰",
@@ -1467,7 +1474,11 @@
       "chatId": "Telegram 채팅 ID / 채널",
       "chatIdPlaceholder": "-100123456789 또는 @channelname",
       "chatIdHint": "채팅/채널의 고유한 숫자 식별자 또는 공개 사용자 이름입니다.",
-      "tutorial": "Telegram 웹훅 구성 방법:"
+      "tutorial": "Telegram 웹훅 구성 방법:",
+      "tutorialStep1": "Message @BotFather on Telegram and send /newbot to create a bot.",
+      "tutorialStep2": "Copy the HTTP API token BotFather replies with and paste it in the field above.",
+      "tutorialStep3": "Add the bot to the target chat or channel and allow it to post messages.",
+      "tutorialStep4": "Send a message in that chat, then read the chat ID from https://api.telegram.org/botYOUR_TOKEN/getUpdates."
     }
   },
   "compliance": {

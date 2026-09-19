@@ -1452,13 +1452,20 @@
       "webhookUrl": "URL do Webhook",
       "webhookUrlPlaceholder": "https://...",
       "webhookUrlHint": "A URL do webhook copiada das configurações de integração.",
-      "tutorial": "Tutorial"
+      "tutorial": "Tutorial",
+      "tutorialStep1": "Abra as configurações do canal de destino e vá em Integrações, depois Webhooks.",
+      "tutorialStep2": "Crie um webhook, dê um nome a ele e confirme o canal em que ele vai publicar.",
+      "tutorialStep3": "Copie a URL do webhook e cole no campo acima."
     },
     "slack": {
       "webhookUrl": "URL do Webhook",
       "webhookUrlPlaceholder": "https://...",
       "webhookUrlHint": "A URL do webhook copiada das configurações de integração.",
-      "tutorial": "Tutorial"
+      "tutorial": "Tutorial",
+      "tutorialStep1": "Abra api.slack.com/apps e crie um app, ou escolha um existente, no seu workspace.",
+      "tutorialStep2": "Ative os Incoming Webhooks e escolha Add New Webhook to Workspace.",
+      "tutorialStep3": "Selecione o canal que deve receber os alertas e autorize o app.",
+      "tutorialStep4": "Copie a URL do webhook gerada e cole no campo acima."
     },
     "telegram": {
       "botToken": "Token do Bot Telegram",
@@ -1467,7 +1474,11 @@
       "chatId": "ID do Chat / Canal do Telegram",
       "chatIdPlaceholder": "-100123456789 ou @nomecanal",
       "chatIdHint": "O identificador numérico único ou nome de usuário público do chat/canal.",
-      "tutorial": "Tutorial"
+      "tutorial": "Tutorial",
+      "tutorialStep1": "Converse com o @BotFather no Telegram e envie /newbot para criar um bot.",
+      "tutorialStep2": "Copie o token da API HTTP que o BotFather responder e cole no campo acima.",
+      "tutorialStep3": "Adicione o bot ao chat ou canal de destino e permita que ele publique mensagens.",
+      "tutorialStep4": "Envie uma mensagem nesse chat e leia o ID do chat em https://api.telegram.org/botYOUR_TOKEN/getUpdates."
     }
   },
   "compliance": {

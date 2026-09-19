@@ -1452,13 +1452,20 @@
       "webhookUrl": "عنوان URL لـ Discord Webhook",
       "webhookUrlPlaceholder": "https://discord.com/api/webhooks/...",
       "webhookUrlHint": "عنوان URL للخطاف على الويب الذي تم نسخه من إعدادات تكامل قناة Discord الخاصة بك.",
-      "tutorial": "كيفية إنشاء خطاف ويب Discord:"
+      "tutorial": "كيفية إنشاء خطاف ويب Discord:",
+      "tutorialStep1": "Open the settings of the target channel and go to Integrations, then Webhooks.",
+      "tutorialStep2": "Create a webhook, give it a name, and confirm the channel it posts to.",
+      "tutorialStep3": "Copy the webhook URL and paste it in the field above."
     },
     "slack": {
       "webhookUrl": "عنوان URL لـ Slack Webhook",
       "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
       "webhookUrlHint": "تم نسخ عنوان URL الخاص بخطاف الويب من تكامل Slack Incoming Webhooks.",
-      "tutorial": "كيفية إنشاء خطاف ويب Slack:"
+      "tutorial": "كيفية إنشاء خطاف ويب Slack:",
+      "tutorialStep1": "Open api.slack.com/apps and create an app, or pick an existing one, in your workspace.",
+      "tutorialStep2": "Enable Incoming Webhooks, then choose Add New Webhook to Workspace.",
+      "tutorialStep3": "Pick the channel that should receive the alerts and authorise the app.",
+      "tutorialStep4": "Copy the generated webhook URL and paste it in the field above."
     },
     "telegram": {
       "botToken": "رمز بوت Telegram",
@@ -1467,7 +1474,11 @@
       "chatId": "معرّف دردشة Telegram أو القناة",
       "chatIdPlaceholder": "-100123456789 أو @channelname",
       "chatIdHint": "المعرّف الرقمي الفريد أو اسم المستخدم العام للدردشة أو القناة.",
-      "tutorial": "كيفية تكوين خطاف ويب Telegram:"
+      "tutorial": "كيفية تكوين خطاف ويب Telegram:",
+      "tutorialStep1": "Message @BotFather on Telegram and send /newbot to create a bot.",
+      "tutorialStep2": "Copy the HTTP API token BotFather replies with and paste it in the field above.",
+      "tutorialStep3": "Add the bot to the target chat or channel and allow it to post messages.",
+      "tutorialStep4": "Send a message in that chat, then read the chat ID from https://api.telegram.org/botYOUR_TOKEN/getUpdates."
     }
   },
   "compliance": {

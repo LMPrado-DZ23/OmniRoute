@@ -1452,13 +1452,20 @@
       "webhookUrl": "URL وب‌هوک Discord",
       "webhookUrlPlaceholder": "https://discord.com/api/webhooks/...",
       "webhookUrlHint": "URL وب‌هوک کپی‌شده از تنظیمات یکپارچه‌سازی کانال Discord شما.",
-      "tutorial": "نحوه ایجاد وب‌هوک Discord:"
+      "tutorial": "نحوه ایجاد وب‌هوک Discord:",
+      "tutorialStep1": "Open the settings of the target channel and go to Integrations, then Webhooks.",
+      "tutorialStep2": "Create a webhook, give it a name, and confirm the channel it posts to.",
+      "tutorialStep3": "Copy the webhook URL and paste it in the field above."
     },
     "slack": {
       "webhookUrl": "URL وب‌هوک Slack",
       "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
       "webhookUrlHint": "URL وب‌هوک کپی‌شده از یکپارچه‌سازی Incoming Webhooks در Slack شما.",
-      "tutorial": "نحوه ایجاد وب‌هوک Slack:"
+      "tutorial": "نحوه ایجاد وب‌هوک Slack:",
+      "tutorialStep1": "Open api.slack.com/apps and create an app, or pick an existing one, in your workspace.",
+      "tutorialStep2": "Enable Incoming Webhooks, then choose Add New Webhook to Workspace.",
+      "tutorialStep3": "Pick the channel that should receive the alerts and authorise the app.",
+      "tutorialStep4": "Copy the generated webhook URL and paste it in the field above."
     },
     "telegram": {
       "botToken": "توکن ربات Telegram",
@@ -1467,7 +1474,11 @@
       "chatId": "شناسه چت / کانال Telegram",
       "chatIdPlaceholder": "-100123456789 یا channelname@",
       "chatIdHint": "شناسه عددی یکتا یا نام کاربری عمومی چت/کانال.",
-      "tutorial": "نحوه پیکربندی وب‌هوک Telegram:"
+      "tutorial": "نحوه پیکربندی وب‌هوک Telegram:",
+      "tutorialStep1": "Message @BotFather on Telegram and send /newbot to create a bot.",
+      "tutorialStep2": "Copy the HTTP API token BotFather replies with and paste it in the field above.",
+      "tutorialStep3": "Add the bot to the target chat or channel and allow it to post messages.",
+      "tutorialStep4": "Send a message in that chat, then read the chat ID from https://api.telegram.org/botYOUR_TOKEN/getUpdates."
     }
   },
   "compliance": {

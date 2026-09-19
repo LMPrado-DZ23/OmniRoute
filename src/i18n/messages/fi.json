@@ -1452,13 +1452,20 @@
       "webhookUrl": "Discord-webhookin URL-osoite",
       "webhookUrlPlaceholder": "https://discord.com/api/webhooks/...",
       "webhookUrlHint": "Discord-kanavasi integraatioasetuksista kopioitu webhookin URL-osoite.",
-      "tutorial": "Näin luot Discord-webhookin:"
+      "tutorial": "Näin luot Discord-webhookin:",
+      "tutorialStep1": "Open the settings of the target channel and go to Integrations, then Webhooks.",
+      "tutorialStep2": "Create a webhook, give it a name, and confirm the channel it posts to.",
+      "tutorialStep3": "Copy the webhook URL and paste it in the field above."
     },
     "slack": {
       "webhookUrl": "Slack-webhookin URL-osoite",
       "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
       "webhookUrlHint": "Slack Incoming Webhooks -integraatiostasi kopioitu webhookin URL-osoite.",
-      "tutorial": "Näin luot Slack-webhookin:"
+      "tutorial": "Näin luot Slack-webhookin:",
+      "tutorialStep1": "Open api.slack.com/apps and create an app, or pick an existing one, in your workspace.",
+      "tutorialStep2": "Enable Incoming Webhooks, then choose Add New Webhook to Workspace.",
+      "tutorialStep3": "Pick the channel that should receive the alerts and authorise the app.",
+      "tutorialStep4": "Copy the generated webhook URL and paste it in the field above."
     },
     "telegram": {
       "botToken": "Telegram-botin token",
@@ -1467,7 +1474,11 @@
       "chatId": "Telegram-keskustelun ID / kanava",
       "chatIdPlaceholder": "-100123456789 tai @kanavannimi",
       "chatIdHint": "Keskustelun/kanavan yksilöllinen numeerinen tunniste tai julkinen käyttäjänimi.",
-      "tutorial": "Näin määrität Telegram-webhookin:"
+      "tutorial": "Näin määrität Telegram-webhookin:",
+      "tutorialStep1": "Message @BotFather on Telegram and send /newbot to create a bot.",
+      "tutorialStep2": "Copy the HTTP API token BotFather replies with and paste it in the field above.",
+      "tutorialStep3": "Add the bot to the target chat or channel and allow it to post messages.",
+      "tutorialStep4": "Send a message in that chat, then read the chat ID from https://api.telegram.org/botYOUR_TOKEN/getUpdates."
     }
   },
   "compliance": {
