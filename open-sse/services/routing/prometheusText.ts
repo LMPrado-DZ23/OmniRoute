@@ -14,8 +14,17 @@ export interface GaugeFamily {
   series: MetricSeries[];
 }
 
+/**
+ * Escapes a label value for the text exposition format. A raw CR ends the line for a parser that
+ * splits on CRLF just as a raw LF does, so both leave the value as an escape sequence and a model
+ * id carrying either cannot forge a metric line of its own.
+ */
 function escapeLabelValue(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"');
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/\n/g, "\\n")
+    .replace(/\r/g, "\\r")
+    .replace(/"/g, '\\"');
 }
 
 function escapeHelp(value: string): string {
