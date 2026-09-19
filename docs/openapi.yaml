@@ -2411,22 +2411,6 @@ paths:
           description: OK
 
   /api/models/alias:
-    post:
-      x-stability: internal
-      x-owner: "@LMPrado-DZ23"
-      x-since: "3.8.53"
-      x-rate-limit: none
-      tags: [Models]
-      summary: Create or update a model alias
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        "200":
-          description: Alias created/updated
     get:
       x-stability: internal
       x-owner: "@LMPrado-DZ23"
@@ -2745,18 +2729,6 @@ paths:
           description: Created node
 
   /api/provider-nodes/{id}:
-    patch:
-      x-stability: internal
-      x-owner: "@LMPrado-DZ23"
-      x-since: "3.8.53"
-      x-rate-limit: none
-      tags: [Provider Nodes]
-      summary: Update provider node
-      parameters:
-        - $ref: "#/components/parameters/ResourceId"
-      responses:
-        "200":
-          description: Updated node
     delete:
       x-stability: internal
       x-owner: "@LMPrado-DZ23"
@@ -3630,16 +3602,6 @@ paths:
       responses:
         "200":
           description: Current proxy settings
-    patch:
-      x-stability: internal
-      x-owner: "@LMPrado-DZ23"
-      x-since: "3.8.53"
-      x-rate-limit: none
-      tags: [Settings]
-      summary: Update proxy settings
-      responses:
-        "200":
-          description: Updated proxy settings
     put:
       x-stability: internal
       x-owner: "@LMPrado-DZ23"
@@ -4553,16 +4515,6 @@ paths:
       responses:
         "200":
           description: Current pricing configuration
-    post:
-      x-stability: internal
-      x-owner: "@LMPrado-DZ23"
-      x-since: "3.8.53"
-      x-rate-limit: none
-      tags: [Pricing]
-      summary: Set model pricing
-      responses:
-        "200":
-          description: Updated pricing
     patch:
       x-stability: internal
       x-owner: "@LMPrado-DZ23"
@@ -6740,16 +6692,6 @@ paths:
           description: Import result
 
   /api/oauth/kiro/import:
-    get:
-      x-stability: experimental
-      x-owner: "@LMPrado-DZ23"
-      x-since: "3.8.53"
-      x-rate-limit: none
-      tags: [OAuth]
-      summary: Get Kiro import status
-      responses:
-        "200":
-          description: Current import status
     post:
       x-stability: experimental
       x-owner: "@LMPrado-DZ23"
@@ -8207,17 +8149,17 @@ paths:
       x-since: "3.8.53"
       x-rate-limit: none
       tags: [System]
-      summary: List routing policies
+      summary: List login identifiers currently locked out
       responses:
         "200":
-          description: Policy list
+          description: Locked login identifiers ({ lockedIdentifiers })
     post:
       x-stability: internal
       x-owner: "@LMPrado-DZ23"
       x-since: "3.8.53"
       x-rate-limit: none
       tags: [System]
-      summary: Create routing policy
+      summary: Force-unlock a locked login identifier ({ action unlock, identifier })
       requestBody:
         required: true
         content:
@@ -8226,17 +8168,7 @@ paths:
               type: object
       responses:
         "201":
-          description: Created policy
-    delete:
-      x-stability: internal
-      x-owner: "@LMPrado-DZ23"
-      x-since: "3.8.53"
-      x-rate-limit: none
-      tags: [System]
-      summary: Delete routing policy
-      responses:
-        "200":
-          description: Policy deleted
+          description: Unlock result
 
   /api/compliance/audit-log:
     get:
@@ -8842,22 +8774,6 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AgentBridgeBypassRow"
-    put:
-      x-stability: internal
-      x-owner: "@LMPrado-DZ23"
-      x-since: "3.8.53"
-      x-rate-limit: none
-      tags: [AgentBridge]
-      summary: Update user bypass patterns
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AgentBridgeBypassUpsert"
-      responses:
-        "200":
-          description: Patterns updated
     post:
       x-stability: internal
       x-owner: "@LMPrado-DZ23"

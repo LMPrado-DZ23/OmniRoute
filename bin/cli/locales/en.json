@@ -405,40 +405,13 @@
     }
   },
   "policy": {
-    "description": "Manage OmniRoute authorization policies",
+    "description": "Login lockout: list and unlock identifiers locked after failed sign-ins",
+    "relatedFeatures": "This command only manages the login lockout. To block models use the per-API-key model restrictions (dashboard: API Keys); for provider preference use combos (omniroute combo); for spend limits use omniroute usage budget.",
     "list": {
-      "description": "List policies",
-      "kind": "Filter by kind (allow|deny|rate-limit|cost-cap)",
-      "scope": "Filter by scope (global|api-key|provider)"
+      "description": "List login identifiers currently locked out"
     },
-    "get": {
-      "description": "Get policy details by ID"
-    },
-    "create": {
-      "description": "Create a policy from a JSON file",
-      "file": "Path to policy JSON file"
-    },
-    "update": {
-      "description": "Update a policy from a JSON file",
-      "file": "Path to policy JSON file"
-    },
-    "delete": {
-      "description": "Delete a policy by ID",
-      "yes": "Skip confirmation prompt"
-    },
-    "evaluate": {
-      "description": "Dry-run policy evaluation (exit 0=allowed, 4=denied)",
-      "api_key": "API key to evaluate",
-      "action": "Action to check (e.g. chat, embed, admin)",
-      "resource": "Resource path or identifier",
-      "context": "Additional context as JSON object"
-    },
-    "export": {
-      "description": "Export all policies to a JSON file"
-    },
-    "import": {
-      "description": "Import policies from a JSON file",
-      "overwrite": "Overwrite existing policies with same ID"
+    "unlock": {
+      "description": "Force-unlock a locked login identifier"
     }
   },
   "compression": {

@@ -405,40 +405,13 @@
     }
   },
   "policy": {
-    "description": "Gerenciar políticas de autorização do OmniRoute",
+    "description": "Bloqueio de login: lista e desbloqueia identificadores bloqueados após falhas de login",
+    "relatedFeatures": "Este comando só gerencia o bloqueio de login. Para bloquear modelos use as restrições de modelo por chave de API (painel: API Keys); para preferência de provedor use combos (omniroute combo); para limites de gasto use omniroute usage budget.",
     "list": {
-      "description": "Listar políticas",
-      "kind": "Filtrar por tipo (allow|deny|rate-limit|cost-cap)",
-      "scope": "Filtrar por escopo (global|api-key|provider)"
+      "description": "Lista os identificadores de login bloqueados no momento"
     },
-    "get": {
-      "description": "Obter detalhes de política por ID"
-    },
-    "create": {
-      "description": "Criar política a partir de arquivo JSON",
-      "file": "Caminho para arquivo JSON de política"
-    },
-    "update": {
-      "description": "Atualizar política a partir de arquivo JSON",
-      "file": "Caminho para arquivo JSON de política"
-    },
-    "delete": {
-      "description": "Deletar política por ID",
-      "yes": "Pular confirmação"
-    },
-    "evaluate": {
-      "description": "Dry-run de avaliação de política (saída 0=permitido, 4=negado)",
-      "api_key": "Chave de API a avaliar",
-      "action": "Ação a verificar (ex: chat, embed, admin)",
-      "resource": "Caminho ou identificador do recurso",
-      "context": "Contexto adicional como objeto JSON"
-    },
-    "export": {
-      "description": "Exportar todas as políticas para arquivo JSON"
-    },
-    "import": {
-      "description": "Importar políticas de arquivo JSON",
-      "overwrite": "Sobrescrever políticas existentes com mesmo ID"
+    "unlock": {
+      "description": "Força o desbloqueio de um identificador de login"
     }
   },
   "compression": {

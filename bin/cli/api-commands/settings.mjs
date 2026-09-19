@@ -73,15 +73,6 @@ export function register_settings(parent) {
       const data = res.ok ? await res.json() : await res.text();
       emit(data, gOpts);
     });
-  tag.command("patch-api-settings-proxy")
-    .description("Update proxy settings")
-    .action(async (opts, cmd) => {
-      const gOpts = cmd.optsWithGlobals();
-      let url = "/api/settings/proxy";
-      const res = await apiFetch(url, { method: "PATCH", baseUrl: gOpts.baseUrl, apiKey: gOpts.apiKey });
-      const data = res.ok ? await res.json() : await res.text();
-      emit(data, gOpts);
-    });
   tag.command("post-api-settings-proxy-test")
     .description("Test proxy connection")
     .action(async (opts, cmd) => {
