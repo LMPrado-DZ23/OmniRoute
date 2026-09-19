@@ -18,6 +18,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+import type { A2ATask } from "../../src/lib/a2a/taskManager.ts";
+
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-breaker-reads-"));
 process.env.DATA_DIR = TEST_DATA_DIR;
 
@@ -31,8 +33,26 @@ const healthMatrix = await import("../../src/lib/monitoring/providerHealthMatrix
 const autopilot = await import("../../src/lib/monitoring/providerHealthAutopilot.ts");
 const connectionsRoute = await import("../../src/app/api/resilience/connections/route.ts");
 const monitoringHealthRoute = await import("../../src/app/api/monitoring/health/route.ts");
+const providerDiscovery = await import("../../src/lib/a2a/skills/providerDiscovery.ts");
 
 const PROVIDER = "breaker-read-only-provider";
+
+/** The minimal A2A task `executeProviderDiscovery` needs to pick a capability. */
+function discoveryTask(): A2ATask {
+  const now = new Date().toISOString();
+  return {
+    id: "task-breaker-read",
+    skill: "provider-discovery",
+    state: "working",
+    input: { skill: "provider-discovery", messages: [{ role: "user", content: "chat" }] },
+    artifacts: [],
+    events: [],
+    metadata: {},
+    createdAt: now,
+    updatedAt: now,
+    expiresAt: now,
+  };
+}
 
 test.after(() => {
   breakers.resetAllCircuitBreakers();
@@ -87,6 +107,14 @@ const readPaths: Array<[string, () => Promise<unknown>]> = [
       );
       assert.equal(response.status, 200, "the route answered, so it really read the breakers");
       return response.json();
+    },
+  ],
+  [
+    "a2a providerDiscovery",
+    async () => {
+      const result = await providerDiscovery.executeProviderDiscovery(discoveryTask());
+      assert.ok(result.metadata.totalCandidates > 0, "discovery really listed candidates");
+      return result;
     },
   ],
   [
