@@ -28,8 +28,11 @@ describe("skip link", () => {
   it("targets a focusable <main> in every /login render branch", () => {
     const login = read("src/app/login/page.tsx");
     const mains = login.match(/<main\s+id="main-content"\s+tabIndex=\{-1\}/g) ?? [];
-    // loading, bootstrap/welcome, second-state and the sign-in form branches
-    assert.equal(mains.length, 4);
+    // probe-failed (NEW-MEDIUM-3), loading, bootstrap/welcome, second-state and the
+    // sign-in form branches. Every early `return` in the page must be counted here.
+    const branches = login.match(/^\s{2}(if \([\s\S]*?\) \{\n\s{4})?return \(/gm) ?? [];
+    assert.equal(mains.length, 5);
+    assert.equal(mains.length, branches.length);
     assert.doesNotMatch(login, /<div className="min-h-screen/);
   });
 });
