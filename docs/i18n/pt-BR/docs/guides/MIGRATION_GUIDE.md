@@ -1,7 +1,7 @@
 ---
 title: "Guia de atualização e migração"
-version: 3.8.53
-lastUpdated: 2026-09-14
+version: 3.8.54
+lastUpdated: 2026-09-18
 ---
 
 # Guia de atualização e migração
@@ -16,7 +16,7 @@ lastUpdated: 2026-09-14
 
 1. **Anote o que roda hoje:** `omniroute --version` (a partir do código-fonte: `node bin/omniroute.mjs --version`), ou a tag **e o digest** da imagem Docker.
 2. **Leia o que mudou** entre a sua versão e a versão alvo: [CHANGELOG](../../CHANGELOG.md) (a seção `## [Unreleased]` e uma seção por versão publicada). Atenção a variáveis de ambiente removidas ou renomeadas ([ENVIRONMENT.md](../reference/ENVIRONMENT.md)), provedores removidos ([REMOVED_PROVIDERS.md](../../../../reference/REMOVED_PROVIDERS.md), em inglês) e requisitos de runtime ([Matriz de compatibilidade](../reference/COMPATIBILITY_MATRIX.md)).
-3. **Faça backup** do diretório de dados e guarde a `STORAGE_ENCRYPTION_KEY`: [Backup e restauração](../ops/BACKUP_RESTORE.md). O OmniRoute também tira o próprio snapshot pré-migração (abaixo), mas ele cobre apenas o arquivo principal do banco.
+3. **Faça backup** do diretório de dados e guarde a `STORAGE_ENCRYPTION_KEY`: [Backup e restauração](../ops/BACKUP_RESTORE.md). Se você nunca definiu a chave, ela fica em `<diretório-de-dados>/server.env`, que o `omniroute backup create` não copia ([detalhes](../ops/BACKUP_RESTORE.md#segredos-e-a-chave-de-criptografia)). O OmniRoute também tira o próprio snapshot pré-migração (abaixo), mas ele cobre apenas o arquivo principal do banco.
 4. **Planeje o alvo do rollback:** mantenha disponível a tag/digest da imagem anterior, a tag git ou o instalador.
 
 ---

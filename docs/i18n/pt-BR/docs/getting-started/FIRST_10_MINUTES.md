@@ -1,6 +1,6 @@
 ---
 title: "Seus primeiros 10 minutos com o OmniRoute"
-version: 3.8.53
+version: 3.8.54
 lastUpdated: 2026-09-14
 ---
 

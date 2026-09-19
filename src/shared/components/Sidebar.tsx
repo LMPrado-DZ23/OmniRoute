@@ -526,13 +526,8 @@ export default function Sidebar({
         )}
         style={{ paddingTop: isMacElectron ? "var(--desktop-safe-top)" : undefined }}
       >
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-3 focus:bg-primary focus:text-white focus:rounded-md focus:m-2"
-        >
-          {t("skipToContent")}
-        </a>
-
+        {/* The single "Skip to content" link lives in src/app/layout.tsx (first tab stop on
+            every page); a second copy here made keyboard users pass it twice. */}
         {(onToggleCollapse || !isMacElectron) && (
           <div
             className={cn(

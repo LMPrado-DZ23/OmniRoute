@@ -23,7 +23,8 @@
  *   /login                — public auth gate
  *   /dashboard            — main overview
  *   /dashboard/providers  — provider management (most complex UI surface)
- *   /dashboard/settings   — settings (ratchet only, default viewport)
+ *   /dashboard/analytics?tab=route-trace — Route Trace tab (routing decision lookup card)
+ *   /dashboard/settings   — settings (width sweep + ratchet)
  *
  * Run locally (requires the app running on the Playwright baseURL):
  *   REQUIRE_AXE=1 npx playwright test tests/e2e/a11y.spec.ts
@@ -61,11 +62,18 @@ try {
 // Phase 9 (2026-09-14): /login, /dashboard and /dashboard/providers measured 0 violations
 // of any impact at 375/768/900/1024/1280/1440px (were 1 / 4 / 3). /dashboard/settings was
 // not re-measured in that run and keeps its previous frozen value.
+// Final audit follow-up (2026-09-18): /dashboard/settings (→ /general) measured 0 violations
+// at 375/768/900/1024/1280/1440px after fixing color-contrast (success Badge, danger Button,
+// integrity text) and the unlabelled storage inputs/selects (was 5 frozen; 3 measured).
+// Final audit C M3 (2026-09-18): the Route Trace tab had one critical `select-name`
+// violation (unlabelled "Request log" select) at every width; fixed at the source.
+const ROUTE_TRACE_PATH = "/dashboard/analytics?tab=route-trace";
 const VIOLATION_BASELINES: Record<string, number> = {
   "/login": 0,
   "/dashboard": 0,
   "/dashboard/providers": 0,
-  "/dashboard/settings": 5,
+  [ROUTE_TRACE_PATH]: 0,
+  "/dashboard/settings": 0,
 };
 
 const BLOCKING_IMPACTS = new Set(["critical", "serious"]);
@@ -179,7 +187,13 @@ test.describe("A11y — Dashboard key surfaces (@axe-core, nightly)", () => {
     }
   });
 
-  for (const path of ["/login", "/dashboard", "/dashboard/providers"]) {
+  for (const path of [
+    "/login",
+    "/dashboard",
+    "/dashboard/providers",
+    "/dashboard/settings",
+    ROUTE_TRACE_PATH,
+  ]) {
     test(`${path} — zero critical/serious violations at 768–1440px and total within baseline`, async ({
       page,
     }) => {

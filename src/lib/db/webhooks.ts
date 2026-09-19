@@ -95,6 +95,8 @@ export function createWebhook(data: {
   description?: string;
   kind?: WebhookKind;
   metadataEncrypted?: string | null;
+  /** Defaults to true (the historical behaviour). */
+  enabled?: boolean;
 }): Webhook {
   const db = getDbInstance();
   const id = crypto.randomUUID();
@@ -105,8 +107,8 @@ export function createWebhook(data: {
   const storedSecret = encrypt(secret) ?? secret;
 
   db.prepare(
-    `INSERT INTO webhooks (id, url, events, secret, description, kind, metadata_encrypted)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO webhooks (id, url, events, secret, description, kind, metadata_encrypted, enabled)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     id,
     data.url,
@@ -114,7 +116,8 @@ export function createWebhook(data: {
     storedSecret,
     data.description || "",
     kind,
-    data.metadataEncrypted ?? null
+    data.metadataEncrypted ?? null,
+    data.enabled === false ? 0 : 1
   );
 
   return getWebhook(id)!;

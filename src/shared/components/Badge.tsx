@@ -5,7 +5,8 @@ import { cn } from "@/shared/utils/cn";
 const variants = {
   default: "bg-black/5 dark:bg-white/10 text-text-muted",
   primary: "bg-primary/10 text-primary",
-  success: "bg-green-500/10 text-green-600 dark:text-green-400",
+  // Light: green-800 on the 10% green tint is 6.5:1 (green-600 was 2.9:1, axe color-contrast).
+  success: "bg-green-500/10 text-green-800 dark:text-green-400",
   warning: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400",
   error: "bg-red-500/10 text-red-600 dark:text-red-400",
   info: "bg-blue-500/10 text-blue-600 dark:text-blue-400",

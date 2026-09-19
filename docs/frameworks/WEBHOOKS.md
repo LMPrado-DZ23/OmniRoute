@@ -1,13 +1,13 @@
 ---
 title: "Webhooks"
-version: 3.8.40
-lastUpdated: 2026-06-28
+version: 3.8.54
+lastUpdated: 2026-09-18
 ---
 
 # Webhooks
 
 > **Source of truth:** `src/lib/webhookDispatcher.ts`, `src/lib/db/webhooks.ts`, `src/app/api/webhooks/`
-> **Last updated:** 2026-06-28 — v3.8.40
+> **Last updated:** 2026-09-18 — v3.8.54
 
 OmniRoute can fire HTTP webhooks on platform events. Use them to integrate with
 Slack, PagerDuty, Datadog, internal alerting services, or any HTTP receiver.
@@ -18,23 +18,26 @@ keep failing.
 
 ## Supported Events
 
-The `WebhookEvent` type (`src/lib/webhooks/eventDescriptions.ts`, consumed by `src/lib/webhookDispatcher.ts`) currently models exactly seven events:
+The `WebhookEvent` type (`src/lib/webhooks/eventDescriptions.ts`, consumed by `src/lib/webhookDispatcher.ts`) currently models exactly eight events:
 
-| Event                   | Fires when                                                                 |
-| ----------------------- | -------------------------------------------------------------------------- |
-| `request.completed`     | A proxied request completes successfully                                   |
-| `request.failed`        | A proxied request fails after all retries/fallback                         |
-| `quota.exceeded`        | An API key crosses a budget/quota threshold                                |
-| `slo.breached`          | An SLO objective crosses its threshold (`src/lib/monitoring/sloAlerts.ts`) |
-| `slo.recovered`         | A breached SLO objective is back within its threshold                      |
-| `provider.circuit_open` | A provider circuit breaker newly transitions to OPEN                       |
-| `test.ping`             | Synthetic event used by the test endpoint                                  |
+| Event                      | Fires when                                                                 |
+| -------------------------- | -------------------------------------------------------------------------- |
+| `request.completed`        | A proxied request completes successfully                                   |
+| `request.failed`           | A proxied request fails after all retries/fallback                         |
+| `quota.exceeded`           | An API key crosses a budget/quota threshold                                |
+| `budget.threshold_reached` | An API key's internal OmniRoute budget crosses its warning threshold       |
+| `slo.breached`             | An SLO objective crosses its threshold (`src/lib/monitoring/sloAlerts.ts`) |
+| `slo.recovered`            | A breached SLO objective is back within its threshold                      |
+| `provider.circuit_open`    | A provider circuit breaker newly transitions to OPEN                       |
+| `test.ping`                | Synthetic event used by the test endpoint                                  |
 
 SLO thresholds and the alert payloads are documented in
 [MONITORING_GUIDE.md](../ops/MONITORING_GUIDE.md#alert-events).
 
-Subscriptions accept the literal `"*"` to receive every event. Unknown event
-names in `events` are ignored at dispatch time.
+Subscriptions accept the literal `"*"` to receive every event. `POST` and `PUT`
+reject any other event name with `400` (validation envelope with
+`details[].field`/`message`); `WEBHOOK_EVENT_VALUES` in the same file is the
+single list both the API and the dashboard event picker use.
 
 > Note: the dispatcher API is wired, but production call sites for some of the
 > non-`test.ping` events are still landing. Check `grep dispatchEvent` to see
@@ -165,7 +168,8 @@ curl -X POST http://localhost:20128/api/webhooks \
 ```
 
 If `secret` is omitted, the server generates a `whsec_<hex>` secret and returns
-it in the response.
+it in the response. `enabled` is optional and defaults to `true`; pass
+`"enabled": false` to create the webhook paused.
 
 ### Test webhook
 
@@ -182,7 +186,13 @@ quickly validating that the receiver accepts the payload and signature.
 The dashboard page at `/dashboard/webhooks` (see
 `src/app/(dashboard)/dashboard/webhooks/page.tsx`) provides:
 
-- Create/edit webhooks with an event picker
+- Create/edit webhooks with an event picker that offers exactly the events the
+  API accepts (including `slo.breached`, `slo.recovered`,
+  `provider.circuit_open` and `budget.threshold_reached`)
+- The add wizard saves a **disabled** draft when you leave step 2 (so the test
+  button works) and only applies your events and the Enabled switch on
+  **Finish**. Cancelling the wizard deletes that draft.
+- Validation errors are shown as text naming the rejected field
 - Status indicator (active / inactive / errored) based on `enabled`,
   `failure_count`, and `last_status`
 - One-click test delivery

@@ -70,7 +70,7 @@ export default function MaintenanceBanner() {
         <span className="material-symbols-outlined text-amber-500 text-[18px] animate-pulse">
           warning
         </span>
-        <span className="text-sm text-amber-200">{message}</span>
+        <span className="text-sm text-amber-800 dark:text-amber-200">{message}</span>
       </div>
       <button
         onClick={() => {

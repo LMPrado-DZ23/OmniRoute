@@ -125,9 +125,11 @@ export default function DashboardLayout({ children }) {
       </div>
 
       {/* Main content */}
+      {/* tabIndex=-1: the skip link moves focus into <main>, not just the scroll position. */}
       <main
         id="main-content"
-        className="relative flex min-h-0 flex-1 min-w-0 flex-col transition-colors duration-300"
+        tabIndex={-1}
+        className="relative flex min-h-0 flex-1 min-w-0 flex-col outline-none transition-colors duration-300"
       >
         <Header
           onMenuClick={() => setSidebarOpen(true)}

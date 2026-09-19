@@ -1,14 +1,14 @@
 ---
 title: "Backup e restauração"
-version: 3.8.53
-lastUpdated: 2026-09-14
+version: 3.8.54
+lastUpdated: 2026-09-18
 ---
 
 # Backup e restauração
 
 🌐 **Idiomas:** 🇺🇸 [English](../../../../ops/BACKUP_RESTORE.md) · 🇧🇷 Português (Brasil)
 
-> **Resumo:** tudo o que o OmniRoute persiste fica em um único diretório de dados. Faça backup desse diretório (de forma consistente, porque o SQLite roda em modo WAL) **e** da sua chave de criptografia, que não fica nele. Esquema, detalhes do SQLite e cenários de recuperação de desastre estão no [DATABASE_GUIDE.md](../../../../ops/DATABASE_GUIDE.md#backup-and-recovery) (em inglês); esta página é o roteiro de operação.
+> **Resumo:** tudo o que o OmniRoute persiste fica em um único diretório de dados. Faça backup desse diretório (de forma consistente, porque o SQLite roda em modo WAL) **e** da sua chave de criptografia. Numa instalação padrão a chave é gerada automaticamente na primeira inicialização e fica **dentro** do diretório de dados, no `server.env` (veja [Segredos e a chave de criptografia](#segredos-e-a-chave-de-criptografia)); o `omniroute backup create` **não** copia esse arquivo, então faça backup dele separadamente e mantenha-o em segredo. Esquema, detalhes do SQLite e cenários de recuperação de desastre estão no [DATABASE_GUIDE.md](../../../../ops/DATABASE_GUIDE.md#backup-and-recovery) (em inglês); esta página é o roteiro de operação.
 
 ---
 
@@ -30,19 +30,51 @@ As imagens Docker definem `DATA_DIR=/app/data` (`Dockerfile`); o `docker-compose
 
 ### O que há dentro
 
-| Caminho (relativo ao diretório de dados)   | Conteúdo                                                                                                                       |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| `storage.sqlite`                           | Banco principal: provedores, conexões, chaves, combos, configurações, uso.                                                     |
-| `storage.sqlite-wal`, `storage.sqlite-shm` | Write-ahead log e memória compartilhada do SQLite. Escritas recentes podem existir só no WAL até um checkpoint.                |
-| outros arquivos `*.sqlite`                 | Bancos irmãos, quando existem. O `bin/snapshot-data.sh` também os copia.                                                       |
-| `db_backups/`                              | Backups do servidor: cópias automáticas/manuais, snapshots pré-migração e snapshots pré-atualização do app desktop.            |
-| `backups/`                                 | Backups criados pelo comando de CLI `omniroute backup create`.                                                                 |
-| `call_logs/`                               | Artefatos de payload de requisições, se habilitado ([DATABASE_GUIDE.md](../../../../ops/DATABASE_GUIDE.md#database-location)). |
+| Caminho (relativo ao diretório de dados)   | Conteúdo                                                                                                                              |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `storage.sqlite`                           | Banco principal: provedores, conexões, chaves, combos, configurações, uso.                                                            |
+| `storage.sqlite-wal`, `storage.sqlite-shm` | Write-ahead log e memória compartilhada do SQLite. Escritas recentes podem existir só no WAL até um checkpoint.                       |
+| outros arquivos `*.sqlite`                 | Bancos irmãos, quando existem. O `bin/snapshot-data.sh` também os copia.                                                              |
+| `db_backups/`                              | Backups do servidor: cópias automáticas/manuais, snapshots pré-migração e snapshots pré-atualização do app desktop.                   |
+| `backups/`                                 | Backups criados pelo comando de CLI `omniroute backup create`.                                                                        |
+| `call_logs/`                               | Artefatos de payload de requisições, se habilitado ([DATABASE_GUIDE.md](../../../../ops/DATABASE_GUIDE.md#database-location)).        |
+| `server.env`                               | **Segredo.** Segredos gerados automaticamente na primeira inicialização (veja abaixo). Escrito por `scripts/build/bootstrap-env.mjs`. |
+| `.env`                                     | **Segredo, quando existe.** Sua própria configuração, ou uma cópia do `server.env` feita pela CLI na primeira execução.               |
+
+### Segredos e a chave de criptografia
+
+As colunas sensíveis do banco são criptografadas com a `STORAGE_ENCRYPTION_KEY` (alias legado `OMNIROUTE_CRYPT_KEY`). Um banco restaurado não serve para essas colunas sem a mesma chave ([DATABASE_GUIDE.md](../../../../ops/DATABASE_GUIDE.md#encryption-key)).
+
+Onde a chave fica depende de como você a configurou:
+
+- **Você não a definiu** (instalação padrão, app desktop, Docker sem `-e STORAGE_ENCRYPTION_KEY`). Na primeira inicialização o servidor gera `STORAGE_ENCRYPTION_KEY`, `STORAGE_ENCRYPTION_KEY_VERSION`, `JWT_SECRET` e `API_KEY_SECRET` e grava tudo em `<diretório-de-dados>/server.env` (`scripts/build/bootstrap-env.mjs`). A primeira execução da CLI `omniroute` também copia o `server.env` para `<diretório-de-dados>/.env` quando o `.env` não existe (`bin/omniroute.mjs`). Ou seja, a chave **fica dentro** do diretório de dados.
+- **Você mesmo a definiu** (shell, unit de serviço, `docker run -e`, um `.env` fora do diretório de dados). Nesse caso ela fica onde você a colocou e **não** está no diretório de dados; faça o backup a partir de lá.
+
+Consequências:
+
+- Uma cópia completa do diretório de dados (tarball, backup de volume, imagem de disco) **contém a chave e os outros segredos**. Guarde-a criptografada e com acesso restrito, como uma senha.
+- `omniroute backup create` copia só `storage.sqlite`, `settings.json`, `combos.json` e `providers.json` (`bin/cli/commands/backup.mjs`); o `bin/snapshot-data.sh` copia só os arquivos `*.sqlite`. **Nenhum dos dois inclui `server.env` nem `.env`.** Restaurar qualquer um desses backups em outra máquina sem restaurar também a chave deixa todas as credenciais criptografadas ilegíveis.
+
+**Faça backup do `server.env` com segurança** (e do `.env`, se existir), sem exibir o conteúdo:
+
+```bash
+# Linux / macOS: copia com permissão só para o dono, para um local protegido
+install -m 600 "<data-dir>/server.env" /path/to/secure-backup/omniroute-server.env
+```
+
+```powershell
+# Windows (PowerShell): copia para um local protegido
+Copy-Item "$env:APPDATA\omniroute\server.env" "D:\secure-backup\omniroute-server.env"
+```
+
+Nunca use `cat`, não cole nem faça commit do arquivo, e não o guarde junto de um backup do banco sem criptografia. Como alternativa, copie só a linha `STORAGE_ENCRYPTION_KEY` para um gerenciador de senhas.
+
+Para restaurar em outra máquina, coloque o arquivo de volta como `<diretório-de-dados>/server.env` (ou passe os mesmos valores pelo ambiente) **antes** da primeira inicialização. Se o servidor iniciar sem a chave enquanto existem credenciais criptografadas, ele se recusa a gerar uma nova e informa os arquivos em que procurou.
 
 ### O que **não** está dentro
 
-- **`STORAGE_ENCRYPTION_KEY`** (alias legado `OMNIROUTE_CRYPT_KEY`). As colunas sensíveis são criptografadas com ela; um banco restaurado não serve para essas colunas sem a mesma chave. Guarde-a separadamente, por exemplo num gerenciador de senhas ([DATABASE_GUIDE.md](../../../../ops/DATABASE_GUIDE.md#encryption-key)).
-- A configuração da sua implantação (`.env`, arquivos compose, proxy reverso). Mantenha em controle de versão ou no seu cofre de segredos.
+- Uma chave de criptografia ou outros segredos que **você** forneceu pelo ambiente ou por um `.env` fora do diretório de dados (veja acima).
+- A configuração da sua implantação (arquivos compose, units de serviço, proxy reverso). Mantenha em controle de versão ou no seu cofre de segredos.
 
 ---
 
@@ -53,7 +85,7 @@ As imagens Docker definem `DATA_DIR=/app/data` (`Dockerfile`); o `docker-compose
 | Cópias de segurança do servidor     | `db_backups/db_*.sqlite`                            | Automático antes de escritas/importações (`pre-write`, `pre-import`, `pre-json-import`, …) e manual via `PUT /api/db-backups` | Fonte: `src/lib/db/backup.ts`. As cópias automáticas são limitadas (no máximo uma a cada 60 minutos), puladas para um banco menor que 4096 bytes e desligadas por `DISABLE_SQLITE_AUTO_BACKUP=true` ou pela opção de backup automático do painel. Cópias manuais sempre rodam. |
 | Snapshot pré-migração               | `db_backups/db_state-<sha256>_pre-migration.sqlite` | Automático, antes de as migrações tocarem um banco existente                                                                  | Endereçado por conteúdo; veja o [Guia de atualização e migração](../guides/MIGRATION_GUIDE.md) e `src/lib/db/migrationRunner/preMigrationBackup.ts`.                                                                                                                           |
 | Backups agendados                   | Job do servidor                                     | `omniroute backup auto enable --cron "0 3 * * *"`; `omniroute backup auto status` / `disable`                                 | Semântica do agendamento e variáveis: [DATABASE_GUIDE.md](../../../../ops/DATABASE_GUIDE.md#automated-backups).                                                                                                                                                                |
-| Backup pela CLI                     | `backups/omniroute-backup-<id>/`                    | `omniroute backup create [--name <nome>] [--encrypt --key-file <caminho>] [--exclude <padrão>] [--retention <n>]`             | Copia `storage.sqlite` e, quando existem, `settings.json`, `combos.json`, `providers.json`, com um `backup-info.json` (`bin/cli/commands/backup.mjs`).                                                                                                                         |
+| Backup pela CLI                     | `backups/omniroute-backup-<id>/`                    | `omniroute backup create [--name <nome>] [--encrypt --key-file <caminho>] [--exclude <padrão>] [--retention <n>]`             | Copia `storage.sqlite` e, quando existem, `settings.json`, `combos.json`, `providers.json`, com um `backup-info.json` (`bin/cli/commands/backup.mjs`). **Não** copia `server.env`/`.env`.                                                                                      |
 | Script de snapshot de operação      | `db_backups/snapshot_<UTC>[_<rótulo>]/`             | `bin/snapshot-data.sh [--label <nome>] [--data-dir <caminho>]`                                                                | Usa `sqlite3 "VACUUM INTO"` (consistente com o servidor rodando) quando o `sqlite3` está instalado; senão copia arquivos, então **pare o OmniRoute antes**. Imprime o id do snapshot.                                                                                          |
 | Snapshot pré-atualização do desktop | `db_backups/pre-update-<versão>-<timestamp>/`       | Automático antes de o app desktop instalar uma atualização                                                                    | Copia o banco com WAL/SHM, `server.env`, `.env` e `electron-preferences.json`; mantém os 3 mais recentes (`electron/lib/preUpdateSnapshot.js`).                                                                                                                                |
 | Backup online do SQLite             | Onde você escolher                                  | `sqlite3 <diretório-de-dados>/storage.sqlite ".backup <destino>"`                                                             | Seguro com o banco em uso ([DATABASE_GUIDE.md](../../../../ops/DATABASE_GUIDE.md#sqlite-hot-backup)).                                                                                                                                                                          |
@@ -122,7 +154,7 @@ Siga nesta ordem; pare na primeira falha.
 3. **Disponibilidade:** `curl -s http://localhost:20128/healthz`.
 4. **Saúde do banco** (autenticado): `GET /api/db/health` ([DATABASE_GUIDE.md](../../../../ops/DATABASE_GUIDE.md#health-check)).
 5. **Dados:** entre no painel, confira se provedores, chaves de API e combos estão lá e rode um teste de conexão de provedor.
-6. **Criptografia:** se as conexões existem mas falham com erro de descriptografia, a `STORAGE_ENCRYPTION_KEY` em uso é diferente da usada quando o backup foi feito.
+6. **Criptografia:** se as conexões existem mas falham com erro de descriptografia, a `STORAGE_ENCRYPTION_KEY` em uso é diferente da usada quando o backup foi feito. Restaure o `server.env` correspondente (ou o valor no ambiente) e reinicie.
 7. **Ponta a ponta:** `curl -s http://localhost:20128/v1/models -H "Authorization: Bearer sk-your-omniroute-key"`.
 
 ---
@@ -151,7 +183,7 @@ docker run -d --name omniroute -p 127.0.0.1:20128:20128 \
   -v omniroute-data-restored:/app/data ghcr.io/lmprado-dz23/omniroute:<same-tag-as-before>
 ```
 
-Depois rode as verificações da [seção 4](#4-verificar-uma-restauração). Passe a mesma `STORAGE_ENCRYPTION_KEY` (e o restante do ambiente) que você usava.
+Depois rode as verificações da [seção 4](#4-verificar-uma-restauração). Passe a mesma `STORAGE_ENCRYPTION_KEY` (e o restante do ambiente) que você usava. Se você nunca a definiu, a chave está no `server.env` dentro do volume, então esse tarball a contém: guarde o tarball criptografado.
 
 Com um **bind mount** (por exemplo `./data:/app/data`) dá para usar os scripts de operação a partir do host: `bin/snapshot-data.sh --data-dir ./data` e `bin/restore-data.sh <id> --data-dir ./data --yes`, com o contêiner parado durante a restauração.
 

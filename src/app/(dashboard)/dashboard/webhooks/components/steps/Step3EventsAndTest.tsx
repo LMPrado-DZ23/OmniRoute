@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { EventChecklist } from "../shared/EventChecklist";
 import { PayloadPreview } from "../shared/PayloadPreview";
+import { describeApiError } from "@/shared/utils/apiErrorPresentation";
 
 interface Step3Props {
   webhookId?: string;
@@ -34,6 +35,7 @@ export function Step3EventsAndTest({
   onChangeDescription,
   t,
 }: Step3Props) {
+  const fieldId = useId();
   const [testState, setTestState] = useState<"idle" | "sending" | "ok" | "fail">("idle");
   const [testResult, setTestResult] = useState<TestResult | null>(null);
 
@@ -45,7 +47,7 @@ export function Step3EventsAndTest({
       const res = await fetch(`/api/webhooks/${webhookId}/test`, { method: "POST" });
       const data: TestResult & { error?: string } = await res.json().catch(() => ({}));
       if (!res.ok || data.delivered === false) {
-        throw new Error(data.error || t("testFailed"));
+        throw new Error(describeApiError(data, t("testFailed"), res.status));
       }
       setTestResult(data);
       setTestState("ok");
@@ -73,10 +75,14 @@ export function Step3EventsAndTest({
   return (
     <div className="space-y-5">
       <div>
-        <label className="text-xs font-medium uppercase tracking-wider text-text-muted">
+        <label
+          htmlFor={`${fieldId}-name`}
+          className="text-xs font-medium uppercase tracking-wider text-text-muted"
+        >
           {t("name")}
         </label>
         <input
+          id={`${fieldId}-name`}
           value={description}
           onChange={(e) => onChangeDescription(e.target.value)}
           placeholder={t("namePlaceholder")}
@@ -85,13 +91,14 @@ export function Step3EventsAndTest({
       </div>
 
       <div>
-        <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-text-muted">
+        <p className="mb-2 block text-xs font-medium uppercase tracking-wider text-text-muted">
           {t("events")}
-        </label>
+        </p>
         <EventChecklist
           selected={events}
           onChange={onChangeEvents}
           allEventsLabel={t("allEvents")}
+          groupLabel={t("events")}
         />
       </div>
 
@@ -129,7 +136,7 @@ export function Step3EventsAndTest({
 
           {testState === "ok" && testResult && (
             <div className="space-y-3">
-              <p className="text-xs font-medium text-emerald-500">
+              <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
                 ✅ {testResult.status} &middot; {testResult.latencyMs}ms &middot; {t("testSuccess")}
               </p>
               {testResult.payloadSent && (
@@ -146,7 +153,9 @@ export function Step3EventsAndTest({
 
           {testState === "fail" && testResult && (
             <div className="space-y-3">
-              <p className="text-xs text-red-500">{testResult.error ?? t("testFailed")}</p>
+              <p className="text-xs text-red-700 dark:text-red-400">
+                {testResult.error ?? t("testFailed")}
+              </p>
               {testResult.payloadSent && (
                 <PayloadPreview payload={testResult.payloadSent} label={t("testPayloadSent")} />
               )}

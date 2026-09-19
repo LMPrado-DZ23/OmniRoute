@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { DeliveryStatusBadge } from "./shared/DeliveryStatusBadge";
+import { describeApiError } from "@/shared/utils/apiErrorPresentation";
 
 interface Delivery {
   id: number;
@@ -29,7 +30,7 @@ export function WebhookDeliveriesPanel({ webhookId, t }: WebhookDeliveriesPanelP
     try {
       const res = await fetch(`/api/webhooks/${webhookId}/deliveries?limit=5`);
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || t("deliveries.loadFailed"));
+      if (!res.ok) throw new Error(describeApiError(data, t("deliveries.loadFailed"), res.status));
       setDeliveries(Array.isArray(data.deliveries) ? data.deliveries : []);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("deliveries.loadFailed"));

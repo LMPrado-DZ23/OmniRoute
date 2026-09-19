@@ -782,7 +782,9 @@ export default function SystemStorageTab() {
             <p className="text-xs text-text-muted mb-1">{t("storageIntegrityCheck")}</p>
             <p className="text-sm font-semibold">
               {dbSettings.stats.integrityCheck === "ok" ? (
-                <span className="text-green-500">{t("storageIntegrityOk")}</span>
+                <span className="text-green-700 dark:text-green-400">
+                  {t("storageIntegrityOk")}
+                </span>
               ) : dbSettings.stats.integrityCheck === "error" ? (
                 <span className="text-red-500">{t("storageIntegrityError")}</span>
               ) : (
@@ -954,8 +956,8 @@ export default function SystemStorageTab() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {retentionFields.map(([key, label, fallback]) => (
-            <div key={String(key)}>
-              <label className="block text-xs text-text-muted mb-1">{label}</label>
+            <label className="block" key={String(key)}>
+              <span className="block text-xs text-text-muted mb-1">{label}</span>
               <input
                 type="number"
                 min="1"
@@ -972,7 +974,7 @@ export default function SystemStorageTab() {
                 }
                 className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-bg focus:outline-none focus:ring-2 focus:ring-primary"
               />
-            </div>
+            </label>
           ))}
         </div>
         <div className="mt-3">
@@ -1018,10 +1020,10 @@ export default function SystemStorageTab() {
         </h4>
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-text-muted mb-1">
+            <label className="block">
+              <span className="block text-xs text-text-muted mb-1">
                 {t("storageAutoVacuumMode")}
-              </label>
+              </span>
               <select
                 value={dbSettings.optimization.autoVacuumMode}
                 onChange={(e) =>
@@ -1039,11 +1041,11 @@ export default function SystemStorageTab() {
                 <option value="FULL">{t("storageJournalModeFull")}</option>
                 <option value="INCREMENTAL">{t("storageJournalModeIncremental")}</option>
               </select>
-            </div>
-            <div>
-              <label className="block text-xs text-text-muted mb-1">
+            </label>
+            <label className="block">
+              <span className="block text-xs text-text-muted mb-1">
                 {t("storageScheduledVacuum")}
-              </label>
+              </span>
               <select
                 value={dbSettings.optimization.scheduledVacuum}
                 onChange={(e) =>
@@ -1062,9 +1064,9 @@ export default function SystemStorageTab() {
                 <option value="weekly">{t("storageVacuumWeekly")}</option>
                 <option value="monthly">{t("storageVacuumMonthly")}</option>
               </select>
-            </div>
-            <div>
-              <label className="block text-xs text-text-muted mb-1">{t("storageVacuumHour")}</label>
+            </label>
+            <label className="block">
+              <span className="block text-xs text-text-muted mb-1">{t("storageVacuumHour")}</span>
               <input
                 type="number"
                 min="0"
@@ -1081,9 +1083,9 @@ export default function SystemStorageTab() {
                 }
                 className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-bg focus:outline-none focus:ring-2 focus:ring-primary"
               />
-            </div>
-            <div>
-              <label className="block text-xs text-text-muted mb-1">{t("storagePageSize")}</label>
+            </label>
+            <label className="block">
+              <span className="block text-xs text-text-muted mb-1">{t("storagePageSize")}</span>
               <input
                 type="number"
                 min="512"
@@ -1101,11 +1103,9 @@ export default function SystemStorageTab() {
                 }
                 className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-bg focus:outline-none focus:ring-2 focus:ring-primary"
               />
-            </div>
-            <div>
-              <label className="block text-xs text-text-muted mb-1">
-                {t("storageCacheSizeKb")}
-              </label>
+            </label>
+            <label className="block">
+              <span className="block text-xs text-text-muted mb-1">{t("storageCacheSizeKb")}</span>
               <input
                 type="number"
                 min="1"
@@ -1122,7 +1122,7 @@ export default function SystemStorageTab() {
                 }
                 className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-bg focus:outline-none focus:ring-2 focus:ring-primary"
               />
-            </div>
+            </label>
           </div>
           <div className="flex items-center gap-3">
             <input
@@ -1189,10 +1189,10 @@ export default function SystemStorageTab() {
             </label>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-text-muted mb-1">
+            <label className="block">
+              <span className="block text-xs text-text-muted mb-1">
                 {t("storageRawDataRetention")}
-              </label>
+              </span>
               <input
                 type="number"
                 min="1"
@@ -1209,11 +1209,9 @@ export default function SystemStorageTab() {
                 }
                 className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-bg focus:outline-none focus:ring-2 focus:ring-primary"
               />
-            </div>
-            <div>
-              <label className="block text-xs text-text-muted mb-1">
-                {t("storageGranularity")}
-              </label>
+            </label>
+            <label className="block">
+              <span className="block text-xs text-text-muted mb-1">{t("storageGranularity")}</span>
               <select
                 value={dbSettings.aggregation.granularity}
                 onChange={(e) =>
@@ -1231,7 +1229,7 @@ export default function SystemStorageTab() {
                 <option value="daily">{t("storageDaily")}</option>
                 <option value="weekly">{t("storageWeekly")}</option>
               </select>
-            </div>
+            </label>
           </div>
         </div>
         <div className="mt-3">
@@ -1564,6 +1562,7 @@ export default function SystemStorageTab() {
                 "Select how far back you want to delete usage, request logs, and analytics data. Provider configuration, connections, API keys, combos, and settings are preserved. This action cannot be undone."}
             </p>
             <select
+              aria-label={t("resetUsageData")}
               value={resetUsagePeriod}
               onChange={(e) => setResetUsagePeriod(e.target.value)}
               className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-red-500/40"

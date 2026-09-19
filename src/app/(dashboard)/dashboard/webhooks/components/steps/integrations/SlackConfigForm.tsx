@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
+import { urlHintKey, type UrlState } from "./urlHint";
 
 export interface SlackConfig {
   webhookUrl: string;
@@ -12,9 +13,8 @@ interface SlackConfigFormProps {
   t: (key: string) => string;
 }
 
-type UrlState = "idle" | "checking" | "ok" | "blocked" | "invalid";
-
 export function SlackConfigForm({ value, onChange, t }: SlackConfigFormProps) {
+  const fieldId = useId();
   const [urlState, setUrlState] = useState<UrlState>("idle");
 
   useEffect(() => {
@@ -46,24 +46,20 @@ export function SlackConfigForm({ value, onChange, t }: SlackConfigFormProps) {
     };
   }, [value.webhookUrl]);
 
-  const urlHint =
-    urlState === "checking"
-      ? t("validateUrl.checking")
-      : urlState === "ok"
-        ? t("validateUrl.ok")
-        : urlState === "blocked"
-          ? t("validateUrl.blockedPrivate")
-          : urlState === "invalid" && value.webhookUrl.trim()
-            ? t("validateUrl.invalidUrl")
-            : "";
+  const hintKey = urlHintKey(urlState, value.webhookUrl.trim().length > 0);
+  const urlHint = hintKey ? t(hintKey) : "";
 
   return (
     <div className="space-y-4">
       <div>
-        <label className="text-xs font-medium uppercase tracking-wider text-text-muted">
+        <label
+          htmlFor={`${fieldId}-webhook-url`}
+          className="text-xs font-medium uppercase tracking-wider text-text-muted"
+        >
           {t("slack.webhookUrl")}
         </label>
         <input
+          id={`${fieldId}-webhook-url`}
           value={value.webhookUrl}
           onChange={(e) => onChange({ webhookUrl: e.target.value })}
           placeholder={t("slack.webhookUrlPlaceholder")}
@@ -71,7 +67,7 @@ export function SlackConfigForm({ value, onChange, t }: SlackConfigFormProps) {
         />
         {urlHint && (
           <p
-            className={`mt-1 text-xs ${urlState === "ok" ? "text-emerald-500" : urlState === "checking" ? "text-text-muted" : "text-red-500"}`}
+            className={`mt-1 text-xs ${urlState === "ok" ? "text-emerald-700 dark:text-emerald-400" : urlState === "checking" ? "text-text-muted" : "text-red-700 dark:text-red-400"}`}
           >
             {urlHint}
           </p>

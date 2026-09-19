@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import ResilienceTab from "../components/ResilienceTab";
+import SloSettingsCard from "../components/SloSettingsCard";
 
 export default function SettingsResiliencePage() {
   const t = useTranslations("settings");
@@ -11,6 +12,7 @@ export default function SettingsResiliencePage() {
         {t("resilienceSettingsIntro")} {t("resilienceStructureDesc")}
       </p>
       <ResilienceTab />
+      <SloSettingsCard />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
+import { urlHintKey, type UrlState } from "./urlHint";
 import { HmacRecipeBlock } from "../../shared/HmacRecipeBlock";
 
 export interface CustomConfig {
@@ -15,9 +16,8 @@ interface CustomConfigFormProps {
   isEditing?: boolean;
 }
 
-type UrlState = "idle" | "checking" | "ok" | "blocked" | "invalid";
-
 export function CustomConfigForm({ value, onChange, t, isEditing }: CustomConfigFormProps) {
+  const fieldId = useId();
   const [urlState, setUrlState] = useState<UrlState>("idle");
 
   useEffect(() => {
@@ -49,24 +49,20 @@ export function CustomConfigForm({ value, onChange, t, isEditing }: CustomConfig
     };
   }, [value.endpointUrl]);
 
-  const urlHint =
-    urlState === "checking"
-      ? t("validateUrl.checking")
-      : urlState === "ok"
-        ? t("validateUrl.ok")
-        : urlState === "blocked"
-          ? t("validateUrl.blockedPrivate")
-          : urlState === "invalid" && value.endpointUrl.trim()
-            ? t("validateUrl.invalidUrl")
-            : "";
+  const hintKey = urlHintKey(urlState, value.endpointUrl.trim().length > 0);
+  const urlHint = hintKey ? t(hintKey) : "";
 
   return (
     <div className="space-y-4">
       <div>
-        <label className="text-xs font-medium uppercase tracking-wider text-text-muted">
+        <label
+          htmlFor={`${fieldId}-endpoint-url`}
+          className="text-xs font-medium uppercase tracking-wider text-text-muted"
+        >
           {t("custom.endpointUrl")}
         </label>
         <input
+          id={`${fieldId}-endpoint-url`}
           value={value.endpointUrl}
           onChange={(e) => onChange({ ...value, endpointUrl: e.target.value })}
           placeholder={t("custom.endpointUrlPlaceholder")}
@@ -76,10 +72,10 @@ export function CustomConfigForm({ value, onChange, t, isEditing }: CustomConfig
           <p
             className={`mt-1 text-xs ${
               urlState === "ok"
-                ? "text-emerald-500"
+                ? "text-emerald-700 dark:text-emerald-400"
                 : urlState === "checking"
                   ? "text-text-muted"
-                  : "text-red-500"
+                  : "text-red-700 dark:text-red-400"
             }`}
           >
             {urlHint}
@@ -87,10 +83,14 @@ export function CustomConfigForm({ value, onChange, t, isEditing }: CustomConfig
         )}
       </div>
       <div>
-        <label className="text-xs font-medium uppercase tracking-wider text-text-muted">
+        <label
+          htmlFor={`${fieldId}-secret-key`}
+          className="text-xs font-medium uppercase tracking-wider text-text-muted"
+        >
           {t("custom.secretKey")}
         </label>
         <input
+          id={`${fieldId}-secret-key`}
           type="password"
           value={value.secretKey}
           onChange={(e) => onChange({ ...value, secretKey: e.target.value })}

@@ -1,7 +1,7 @@
 ---
 title: "Upgrade and Migration Guide"
-version: 3.8.53
-lastUpdated: 2026-09-14
+version: 3.8.54
+lastUpdated: 2026-09-18
 ---
 
 # Upgrade and Migration Guide
@@ -16,7 +16,7 @@ lastUpdated: 2026-09-14
 
 1. **Note what you run now:** `omniroute --version` (from source: `node bin/omniroute.mjs --version`), or the Docker image tag **and digest**.
 2. **Read what changed** between your version and the target: [CHANGELOG.md](../../CHANGELOG.md) (the `## [Unreleased]` section plus one section per released version). Pay attention to removed or renamed environment variables ([ENVIRONMENT.md](../reference/ENVIRONMENT.md)), removed providers ([REMOVED_PROVIDERS.md](../reference/REMOVED_PROVIDERS.md)) and runtime requirements ([COMPATIBILITY_MATRIX.md](../reference/COMPATIBILITY_MATRIX.md)).
-3. **Back up** the data directory and keep `STORAGE_ENCRYPTION_KEY` safe: [BACKUP_RESTORE.md](../ops/BACKUP_RESTORE.md). OmniRoute also takes its own pre-migration snapshot (below), but it covers only the main database file.
+3. **Back up** the data directory and keep `STORAGE_ENCRYPTION_KEY` safe: [BACKUP_RESTORE.md](../ops/BACKUP_RESTORE.md). If you never set the key yourself, it lives in `<data-dir>/server.env`, which `omniroute backup create` does not copy ([details](../ops/BACKUP_RESTORE.md#secrets-and-the-encryption-key)). OmniRoute also takes its own pre-migration snapshot (below), but it covers only the main database file.
 4. **Plan the rollback target:** keep the previous image tag/digest, git tag or installer available.
 
 ---

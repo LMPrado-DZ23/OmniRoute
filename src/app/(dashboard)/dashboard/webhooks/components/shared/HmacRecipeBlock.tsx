@@ -52,7 +52,11 @@ export function HmacRecipeBlock({ code, title, snippets }: HmacRecipeBlockProps)
         </div>
       )}
       <div className="relative">
-        <pre className="overflow-x-auto rounded-lg bg-sidebar p-3 pr-10 text-xs text-text-main">
+        {/* tabIndex: a horizontally scrollable region must be keyboard-reachable (axe). */}
+        <pre
+          tabIndex={0}
+          className="overflow-x-auto rounded-lg bg-sidebar p-3 pr-10 text-xs text-text-main"
+        >
           {tabs[active]?.code}
         </pre>
         <button
