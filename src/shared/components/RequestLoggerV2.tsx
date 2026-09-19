@@ -28,6 +28,7 @@ import {
   formatCachePercentage,
 } from "@/shared/utils/formatting";
 import { getProviderDisplayLabel } from "@/shared/utils/providerDisplayLabel";
+import { FilterSelect, SORT_OPTIONS, sortOptionKey } from "./requestLogger/FilterSelect";
 import useEmailPrivacyStore from "@/store/emailPrivacyStore";
 import {
   computeLogsSignature,
@@ -968,11 +969,12 @@ const RequestLoggerV2 = forwardRef<RequestLoggerV2Handle, { initialSelectedId?: 
             {groupedView ? t("group.grouped") : t("statusFilters.all")}
           </button>
 
-          {/* Provider Dropdown */}
-          <select
+          <FilterSelect
+            id="request-logger-filter-provider"
+            label={t("filterProvider")}
             value={selectedProvider}
-            onChange={(e) => setSelectedProvider(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-bg-subtle border border-border text-sm text-text-primary focus:outline-none focus:border-primary appearance-none cursor-pointer min-w-[140px]"
+            onChange={setSelectedProvider}
+            className="min-w-[140px]"
           >
             <option value="">{t("allProviders")}</option>
             {uniqueProviders.map((p) => {
@@ -984,13 +986,14 @@ const RequestLoggerV2 = forwardRef<RequestLoggerV2Handle, { initialSelectedId?: 
                 </option>
               );
             })}
-          </select>
+          </FilterSelect>
 
-          {/* Model Dropdown */}
-          <select
+          <FilterSelect
+            id="request-logger-filter-model"
+            label={t("filterModel")}
             value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-bg-subtle border border-border text-sm text-text-primary focus:outline-none focus:border-primary appearance-none cursor-pointer min-w-[180px]"
+            onChange={setSelectedModel}
+            className="min-w-[180px]"
           >
             <option value="">{t("allModels")}</option>
             {uniqueModels.map((model) => (
@@ -998,13 +1001,14 @@ const RequestLoggerV2 = forwardRef<RequestLoggerV2Handle, { initialSelectedId?: 
                 {model}
               </option>
             ))}
-          </select>
+          </FilterSelect>
 
-          {/* Account Dropdown */}
-          <select
+          <FilterSelect
+            id="request-logger-filter-account"
+            label={t("filterAccount")}
             value={selectedAccount}
-            onChange={(e) => setSelectedAccount(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-bg-subtle border border-border text-sm text-text-primary focus:outline-none focus:border-primary appearance-none cursor-pointer min-w-[140px]"
+            onChange={setSelectedAccount}
+            className="min-w-[140px]"
           >
             <option value="">{t("allAccounts")}</option>
             {uniqueAccounts.map((a) => (
@@ -1012,13 +1016,14 @@ const RequestLoggerV2 = forwardRef<RequestLoggerV2Handle, { initialSelectedId?: 
                 {emailsVisible ? a : `${maskAccount(a, false)} · #${stableAccountSuffix(a)}`}
               </option>
             ))}
-          </select>
+          </FilterSelect>
 
-          {/* API Key Dropdown */}
-          <select
+          <FilterSelect
+            id="request-logger-filter-apiKey"
+            label={t("filterApiKey")}
             value={selectedApiKey}
-            onChange={(e) => setSelectedApiKey(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-bg-subtle border border-border text-sm text-text-primary focus:outline-none focus:border-primary appearance-none cursor-pointer min-w-[160px]"
+            onChange={setSelectedApiKey}
+            className="min-w-[160px]"
           >
             <option value="">{t("allApiKeys")}</option>
             {uniqueApiKeys.map((value) => {
@@ -1030,7 +1035,7 @@ const RequestLoggerV2 = forwardRef<RequestLoggerV2Handle, { initialSelectedId?: 
                 </option>
               );
             })}
-          </select>
+          </FilterSelect>
 
           {/* Stats */}
           <div className="flex items-center gap-2 text-xs text-text-muted">
@@ -1065,24 +1070,19 @@ const RequestLoggerV2 = forwardRef<RequestLoggerV2Handle, { initialSelectedId?: 
             </span>
           </div>
 
-          {/* Sort Dropdown */}
-          <select
+          <FilterSelect
+            id="request-logger-sort"
+            label={t("sortLogs")}
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-bg-subtle border border-border text-sm text-text-primary focus:outline-none focus:border-primary appearance-none cursor-pointer min-w-[150px]"
-            title={t("sortLogs")}
+            onChange={setSortBy}
+            className="min-w-[150px]"
           >
-            <option value="newest">{t("sortNewest")}</option>
-            <option value="oldest">{t("sortOldest")}</option>
-            <option value="tokens_desc">{t("sortTokensDesc")}</option>
-            <option value="tokens_asc">{t("sortTokensAsc")}</option>
-            <option value="duration_desc">{t("sortDurationDesc")}</option>
-            <option value="duration_asc">{t("sortDurationAsc")}</option>
-            <option value="status_desc">{t("sortStatusDesc")}</option>
-            <option value="status_asc">{t("sortStatusAsc")}</option>
-            <option value="model_asc">{t("sortModelAsc")}</option>
-            <option value="model_desc">{t("sortModelDesc")}</option>
-          </select>
+            {SORT_OPTIONS.map((value) => (
+              <option key={value} value={value}>
+                {t(sortOptionKey(value))}
+              </option>
+            ))}
+          </FilterSelect>
 
           {/* Refresh interval */}
           <div className="flex items-center gap-1">
