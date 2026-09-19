@@ -6357,6 +6357,8 @@
     "bedrockModelPlaceholder": "antropisk.claude-sonnett-4-6",
     "addProviderSessionCookieTitle": "Lägg till {provider} sessionscookie",
     "openWebProviderSite": "Öppna {host}",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "Lägg till {provider} webbtoken",
     "addProviderConnectionTitle": "Lägg till {provider}-anslutning",
     "webTokenCredentialLabel": "Websessionstoken",
