@@ -24,7 +24,11 @@ import {
   type StrategySelection,
   summarizeRoutingDecision,
 } from "../autoCombo/routingDecision.ts";
-import { recordRoutingDecision } from "../routing/decisionStore.ts";
+import {
+  MAX_CANDIDATES_WITH_FACTORS,
+  MAX_STORED_CANDIDATES,
+  recordRoutingDecision,
+} from "../routing/decisionStore.ts";
 import type { ComboLogger } from "./types.ts";
 
 export interface AutoDecisionContext {
@@ -56,11 +60,24 @@ function requestProtocol(body: Record<string, unknown>): string {
   return body.input !== undefined ? "responses" : "unknown";
 }
 
+/**
+ * Live recording builds the decision already in the shape the store retains, instead of
+ * materialising every candidate with every factor and letting the store drop the rest: an auto
+ * combo over the whole catalog considers hundreds of candidates, and the factor breakdown of the
+ * ones that are never retained is pure waste on every routed request. The bounds are the store's
+ * own, so the stored decision is identical either way.
+ */
+const LIVE_DECISION_RETENTION = {
+  maxCandidates: MAX_STORED_CANDIDATES,
+  maxCandidatesWithFactors: MAX_CANDIDATES_WITH_FACTORS,
+} as const;
+
 function recordDecision(
   context: AutoDecisionContext,
   selection: Pick<BuildRoutingDecisionInput, "outcome" | "budgetExceeded" | "strategySelection">
 ): RoutingDecision {
   const decision = buildRoutingDecision({
+    retention: LIVE_DECISION_RETENTION,
     request: {
       requestId: getRequestId() ?? "",
       model: context.config.name,

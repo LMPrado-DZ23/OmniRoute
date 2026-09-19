@@ -147,11 +147,26 @@ export interface StrategySelection {
   connectionId?: string;
 }
 
+/**
+ * How much of the decision the caller keeps. The live recording path passes the decision store's
+ * own bounds so the decision is built in the shape it is retained in, instead of materialising
+ * every candidate with every factor and letting the store throw the rest away. Omit it (preview,
+ * diagnostics) to build the full, uncompacted decision.
+ */
+export interface RoutingDecisionRetention {
+  /** Candidates kept, in decision order. The selected candidate is always kept. */
+  maxCandidates: number;
+  /** Leading candidates that keep their factor breakdown, besides the selected one. */
+  maxCandidatesWithFactors: number;
+}
+
 export interface BuildRoutingDecisionInput {
   request: RoutingRequest;
   config: AutoComboConfig;
   /** Every candidate the router considered, including the ones cut before scoring. */
   candidates: DecisionCandidateInput[];
+  /** Bounds to build the decision to. Unset builds every candidate with every factor. */
+  retention?: RoutingDecisionRetention | null;
   /** Engine run over the routable candidates; null when none was routable. */
   outcome: { selection: SelectionResult; trace: AutoSelectionTrace } | null;
   /** True when a strict budget cap refused every routable candidate. */
@@ -173,19 +188,24 @@ function engineExclusionReasons(
   return [input.outcome.trace.excludedProviders.get(candidate.provider) ?? "self_healing_excluded"];
 }
 
+/**
+ * A candidate without its factor breakdown. Factors are the bulk of a candidate's allocation, and
+ * a live decision retains them for only a handful of candidates, so they are filled in afterwards
+ * for the candidates that keep them (see `retainedRoutingCandidates`). Nothing before that point —
+ * ordering, selection, exclusion — reads `factors`.
+ */
 function toRoutingCandidate(
   candidate: DecisionCandidateInput,
   input: BuildRoutingDecisionInput,
-  scoredByKey: Map<string, ScoredProvider>,
+  scored: ScoredProvider | undefined,
   eligibleKeys: Set<string>
 ): RoutingCandidate {
-  const scored = scoredByKey.get(candidateKey(candidate));
   const exclusionReasons = engineExclusionReasons(candidate, input, eligibleKeys);
   return {
     providerId: candidate.provider,
     modelId: candidate.model,
     score: roundScore(scored?.score ?? 0),
-    factors: toRoutingFactors(scored, input.outcome?.trace.weights),
+    factors: [],
     eligible: exclusionReasons.length === 0 && input.outcome !== null,
     exclusionReasons,
     quota: quotaStateOf(candidate),
@@ -206,6 +226,7 @@ function selectionModeOf(input: BuildRoutingDecisionInput): RoutingDecision["sel
 interface DecisionEntry {
   key: string;
   candidate: DecisionCandidateInput;
+  scored: ScoredProvider | undefined;
   routing: RoutingCandidate;
 }
 
@@ -247,6 +268,63 @@ function selectedEntry(
   return entries.find((entry) => entry.key === candidateKey(chosen) && entry.routing.eligible);
 }
 
+function sameRoutingCandidate(a: RoutingCandidate, b: RoutingCandidate | undefined): boolean {
+  return b !== undefined && a.providerId === b.providerId && a.modelId === b.modelId;
+}
+
+/**
+ * The candidates kept, in decision order, bounded by `retention`. Mirrors the decision store's
+ * retention rule: the leading `maxCandidates` entries, with the selected candidate taking the last
+ * slot when it fell outside them, so a bounded build and a full build compacted afterwards keep
+ * exactly the same candidates in exactly the same order.
+ */
+function retainedEntries(
+  entries: DecisionEntry[],
+  selected: DecisionEntry | undefined,
+  retention: RoutingDecisionRetention | null | undefined
+): DecisionEntry[] {
+  if (!retention) return entries;
+  const kept = entries.slice(0, retention.maxCandidates);
+  if (
+    selected &&
+    kept.length > 0 &&
+    !kept.some((entry) => sameRoutingCandidate(entry.routing, selected.routing))
+  ) {
+    kept[kept.length - 1] = selected;
+  }
+  return kept;
+}
+
+/**
+ * The retained candidates with their factor breakdown filled in where the decision keeps it: the
+ * leading `maxCandidatesWithFactors` entries and the selected candidate. Without `retention` every
+ * candidate keeps its factors, which is what a preview returns.
+ */
+function retainedRoutingCandidates(
+  kept: DecisionEntry[],
+  selected: DecisionEntry | undefined,
+  selectedRouting: RoutingCandidate | undefined,
+  input: BuildRoutingDecisionInput
+): RoutingCandidate[] {
+  const weights = input.outcome?.trace.weights;
+  const withFactorsCount = input.retention?.maxCandidatesWithFactors ?? kept.length;
+  return kept.map((entry, index) => {
+    if (entry === selected && selectedRouting) return selectedRouting;
+    if (index >= withFactorsCount && !sameRoutingCandidate(entry.routing, selectedRouting)) {
+      return entry.routing;
+    }
+    return withRoutingFactors(entry, weights);
+  });
+}
+
+function withRoutingFactors(
+  entry: DecisionEntry,
+  weights: ScoringWeights | undefined
+): RoutingCandidate {
+  const factors = toRoutingFactors(entry.scored, weights);
+  return factors.length === 0 ? entry.routing : { ...entry.routing, factors };
+}
+
 /** Turn a selection into the shared decision contract. Pure apart from the clock. */
 export function buildRoutingDecision(
   input: BuildRoutingDecisionInput,
@@ -257,26 +335,37 @@ export function buildRoutingDecision(
     if (!scoredByKey.has(candidateKey(scored))) scoredByKey.set(candidateKey(scored), scored);
   }
   const eligibleKeys = new Set((input.outcome?.trace.eligible ?? []).map(candidateKey));
-  const entries: DecisionEntry[] = input.candidates.map((candidate) => ({
-    key: candidateKey(candidate),
-    candidate,
-    routing: toRoutingCandidate(candidate, input, scoredByKey, eligibleKeys),
-  }));
+  const entries: DecisionEntry[] = input.candidates.map((candidate) => {
+    const key = candidateKey(candidate);
+    const scored = scoredByKey.get(key);
+    return {
+      key,
+      candidate,
+      scored,
+      routing: toRoutingCandidate(candidate, input, scored, eligibleKeys),
+    };
+  });
   entries.sort(
     (a, b) =>
       Number(b.routing.eligible) - Number(a.routing.eligible) || b.routing.score - a.routing.score
   );
   const selected = selectedEntry(entries, input);
+  const selectedRouting = selected
+    ? withRoutingFactors(selected, input.outcome?.trace.weights)
+    : undefined;
+  const kept = retainedEntries(entries, selected, input.retention);
+  const omittedCandidates = entries.length - kept.length;
   return {
     decisionId: clock.newDecisionId(),
     requestId: input.request.requestId,
-    ...(selected ? { selected: selected.routing } : {}),
-    candidates: entries.map((entry) => entry.routing),
+    ...(selectedRouting ? { selected: selectedRouting } : {}),
+    candidates: retainedRoutingCandidates(kept, selected, selectedRouting, input),
     policyVersion: computeRoutingPolicyVersion(input.config),
     generatedAt: new Date(clock.now()).toISOString(),
     liveRequestExecuted: input.liveRequestExecuted,
     selectionMode: selectionModeOf(input),
     strategy: input.strategySelection?.strategy ?? "rules",
+    ...(omittedCandidates > 0 ? { omittedCandidates } : {}),
   };
 }
 
