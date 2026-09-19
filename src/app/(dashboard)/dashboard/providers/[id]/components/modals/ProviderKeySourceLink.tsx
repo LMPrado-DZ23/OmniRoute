@@ -64,13 +64,15 @@ export default function ProviderKeySourceLink({ providerId, t }: ProviderKeySour
         host: target.host,
       });
 
+  // Full-strength text-primary: that token is tuned to clear WCAG AA 4.5:1 in both
+  // themes, and any opacity on top of it drops the link below AA (axe color-contrast).
   return (
     <a
       data-testid="provider-key-source-link"
       href={target.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary underline underline-offset-2 opacity-80 transition-opacity hover:opacity-100"
+      className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary underline underline-offset-2 hover:decoration-2"
     >
       <span className="material-symbols-outlined text-base" aria-hidden="true">
         open_in_new
