@@ -205,6 +205,49 @@ Evidence: TypeScript **45/45**, Python **12** passing. They are **not published*
 the package names belong to the upstream project, and publication waits for the HTTP contract freeze
 planned for 3.8.59.
 
+## Architectural decisions
+
+These are the decisions the phases were built on. Each one was taken to avoid a change that would
+have been irreversible or contract-breaking in a patch release.
+
+1. **The routing contract is a type-only module.** `src/shared/contracts/routing.ts` has no runtime
+   dependency, so the API, the dashboard, open-sse and the SDKs can share one vocabulary without a
+   new package or a circular import.
+2. **Preview and live traffic run the same selection engine.** A separate preview implementation
+   would drift from the real one. Instead, `selectProviderWithTrace` takes its dependencies as a
+   parameter, and preview passes cloned healer/rotator state with a deterministic RNG, so it cannot
+   mutate live routing state and cannot consume randomness.
+3. **The policy version is derived, not stored.** `rp_<hash>` is computed from the candidate pool,
+   weights, mode pack, budget cap and strategy, so two installations with the same configuration
+   report the same version and no migration is needed.
+4. **The decision store is in-memory, bounded by both count and bytes.** Persisting decisions would
+   need a migration and a retention policy; a 30-minute TTL with a 2000-entry cap and a 32 MB budget
+   answers the "why did this request go there" question without touching the database.
+5. **Management roles are derived from the scopes that already exist.** Introducing a role table in
+   a patch release would force a migration on every installation; deriving roles keeps the change
+   additive, and the workspace/project hierarchy is deferred to 3.9.x where migrations are expected.
+6. **`open-sse/services/combo.ts` was not decomposed here.** It sits at its frozen size cap, so the
+   phase-3 work was added around it (`services/routing/`, `services/combo/`) and only a single
+   line-count-neutral substitution was made inside it. The decomposition is a 3.8.55+ task with its
+   own regression budget.
+7. **New behavior that an existing installation would notice is opt-in.** SLO webhook alerts and the
+   routing diagnostics log are off by default; upgrading from 3.8.53 changes nothing until an
+   operator turns them on.
+8. **The SDKs are not published.** The `omniroute` package names belong to the upstream project, and
+   publishing an experimental client before the HTTP contract freeze would create a compatibility
+   promise this fork is not ready to keep.
+
+## Risks
+
+| Risk                                                                                              | Likelihood | Impact                                                        | Mitigation                                                                                                                                                       |
+| ------------------------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The in-memory decision store grows under a burst of wide candidate pools                          | Low        | Memory pressure on the server process                         | Bounded by count, by a 32 MB byte budget and by a 30-minute TTL; candidates are compacted before storage                                                         |
+| An operator enables SLO webhook alerts and gets paged by a breach that is really an idle provider | Low        | Alert fatigue                                                 | An idle open breaker reports `insufficient_data` instead of breaching; alert state resets when alerting is toggled                                               |
+| A routing decision id is guessed and read by another caller                                       | Low        | Disclosure of routing metadata (never prompts or credentials) | Management auth on the lookup route; identical `404` for unknown and malformed ids                                                                               |
+| The Electron `js-yaml` advisory (R-10) is exploited                                               | Low        | Build-chain only; no server or dashboard exposure             | Recorded in the vulnerability register; a lockfile-only refresh is planned                                                                                       |
+| The 151 OpenAPI-covered routes without a contract test drift from the served contract             | Medium     | Documentation and SDKs disagree with the server               | The governance baseline tracks them and cannot grow; the SDK drift test covers the documented surface                                                            |
+| A gate or test run without isolated `DATA_DIR`/`HOME` touches a developer's real database         | Medium     | Unintended migration on a production install                  | Every command in this release exported isolated `DATA_DIR`, `HOME`, `USERPROFILE` and `APPDATA`; `tests/_setup/isolateDataDir.ts` enforces it in the test runner |
+
 ## Known limits of this release
 
 - The **workspace and budget hierarchy** is designed but not implemented (Phase 8 ADR).
@@ -215,6 +258,30 @@ planned for 3.8.59.
   traffic does enforce, and the remaining work depends on decomposing `open-sse/services/combo.ts`.
 - Accessibility was gated on login, dashboard, providers and settings; combos, logs and onboarding
   pages are next.
+
+## Verification commands
+
+Every command below must run with an isolated data directory, or it will open the developer's real
+database:
+
+```bash
+export DATA_DIR="$(mktemp -d)" HOME="$(mktemp -d)" APPDATA="$(mktemp -d)"
+export USERPROFILE="$HOME" DISABLE_SQLITE_AUTO_BACKUP=true
+```
+
+| What                         | Command                                                                                                                                                            |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Typecheck (4 projects)       | `npx tsc --noEmit -p tsconfig.typecheck-core.json` · `-p tsconfig.typecheck-api.json` · `-p tsconfig.typecheck-dashboard.json` · `-p open-sse/tsconfig.json`       |
+| Lint at zero warnings        | `npx eslint --max-warnings=0 --suppressions-location config/quality/eslint-suppressions.json --pass-on-unpruned-suppressions --no-warn-ignored`                    |
+| Unit tests (node runner)     | `node --import tsx/esm --import ./open-sse/utils/setupPolyfill.ts --import ./tests/_setup/isolateDataDir.ts --test --test-force-exit --test-concurrency=1 <files>` |
+| Component tests              | `npx vitest run --config vitest.config.ts`                                                                                                                         |
+| Full serialized suite        | `npm test`                                                                                                                                                         |
+| Live provider tests (opt-in) | `npm run test:combo:live` and `npm run test:boundary:live`, each gated by its own `RUN_*_LIVE=1`                                                                   |
+| API governance               | `npm run check:api-governance`                                                                                                                                     |
+| Documentation                | `npm run check:docs-all`                                                                                                                                           |
+| Changelog integrity          | `npm run check:changelog-integrity`                                                                                                                                |
+| Dependency audit             | `npm audit --omit=dev`                                                                                                                                             |
+| Accessibility                | the end-to-end axe specs under `tests/e2e/`                                                                                                                        |
 
 ## Windows host notes
 
