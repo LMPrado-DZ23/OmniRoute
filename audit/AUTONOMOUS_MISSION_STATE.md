@@ -192,7 +192,7 @@ Decisões do operador (não executar sem autorização explícita):
 - **objetivo:** estabilizar, tornar observável/explicável/governável o OmniRoute em fases verificáveis (FASE 0 diagnóstico → FASE 1 runtime/typecheck → FASE 2 testes → … → FASE 12 SDKs); não avançar para features enquanto os três typechecks não estiverem verdes.
 - **base:** `release/v3.8.53` @ `2560ec3a4` (tag `v3.8.53`, branch travado para push) · worktree `repos/wt-evolution` · branch local `evolution/phase-0-1`.
 - **autorização:** 2026-09-13 "continue até terminar e subir pro GitHub" (push da branch no fork + PR). 2026-09-14: "fechar a Fase 1; Fases 2 a 12 na sequência; Tag, Release, Docker Hub e npm decisão sua". Decisões: npm **não** (pacote `omniroute` é do upstream; exigiria token); Docker Hub **não** (exige secrets do operador; token colado no chat não usado, revogação recomendada); GHCR do fork **sim**; tag + GitHub Release `v3.8.54` **só** após CI verde, merge e 3 auditorias (CRITICAL 0 / HIGH 0). Linha de release: `release/v3.8.54` a partir de `2560ec3a4` (`release/v3.8.53` travada pela tag).
-- **estado:** FASE 1 VALIDATING — typecheck core/api/dashboard/open-sse = 0 no HEAD `5b7227748`; PR para `release/v3.8.54`. FASE 2 e FASE 3 PLANNING (inventários read-only concluídos; planos em `docs/EVOLUTION_STATUS.md`).
+- **estado:** **CANDIDATE_COMPLETED → RELEASING** — as 13 fases estão mescladas em `release/v3.8.54`, mais cinco PRs de correção de auditoria (#37, #38, #39 da rodada 1; #41, #42 da rodada de verificação) e o PR de documentos #40. Os três auditores independentes deram **PASS** na rodada de verificação, com **CRITICAL 0 / HIGH 0** cada um. Typecheck 0 nos quatro projetos; seleção de provedor idêntica à v3.8.53 em 700/700 casos semeados. Detalhe em `audit/FINAL_THREE_AGENT_REVIEW.md` § v3.8.54 e em `docs/EVOLUTION_STATUS.md`.
 - **toolchain:** node v24.16.0 (faixa suportada `>=24.0.0 <27`) · npm 11.13.0 · lockfile `package-lock.json`. `npm ci` **não** executado: o `node_modules` é junction para `OmniRoute-v3851-port`, compartilhado por outros worktrees, e o lockfile é idêntico (2812 pacotes, 0 diferenças em versão/resolved/integrity) — reinstalar apagaria dependências em uso sem mudar nada.
 - **inventário:** 3400 arquivos em `src/`, 5736 em `tests/`, 709 `route.ts` em `src/app/api`.
 
@@ -363,3 +363,61 @@ Decisões do operador (não executar sem autorização explícita):
 /)` / `.replace(/
 /g, "")`.
 - **Âncoras de patch exigem contagem exata.** Duas vezes o script abortou por encontrar mais ocorrências que o esperado (rate limit 4≠3, bloco fal 2≠1); o assert impediu mudança errada — manter.
+
+### Fases 2 a 12 — resultado (2026-09-14 a 2026-09-19)
+
+| Fase | PR  | Merge       | Evidência principal                                                |
+| ---- | --- | ----------- | ------------------------------------------------------------------ |
+| 0–1  | #24 | `48e5412f6` | 4 typechecks em 0; lint 0; 22 bugs de runtime corrigidos red-first |
+| 2    | #25 | `2ac9f74a6` | shards 7m31s–10m0s (antes 9,4–10,8 min com 4)                      |
+| 3    | #30 | `00a7c057f` | 14 cenários de decisão + suítes auto-combo 159/159                 |
+| 4    | #34 | `20d5b2ca2` | correlação 6/6, lookup 3/3 no vitest, 49 testes na fase            |
+| 5    | #33 | `67b461b62` | 428/428 de regressão; alertas de SLO opt-in                        |
+| 6    | #36 | `0fdd34fbb` | fluxo de primeiro uso coberto ponta a ponta                        |
+| 7    | #26 | `8ab38f721` | gate api-governance PASS, 709 rotas / 1039 operações               |
+| 8    | #31 | `8167211a4` | matriz de autorização 302/302                                      |
+| 9    | #32 | `6edf22fda` | 0 violações sérias de axe, 375–1440 px                             |
+| 10   | #27 | `931c32956` | registro de vulnerabilidades; sidecars fixados por digest          |
+| 11   | #28 | `9403957c7` | `check:docs-all` exit 0                                            |
+| 12   | #29 | `a7623af65` | SDK TS 45/45, Python 12 OK                                         |
+
+O ciclo 3.8.54 foi aberto pelo PR #35 (`f7158aa79`), necessário porque o gate de governança de API
+passou a exigir metadados e `x-since` não pode ultrapassar a versão do `package.json`.
+
+### Rodada de verificação (2026-09-18/19)
+
+Os mesmos três auditores voltaram à árvore final `68a00d025` para conferir as próprias
+correções. Nenhuma foi encontrada ausente ou parcial. Os achados novos foram corrigidos, não
+adiados:
+
+- **#41** — gravar a decisão custava 17,0 ms e 591 KiB por request com 300 candidatos (regressão
+  desta release): passou a construir já compacta, 4,6 ms e 26,5 KiB. Mais oito caminhos de
+  **leitura** de saúde que transicionavam um breaker OPEN → HALF_OPEN e persistiam — bug
+  pré-existente, idêntico na v3.8.53.
+- **#42** — o SDK TypeScript reenviava o corpo do request para outra origem num `307`; `adm-zip`
+  0.6.1 por lockfile levou a auditoria de produção da raiz de `high:1, moderate:2` a zero;
+  `alwaysRequireAuth` na consulta de decisão; `check:lockfile` funcionando no Windows.
+- **#43** — seis achados de produto do auditor C, sendo os dois mais graves na primeira tela de um
+  usuário novo: `/login` abortando a checagem em 5 s e deixando um campo de senha inutilizável, e
+  o assistente de webhook exibindo chaves de tradução cruas.
+
+### Falhas de gate só no Windows (não reproduzem no CI Linux)
+
+- `check-open-sse-typecheck.mjs`, `check-api-typecheck.mjs`, `check-dashboard-typecheck.mjs`:
+  `spawnSync npx.cmd EINVAL` → usar `tsc` direto + `typecheckBaseline.mjs`.
+- `check:licenses` e `check-dead-code.mjs`: shim `.bin` POSIX → chamar a ferramenta direto.
+  (`check:lockfile`, que sofria do mesmo mal, foi corrigido no #42.)
+- `check-mutation-test-coverage.mjs` sai 0 sem checar por causa do guard `file://` — chamar
+  `findCoverageDrift` direto.
+- `check-file-size.mjs --base-ref` pode passar de 10 min localmente.
+- `src/lib/db/core.ts` 1770 linhas contra o teto congelado de 1745: vermelho **na própria base**,
+  não introduzido por nenhum destes PRs. Em PR o gate compara contra `max(congelado, base)`, então
+  não bloqueia.
+
+### Próxima ação
+
+Mesclar o #40, criar a tag anotada `v3.8.54` no commit de merge e publicar a GitHub Release com as
+notas curadas — o workflow do Electron anexa os instaladores 1–2 h depois, e o `docker-publish`
+envia a imagem para o GHCR. **A evidência de publicação (digests e lista de assets) fica nas notas
+da Release**, porque publicar a Release dispara o `lock-released-branch` e esta branch trava — nada
+volta para cá depois disso.
