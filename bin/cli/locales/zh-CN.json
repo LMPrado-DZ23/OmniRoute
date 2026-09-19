@@ -104,11 +104,8 @@
     "removeDescription": "移除提供者的 API 密钥",
     "regenerateDescription": "重新生成 OmniRoute API 密钥",
     "revokeDescription": "撤销 OmniRoute API 密钥",
-    "revealDescription": "显示未掩码的 API 密钥值",
     "usageDescription": "显示 API 密钥的最近使用情况",
     "usageLimitOpt": "最近请求数",
-    "rotateDescription": "生成新密钥并使旧密钥失效",
-    "graceOpt": "旧密钥失效前的宽限期（毫秒）",
     "stdinOpt": "从标准输入读取 API 密钥而不是参数",
     "added": "已为 {provider} 添加密钥。",
     "removed": "密钥已移除。",
@@ -121,8 +118,6 @@
     "confirmRotate": "轮换密钥 {id}？（旧密钥将在宽限期后失效）",
     "regenerated": "已重新生成。新密钥：{key}",
     "revoked": "密钥 {id} 已撤销。",
-    "rotated": "密钥 {id} 已轮换。新密钥 ID：{newId}",
-    "revealWarning": "⚠ 这将显示完整的未掩码密钥。请确保您的屏幕不被人看到。",
     "providerRequired": "需要提供者。",
     "keyRequired": "需要 API 密钥。",
     "stdinEmpty": "未通过标准输入提供 API 密钥。",
@@ -143,7 +138,8 @@
       "daysOpt": "显示 N 天内过期的密钥",
       "none": "{days} 天内没有密钥过期。",
       "listTitle": "{days} 天内过期的密钥："
-    }
+    },
+    "idSpaces": "add / list / remove 管理提供者凭据（提供者连接）。regenerate / revoke / usage / policy / expiration 接受 OmniRoute API 密钥 id。已保存的密钥不会再次显示：regenerate 只会显示一次新值。"
   },
   "stream": {
     "description": "使用 SSE 检查模式流式传输聊天响应",

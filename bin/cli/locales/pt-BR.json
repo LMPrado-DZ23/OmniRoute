@@ -92,11 +92,8 @@
     "removeDescription": "Remover uma chave de API de um provedor",
     "regenerateDescription": "Regenerar uma chave de API do OmniRoute",
     "revokeDescription": "Revogar uma chave de API do OmniRoute",
-    "revealDescription": "Revelar o valor completo da chave (sem máscara)",
     "usageDescription": "Exibir uso recente de uma chave de API",
     "usageLimitOpt": "Número de requisições recentes",
-    "rotateDescription": "Gerar nova chave e invalidar a antiga",
-    "graceOpt": "Período de carência (ms) antes de invalidar a chave antiga",
     "stdinOpt": "Ler chave de API via stdin",
     "added": "Chave adicionada para {provider}.",
     "removed": "Chave removida.",
@@ -109,8 +106,6 @@
     "confirmRotate": "Rotacionar chave {id}? (a chave antiga será invalidada após o período de carência)",
     "regenerated": "Chave regenerada. Nova chave: {key}",
     "revoked": "Chave {id} revogada.",
-    "rotated": "Chave {id} rotacionada. Novo ID: {newId}",
-    "revealWarning": "⚠  Isso exibirá a chave completa sem máscara. Certifique-se de que sua tela está privada.",
     "providerRequired": "Provedor é obrigatório.",
     "keyRequired": "Chave de API é obrigatória.",
     "stdinEmpty": "Nenhuma chave fornecida via stdin.",
@@ -131,7 +126,8 @@
       "daysOpt": "Exibir chaves que expiram em N dias",
       "none": "Nenhuma chave expirando nos próximos {days} dias.",
       "listTitle": "Chaves que expiram nos próximos {days} dias:"
-    }
+    },
+    "idSpaces": "add / list / remove gerenciam credenciais de provedores (conexões). regenerate / revoke / usage / policy / expiration recebem o id de uma chave de API do OmniRoute. Uma chave salva nunca é revelada de novo: regenerate mostra o novo valor uma única vez."
   },
   "authExport": {
     "description": "Exportar credenciais DESCRIPTOGRAFADAS de provedores (somente local, saída em texto puro)",
