@@ -14,15 +14,6 @@ export function register_pricing(parent) {
       const data = res.ok ? await res.json() : await res.text();
       emit(data, gOpts);
     });
-  tag.command("post-api-pricing")
-    .description("Set model pricing")
-    .action(async (opts, cmd) => {
-      const gOpts = cmd.optsWithGlobals();
-      let url = "/api/pricing";
-      const res = await apiFetch(url, { method: "POST", baseUrl: gOpts.baseUrl, apiKey: gOpts.apiKey });
-      const data = res.ok ? await res.json() : await res.text();
-      emit(data, gOpts);
-    });
   tag.command("get-api-pricing-defaults")
     .description("Get default pricing")
     .action(async (opts, cmd) => {

@@ -37,9 +37,6 @@ const KNOWN_MISSING = new Set([
   // src/lib/evals/evalRunner.ts → /api/data  (server-side eval runner calling a
   // local data endpoint that is not a Next.js route; needs a real route or fix)
   "/api/data",
-  // src/app/(dashboard)/…/AgentBridgePageClient.tsx calls bypass with PUT but
-  // the route only exports GET/POST/DELETE — real method miss, tracked for fix.
-  "/api/tools/agent-bridge/bypass::PUT",
 ]);
 
 // ─── filesystem helpers ───────────────────────────────────────────────────────

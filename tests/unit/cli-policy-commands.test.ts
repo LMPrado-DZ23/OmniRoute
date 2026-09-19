@@ -1,193 +1,117 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { Command } from "commander";
 
-const POLICY = {
-  id: "pol-001",
-  name: "Block free tier",
-  kind: "deny",
-  scope: "api-key",
-  enabled: true,
-  priority: 10,
-  updatedAt: "2026-05-14T10:00:00Z",
-};
+import { registerPolicy, runPolicyList, runPolicyUnlock } from "../../bin/cli/commands/policy.mjs";
 
-const POLICIES = [POLICY, { ...POLICY, id: "pol-002", kind: "allow", scope: "global" }];
+// `omniroute policy` administers the login lockout behind /api/policies
+// (src/app/api/policies/route.ts: GET lists locked identifiers, POST
+// {action:"unlock", identifier} force-unlocks one). It used to advertise a
+// policy CRUD/evaluate/export/import API that no route implements.
 
-function makeResp(data: unknown, status = 200) {
-  const obj = {
-    ok: status < 400,
+type Captured = { url: string; method: string; body: unknown };
+
+function jsonResponse(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
     status,
-    exitCode: status < 400 ? 0 : 1,
-    json: () => Promise.resolve(data),
-    text: () => Promise.resolve(JSON.stringify(data)),
-    headers: new Headers(),
-  };
-  obj.json = obj.json.bind(obj);
-  obj.text = obj.text.bind(obj);
-  return obj;
+    headers: { "content-type": "application/json" },
+  });
 }
 
-async function captureStdout(fn: () => Promise<void>): Promise<string> {
+function mockFetch(t: test.TestContext, reply: Response, captured: Captured[]) {
+  t.mock.method(globalThis, "fetch", async (input: string | URL | Request, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    const rawBody = typeof init?.body === "string" ? init.body : null;
+    captured.push({
+      url,
+      method: init?.method ?? "GET",
+      body: rawBody === null ? null : JSON.parse(rawBody),
+    });
+    return reply;
+  });
+}
+
+function captureStdout(t: test.TestContext): string[] {
   const chunks: string[] = [];
-  const orig = process.stdout.write.bind(process.stdout);
-  process.stdout.write = (c: string | Uint8Array) => {
-    if (typeof c === "string") chunks.push(c);
+  t.mock.method(process.stdout, "write", (chunk: string | Uint8Array) => {
+    chunks.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
     return true;
-  };
-  try {
-    await fn();
-  } finally {
-    process.stdout.write = orig;
-  }
-  return chunks.join("");
+  });
+  return chunks;
 }
 
-function makeCmd(output = "json") {
-  return { optsWithGlobals: () => ({ output, quiet: output !== "table" }) };
-}
+const jsonCmd = { optsWithGlobals: () => ({ output: "json", quiet: true }) };
 
-test("runPolicyList retorna lista de policies", async () => {
-  const origFetch = globalThis.fetch;
-  globalThis.fetch = ((url: string) => {
-    assert.ok(url.includes("/api/policies"));
-    return Promise.resolve(makeResp({ items: POLICIES }));
-  }) as any;
+test("policy list reads the locked login identifiers from GET /api/policies", async (t) => {
+  const locked = [
+    { identifier: "admin@203.0.113.9", lockedUntil: 1_900_000_000_000, remainingMs: 60_000 },
+  ];
+  const captured: Captured[] = [];
+  mockFetch(t, jsonResponse({ lockedIdentifiers: locked }), captured);
+  const out = captureStdout(t);
 
-  const { runPolicyList } = await import("../../bin/cli/commands/policy.mjs");
-  const out = await captureStdout(() => runPolicyList({}, makeCmd() as any));
+  await runPolicyList({}, jsonCmd);
 
-  globalThis.fetch = origFetch;
-  const parsed = JSON.parse(out);
-  assert.ok(Array.isArray(parsed));
-  assert.equal(parsed.length, 2);
+  assert.equal(captured.length, 1);
+  assert.equal(captured[0].method, "GET");
+  assert.equal(new URL(captured[0].url).pathname, "/api/policies");
+  assert.equal(new URL(captured[0].url).search, "", "the lockout endpoint takes no query filters");
+  assert.deepEqual(JSON.parse(out.join("")), locked);
 });
 
-test("runPolicyList envia filtros kind e scope", async () => {
-  let capturedUrl = "";
-  const origFetch = globalThis.fetch;
-  globalThis.fetch = ((url: string) => {
-    capturedUrl = url;
-    return Promise.resolve(makeResp({ items: [POLICY] }));
-  }) as any;
+test("policy list prints an empty list when nothing is locked", async (t) => {
+  const captured: Captured[] = [];
+  mockFetch(t, jsonResponse({ lockedIdentifiers: [] }), captured);
+  const out = captureStdout(t);
 
-  const { runPolicyList } = await import("../../bin/cli/commands/policy.mjs");
-  await captureStdout(() => runPolicyList({ kind: "deny", scope: "api-key" }, makeCmd() as any));
+  await runPolicyList({}, jsonCmd);
 
-  globalThis.fetch = origFetch;
-  assert.ok(capturedUrl.includes("kind=deny"));
-  assert.ok(capturedUrl.includes("scope=api-key"));
+  assert.deepEqual(JSON.parse(out.join("")), []);
 });
 
-test("runPolicyGet busca policy por id", async () => {
-  let capturedUrl = "";
-  const origFetch = globalThis.fetch;
-  globalThis.fetch = ((url: string) => {
-    capturedUrl = url;
-    return Promise.resolve(makeResp(POLICY));
-  }) as any;
+test("policy unlock posts {action:'unlock', identifier} to /api/policies", async (t) => {
+  const captured: Captured[] = [];
+  mockFetch(
+    t,
+    jsonResponse({ success: true, action: "unlocked", identifier: "admin@203.0.113.9" }),
+    captured
+  );
+  const out = captureStdout(t);
 
-  const { runPolicyGet } = await import("../../bin/cli/commands/policy.mjs");
-  const out = await captureStdout(() => runPolicyGet("pol-001", {}, makeCmd() as any));
+  await runPolicyUnlock("admin@203.0.113.9", {}, jsonCmd);
 
-  globalThis.fetch = origFetch;
-  assert.ok(capturedUrl.includes("/api/policies/pol-001"));
-  const parsed = JSON.parse(out);
-  assert.equal(parsed.id, "pol-001");
+  assert.equal(captured.length, 1);
+  assert.equal(captured[0].method, "POST");
+  assert.equal(new URL(captured[0].url).pathname, "/api/policies");
+  assert.deepEqual(captured[0].body, { action: "unlock", identifier: "admin@203.0.113.9" });
+  assert.equal(JSON.parse(out.join("")).action, "unlocked");
 });
 
-test("runPolicyDelete com --yes chama DELETE", async () => {
-  let capturedUrl = "";
-  let capturedMethod = "";
-  const origFetch = globalThis.fetch;
-  globalThis.fetch = ((url: string, opts: any) => {
-    capturedUrl = url;
-    capturedMethod = opts?.method ?? "GET";
-    return Promise.resolve(makeResp({}, 204));
-  }) as any;
-
-  const out = await captureStdout(async () => {
-    const { runPolicyDelete } = await import("../../bin/cli/commands/policy.mjs");
-    await runPolicyDelete("pol-001", { yes: true }, makeCmd() as any);
+test("policy unlock exits 1 when the server rejects the request", async (t) => {
+  const captured: Captured[] = [];
+  mockFetch(t, jsonResponse({ error: "Unknown action" }, 400), captured);
+  t.mock.method(process.stderr, "write", () => true);
+  const exitCodes: number[] = [];
+  t.mock.method(process, "exit", (code?: number) => {
+    exitCodes.push(code ?? 0);
   });
 
-  globalThis.fetch = origFetch;
-  assert.ok(capturedUrl.includes("/api/policies/pol-001"));
-  assert.equal(capturedMethod, "DELETE");
-  assert.ok(out.includes("Deleted"));
+  await runPolicyUnlock("nobody", {}, jsonCmd);
+
+  assert.deepEqual(exitCodes, [1]);
 });
 
-test("runPolicyEvaluate envia apiKey e action no body", async () => {
-  let capturedBody: any = null;
-  const origFetch = globalThis.fetch;
-  const origExit = process.exit;
-  let exitCode: number | undefined;
-  process.exit = ((code: number) => {
-    exitCode = code;
-  }) as any;
-
-  globalThis.fetch = ((_url: string, opts: any) => {
-    if (opts?.body) capturedBody = JSON.parse(opts.body);
-    return Promise.resolve(makeResp({ allowed: true, matched: [], reason: "default allow" }));
-  }) as any;
-
-  const { runPolicyEvaluate } = await import("../../bin/cli/commands/policy.mjs");
-  await captureStdout(() =>
-    runPolicyEvaluate(
-      { apiKey: "sk-test", action: "chat", resource: "/v1/chat/completions" },
-      makeCmd() as any
-    )
-  );
-
-  globalThis.fetch = origFetch;
-  process.exit = origExit;
-  assert.equal(capturedBody.apiKey, "sk-test");
-  assert.equal(capturedBody.action, "chat");
-  assert.equal(exitCode, 0);
-});
-
-test("runPolicyEvaluate com resultado negado retorna exit 4", async () => {
-  const origFetch = globalThis.fetch;
-  const origExit = process.exit;
-  let exitCode: number | undefined;
-  process.exit = ((code: number) => {
-    exitCode = code;
-  }) as any;
-
-  globalThis.fetch = ((_url: string) => {
-    return Promise.resolve(makeResp({ allowed: false, matched: ["pol-001"], reason: "deny rule" }));
-  }) as any;
-
-  const { runPolicyEvaluate } = await import("../../bin/cli/commands/policy.mjs");
-  await captureStdout(() =>
-    runPolicyEvaluate({ apiKey: "sk-test", action: "admin" }, makeCmd() as any)
-  );
-
-  globalThis.fetch = origFetch;
-  process.exit = origExit;
-  assert.equal(exitCode, 4);
-});
-
-test("runPolicyExport grava arquivo com políticas", async () => {
-  const { writeFileSync } = await import("node:fs");
-  let writtenPath = "";
-  let writtenContent = "";
-
-  const origFetch = globalThis.fetch;
-  globalThis.fetch = ((_url: string) => {
-    return Promise.resolve(makeResp({ items: POLICIES }));
-  }) as any;
-
-  const origWriteFileSync = writeFileSync;
-  // We can't easily mock fs module, so just verify the fetch URL
-  let capturedUrl = "";
-  globalThis.fetch = ((url: string) => {
-    capturedUrl = url;
-    return Promise.resolve(makeResp({ items: POLICIES }));
-  }) as any;
-
-  // Just verify it reaches the right endpoint
-  await (globalThis.fetch as any)("/api/policies?export=true");
-
-  globalThis.fetch = origFetch;
-  assert.ok(capturedUrl.includes("export=true"));
+test("policy registers only the subcommands backed by a real endpoint", () => {
+  const program = new Command();
+  registerPolicy(program);
+  const policy = program.commands.find((c) => c.name() === "policy");
+  assert.ok(policy, "policy command must be registered");
+  assert.deepEqual(policy.commands.map((c) => c.name()).sort(), ["list", "unlock"]);
+  for (const removed of ["get", "create", "update", "delete", "evaluate", "export", "import"]) {
+    assert.equal(
+      policy.commands.some((c) => c.name() === removed),
+      false,
+      `policy ${removed} has no backing endpoint and must not be offered`
+    );
+  }
 });

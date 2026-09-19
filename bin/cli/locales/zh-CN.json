@@ -403,40 +403,13 @@
     }
   },
   "policy": {
-    "description": "管理 OmniRoute 授权策略",
+    "description": "登录锁定：列出并解锁因多次登录失败而被锁定的标识",
+    "relatedFeatures": "此命令仅管理登录锁定。要屏蔽模型，请使用按 API 密钥的模型限制（控制台：API Keys）；要设置提供者偏好，请使用组合（omniroute combo）；要设置支出上限，请使用 omniroute usage budget。",
     "list": {
-      "description": "列出策略",
-      "kind": "按类型筛选（allow|deny|rate-limit|cost-cap）",
-      "scope": "按作用域筛选（global|api-key|provider）"
+      "description": "列出当前被锁定的登录标识"
     },
-    "get": {
-      "description": "按 ID 获取策略详情"
-    },
-    "create": {
-      "description": "从 JSON 文件创建策略",
-      "file": "策略 JSON 文件路径"
-    },
-    "update": {
-      "description": "从 JSON 文件更新策略",
-      "file": "策略 JSON 文件路径"
-    },
-    "delete": {
-      "description": "按 ID 删除策略",
-      "yes": "跳过确认提示"
-    },
-    "evaluate": {
-      "description": "空运行策略评估（退出码 0=允许，4=拒绝）",
-      "api_key": "要评估的 API 密钥",
-      "action": "要检查的操作（例如 chat, embed, admin）",
-      "resource": "资源路径或标识符",
-      "context": "作为 JSON 对象的额外上下文"
-    },
-    "export": {
-      "description": "将所有策略导出到 JSON 文件"
-    },
-    "import": {
-      "description": "从 JSON 文件导入策略",
-      "overwrite": "覆盖具有相同 ID 的现有策略"
+    "unlock": {
+      "description": "强制解锁一个被锁定的登录标识"
     }
   },
   "compression": {

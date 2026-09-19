@@ -95,22 +95,6 @@ export function register_agentbridge(parent) {
       const data = res.ok ? await res.json() : await res.text();
       emit(data, gOpts);
     });
-  tag.command("put-api-tools-agent-bridge-bypass")
-    .description("Update user bypass patterns")
-    .option("--body <jsonOrPath>", "JSON body or @path/to/file.json")
-    .action(async (opts, cmd) => {
-      const gOpts = cmd.optsWithGlobals();
-      let url = "/api/tools/agent-bridge/bypass";
-      let body;
-      if (opts.body) {
-        body = opts.body.startsWith("@")
-          ? JSON.parse(readFileSync(opts.body.slice(1), "utf8"))
-          : JSON.parse(opts.body);
-      }
-      const res = await apiFetch(url, { method: "PUT", body, baseUrl: gOpts.baseUrl, apiKey: gOpts.apiKey });
-      const data = res.ok ? await res.json() : await res.text();
-      emit(data, gOpts);
-    });
   tag.command("post-api-tools-agent-bridge-cert")
     .description("Download or regenerate the AgentBridge CA certificate")
     .option("--body <jsonOrPath>", "JSON body or @path/to/file.json")

@@ -152,13 +152,5 @@
     "/api/webhooks/validate-url",
     "/api/webhooks/{id}/deliveries"
   ],
-  "phantomOperations": [
-    "DELETE /api/policies",
-    "GET /api/oauth/kiro/import",
-    "PATCH /api/provider-nodes/{id}",
-    "PATCH /api/settings/proxy",
-    "POST /api/models/alias",
-    "POST /api/pricing",
-    "PUT /api/tools/agent-bridge/bypass"
-  ]
+  "phantomOperations": []
 }
