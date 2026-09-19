@@ -6,6 +6,7 @@ export const CLIENT_ERROR_CODES = Object.freeze({
   invalidResponse: "invalid_response",
   streamError: "stream_error",
   streamConsumed: "stream_consumed",
+  redirectRefused: "redirect_refused",
 });
 
 export interface OmniRouteErrorInit {
@@ -142,7 +143,11 @@ export function abortedError(requestId: string, cause?: unknown): OmniRouteError
   });
 }
 
-export function timeoutError(timeoutMs: number, requestId: string, cause?: unknown): OmniRouteError {
+export function timeoutError(
+  timeoutMs: number,
+  requestId: string,
+  cause?: unknown
+): OmniRouteError {
   return new OmniRouteError({
     status: 0,
     code: CLIENT_ERROR_CODES.timeout,
@@ -161,6 +166,26 @@ export function networkError(requestId: string, cause?: unknown): OmniRouteError
     message: "The request failed before a response was received",
     requestId,
     cause,
+  });
+}
+
+/**
+ * A redirect the SDK refused to follow. `reason` and `target` are derived from the response's own
+ * status and Location; neither the request body nor any header value reaches the message.
+ */
+export function redirectRefusedError(
+  status: number,
+  requestId: string,
+  reason: string,
+  target: string | null
+): OmniRouteError {
+  const where = target === null ? "" : ` to ${target}`;
+  return new OmniRouteError({
+    status,
+    code: CLIENT_ERROR_CODES.redirectRefused,
+    type: CLIENT_ERROR_CODES.redirectRefused,
+    message: `Refusing to follow the ${status} redirect${where}: ${reason}`,
+    requestId,
   });
 }
 

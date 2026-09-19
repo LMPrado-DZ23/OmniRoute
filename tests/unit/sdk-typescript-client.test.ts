@@ -4,7 +4,12 @@
  * Every call goes through an in-process fake fetch — no network, no provider calls.
  */
 import assert from "node:assert/strict";
-import { createServer, type IncomingHttpHeaders, type Server } from "node:http";
+import {
+  createServer,
+  type IncomingHttpHeaders,
+  type Server,
+  type ServerResponse,
+} from "node:http";
 import type { AddressInfo } from "node:net";
 import { describe, it } from "node:test";
 import { inspect } from "node:util";
@@ -16,6 +21,7 @@ import {
   extractEventData,
   parseRetryAfterMs,
   parseSseData,
+  vetRedirect,
   type FetchLike,
   type RequestDebugInfo,
 } from "../../sdk/typescript/src/index.ts";
@@ -164,43 +170,87 @@ function close(server: Server): Promise<void> {
   return new Promise((resolve) => server.close(() => setTimeout(resolve, 50)));
 }
 
-/** Two loopback servers on different ports: `origin` answers 302 to `target`. */
+/** A request a loopback server received — enough to prove a prompt body never reached it. */
+interface Received {
+  method: string;
+  headers: IncomingHttpHeaders;
+  body: string;
+}
+
+/** A loopback server that records every complete request into `into` before answering. */
+function recording(into: Received[], respond: (res: ServerResponse) => void): Server {
+  return createServer((req, res) => {
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk: Buffer) => chunks.push(chunk));
+    req.on("end", () => {
+      into.push({
+        method: req.method ?? "",
+        headers: req.headers,
+        body: Buffer.concat(chunks).toString("utf8"),
+      });
+      res.setHeader("connection", "close");
+      respond(res);
+    });
+  });
+}
+
+/**
+ * Two loopback servers on different ports: `origin` answers `status` with a Location pointing at
+ * `target`, which records whatever reaches it.
+ */
 async function withRedirect(
-  run: (originUrl: string, targetHeaders: IncomingHttpHeaders[]) => Promise<void>
+  status: number,
+  run: (originUrl: string, atTarget: Received[]) => Promise<void>
 ): Promise<void> {
-  const targetHeaders: IncomingHttpHeaders[] = [];
-  const target = createServer((req, res) => {
-    targetHeaders.push(req.headers);
-    res.setHeader("connection", "close");
+  const atTarget: Received[] = [];
+  const target = recording(atTarget, (res) => {
     res.setHeader("content-type", "application/json");
     res.end(JSON.stringify({ object: "list", data: [] }));
   });
   const targetUrl = await listen(target);
-  const origin = createServer((_req, res) => {
-    res.statusCode = 302;
-    res.setHeader("connection", "close");
+  const origin = recording([], (res) => {
+    res.statusCode = status;
     res.setHeader("location", `${targetUrl}/elsewhere`);
     res.end();
   });
   const originUrl = await listen(origin);
   try {
-    await run(originUrl, targetHeaders);
+    await run(originUrl, atTarget);
   } finally {
     await Promise.all([close(origin), close(target)]);
   }
 }
 
 describe("OmniRouteClient redirects (loopback servers only)", () => {
-  it("never forwards a credential to a cross-origin redirect target", async () => {
-    await withRedirect(async (originUrl, targetHeaders) => {
+  it("refuses a cross-origin 307 without replaying the request body", async () => {
+    await withRedirect(307, async (originUrl, atTarget) => {
+      const client = new OmniRouteClient({
+        baseUrl: originUrl,
+        apiKey: "sk-redirect",
+        retry: false,
+      });
+      const error = await captureError(client.chat.completions.create(CHAT));
+      assert.equal(error.status, 307, "the redirect surfaces instead of being followed");
+      assert.equal(error.code, CLIENT_ERROR_CODES.redirectRefused);
+      assert.equal(atTarget.length, 0, "the redirect target must never be contacted");
+      assert.ok(
+        !inspect(error).includes("Hi"),
+        "the error must not carry any part of the request body"
+      );
+    });
+  });
+
+  it("refuses a cross-origin redirect even when fetch would strip the credential", async () => {
+    await withRedirect(302, async (originUrl, atTarget) => {
       const bearerOnly = new OmniRouteClient({
         baseUrl: originUrl,
         apiKey: "sk-redirect",
         retry: false,
       });
-      assert.equal((await bearerOnly.models.list()).status, 200);
-      assert.equal(targetHeaders.length, 1);
-      assert.equal(targetHeaders[0]?.authorization, undefined, "fetch strips Authorization");
+      const plain = await captureError(bearerOnly.models.list());
+      assert.equal(plain.status, 302);
+      assert.equal(plain.code, CLIENT_ERROR_CODES.redirectRefused);
+      assert.equal(atTarget.length, 0, "the redirect target must never be contacted");
 
       const customCredential = new OmniRouteClient({
         baseUrl: originUrl,
@@ -209,9 +259,93 @@ describe("OmniRouteClient redirects (loopback servers only)", () => {
         retry: false,
       });
       const error = await captureError(customCredential.models.list());
-      assert.equal(error.status, 302, "the redirect surfaces instead of being followed");
-      assert.equal(targetHeaders.length, 1, "the redirect target must not be contacted again");
+      assert.equal(error.status, 302);
+      assert.equal(atTarget.length, 0, "the redirect target must not be contacted again");
+      assert.ok(!inspect(error).includes("sk-goog"), "the error must not carry a header value");
     });
+  });
+});
+
+describe("vetRedirect", () => {
+  const from = "https://gateway.test/api/v1/models";
+
+  it("refuses an https -> non-https target, mirroring the Python SDK", () => {
+    const decision = vetRedirect(from, "http://gateway.test/api/v1/models");
+    assert.equal(decision.allowed, false);
+    assert.match(String(decision.reason), /https/);
+  });
+
+  it("refuses a target on another origin", () => {
+    assert.equal(vetRedirect(from, "https://elsewhere.test/api/v1/models").allowed, false);
+    assert.equal(vetRedirect(from, "https://gateway.test:8443/api/v1/models").allowed, false);
+  });
+
+  it("refuses a missing or unparseable Location", () => {
+    assert.equal(vetRedirect(from, null).allowed, false);
+    assert.equal(vetRedirect(from, "   ").allowed, false);
+    assert.equal(vetRedirect(from, "http://[").allowed, false);
+  });
+
+  it("allows a same-origin target and keeps plain http bases working", () => {
+    const sameOrigin = vetRedirect(from, "/api/v1/models/moved");
+    assert.equal(sameOrigin.allowed, true);
+    assert.equal(sameOrigin.reason, null);
+    assert.equal(sameOrigin.url, "https://gateway.test/api/v1/models/moved");
+    assert.equal(vetRedirect("http://localhost:20128/api/v1/models", "/moved").allowed, true);
+  });
+
+  it("never echoes userinfo from the Location header", () => {
+    const decision = vetRedirect(from, "https://user:pw@elsewhere.test/x");
+    assert.equal(decision.allowed, false);
+    assert.ok(!inspect(decision).includes("pw"), "credentials in the Location are not echoed");
+  });
+});
+
+describe("OmniRouteClient redirect scheme policy", () => {
+  it("refuses an https -> http redirect", async () => {
+    const urls: string[] = [];
+    const fetch: FetchLike = async (url) => {
+      urls.push(url);
+      return new Response(null, {
+        status: 302,
+        headers: { location: "http://gateway.test/api/v1/models" },
+      });
+    };
+    const client = new OmniRouteClient({
+      baseUrl: "https://gateway.test",
+      apiKey: "sk-downgrade",
+      retry: false,
+      fetch,
+    });
+    const error = await captureError(client.models.list());
+    assert.equal(error.status, 302);
+    assert.equal(error.code, CLIENT_ERROR_CODES.redirectRefused);
+    assert.deepEqual(urls, ["https://gateway.test/api/v1/models"], "the http target is never hit");
+  });
+
+  it("follows a same-origin redirect", async () => {
+    const urls: string[] = [];
+    const fetch: FetchLike = async (url) => {
+      urls.push(url);
+      if (urls.length === 1) {
+        return new Response(null, {
+          status: 308,
+          headers: { location: "/api/v1/models/moved" },
+        });
+      }
+      return jsonResponse({ object: "list", data: [] });
+    };
+    const client = new OmniRouteClient({
+      baseUrl: "https://gateway.test",
+      apiKey: "sk-same-origin",
+      retry: false,
+      fetch,
+    });
+    assert.equal((await client.models.list()).status, 200);
+    assert.deepEqual(urls, [
+      "https://gateway.test/api/v1/models",
+      "https://gateway.test/api/v1/models/moved",
+    ]);
   });
 });
 

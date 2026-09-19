@@ -6,6 +6,7 @@ export {
   OmniRouteClient,
   REQUEST_ID_HEADER,
   redactHeaders,
+  vetRedirect,
 } from "./client.ts";
 export type {
   ChatCompletionsResource,
@@ -13,6 +14,7 @@ export type {
   OmniRouteClientOptions,
   OperationName,
   RequestDebugInfo,
+  RedirectDecision,
   RequestOptions,
   RetryOptions,
 } from "./client.ts";
