@@ -2,9 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { routeExportsMethod } from "../../../scripts/check/check-fetch-targets.mjs";
+import { ROOT, matchRoute, relativeToRoot as rel, toApiPathname } from "./_helpers/appRoutes.ts";
 
 // Class of bug guarded here: a CLI command calling a route (or a verb on a
 // route) that the server does not implement. Such a call can only ever fail
@@ -23,18 +23,7 @@ import { routeExportsMethod } from "../../../scripts/check/check-fetch-targets.m
 // Entries may only be REMOVED: fixing a command without deleting its entry
 // fails as stale, and a new mismatch fails outright.
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
-const API_DIR = path.join(ROOT, "src", "app", "api");
-
-// The two catch-alls exist only to turn unknown paths into a JSON 404
-// (#6405 / #6424); resolving to them means "no such route".
-const NOT_FOUND_CATCH_ALLS = new Set([
-  "src/app/api/[...omnirouteApiCatchAll]/route.ts",
-  "src/app/api/v1/[...omnirouteCatchAll]/route.ts",
-]);
-
 const KNOWN_BROKEN = new Set([
-  "bin/cli/commands/cache.mjs::POST /api/cache/clear",
   "bin/cli/commands/combo.mjs::POST /api/combos/switch",
   "bin/cli/commands/compression.mjs::DELETE /api/compression/rules",
   "bin/cli/commands/compression.mjs::POST /api/compression/rules",
@@ -86,53 +75,16 @@ function walk(dir: string, acc: string[] = []): string[] {
   return acc;
 }
 
-function rel(file: string): string {
-  return path.relative(ROOT, file).split(path.sep).join("/");
-}
-
-const routeFiles = walk(API_DIR)
-  .filter((f) => /[\\/]route\.tsx?$/.test(f))
-  .map(rel)
-  .filter((f) => !NOT_FOUND_CATCH_ALLS.has(f));
-
-function segmentsOf(routeFile: string): string[] {
-  return routeFile
-    .replace(/^src\/app\//, "")
-    .replace(/\/route\.tsx?$/, "")
-    .split("/");
-}
-
-function matchSegments(route: string[], target: string[]): boolean {
-  if (route.length === 0) return target.length === 0;
-  const [head, ...rest] = route;
-  if (/^\[\[\.\.\..+\]\]$/.test(head)) return rest.length === 0;
-  if (/^\[\.\.\..+\]$/.test(head)) return rest.length === 0 && target.length >= 1;
-  if (target.length === 0) return false;
-  if (head !== target[0] && !/^\[.+\]$/.test(head)) return false;
-  return matchSegments(rest, target.slice(1));
-}
-
-/** Most specific route file for a concrete path (static > [param] > catch-all). */
+/** Most specific route file for a concrete path (see _helpers/appRoutes.ts). */
 function resolveRouteFile(apiPath: string): string | null {
-  const target = apiPath.replace(/^\//, "").split("/");
-  const score = (segs: string[]) =>
-    segs.reduce(
-      (s, seg) =>
-        s + (seg.startsWith("[...") || seg.startsWith("[[...") ? 0 : seg.startsWith("[") ? 1 : 2),
-      0
-    );
-  const matches = routeFiles.filter((rf) => matchSegments(segmentsOf(rf), target));
-  matches.sort((a, b) => score(segmentsOf(b)) - score(segmentsOf(a)));
-  return matches[0] ?? null;
+  return matchRoute(apiPath)?.file ?? null;
 }
 
 /** Normalises a CLI literal path: `${x}`/{x} → placeholder, drops the query, maps /v1 → /api/v1. */
 function normalisePath(raw: string): string | null {
   const noQuery = raw.replace(/[?#].*$/, "");
   const concrete = noQuery.replace(/\$\{[^}]*\}/g, "{}").replace(/\{[^}]+\}/g, "{}");
-  if (concrete.startsWith("/api/")) return concrete;
-  if (concrete === "/v1" || concrete.startsWith("/v1/")) return `/api${concrete}`;
-  return null;
+  return toApiPathname(concrete);
 }
 
 function callArgs(src: string, from: number): string {

@@ -83,8 +83,10 @@ export async function runCacheClearCommand(opts = {}) {
   }
 
   try {
-    const res = await apiFetch("/api/cache/clear", {
-      method: "POST",
+    // DELETE /api/cache with no selector is the full clear the dashboard uses
+    // (cache page, Settings → System storage); there is no /api/cache/clear route.
+    const res = await apiFetch("/api/cache", {
+      method: "DELETE",
       retry: false,
       timeout: 5000,
       acceptNotOk: true,
