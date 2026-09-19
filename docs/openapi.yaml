@@ -684,6 +684,14 @@ paths:
       tags:
         - Memory
       summary: Create a memory entry
+      description: >-
+        Creates a memory entry and answers `200` with `{ success: true, id }`.
+        NOTE: despite its name, `id` holds the FULL created MemoryEntry, not an
+        identifier string — read the new entry's identifier from `id.id`. This
+        shape is consumed by the dashboard and the CLI and is kept for
+        compatibility; it is known design debt that blocks promoting this
+        operation to `stable` (a later release can add a correctly named field
+        alongside and deprecate `id` before removing it at a major).
       security:
         - ManagementSessionAuth: []
       requestBody:
@@ -723,16 +731,32 @@ paths:
                   format: date-time
                   nullable: true
       responses:
-        "201":
-          description: Created memory entry
+        "200":
+          description: >-
+            Memory entry created. `id` carries the full created MemoryEntry (not an
+            identifier string); see the operation description.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MemoryEntry"
+                type: object
+                required:
+                  - success
+                  - id
+                properties:
+                  success:
+                    type: boolean
+                    enum:
+                      - true
+                  id:
+                    $ref: "#/components/schemas/MemoryEntry"
         "400":
-          description: Validation error
+          description: >-
+            Validation error (body is `{ message, details: [{ field, message }] }`), or
+            a storage failure (body is `{ error: { message } }`).
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: API key lacks the manage scope
   /api/memory/{id}:
     parameters:
       - name: id

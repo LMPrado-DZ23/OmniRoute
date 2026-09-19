@@ -139,12 +139,11 @@ it("POST /api/memory creates a memory that GET /api/memory/{id} reads back", asy
       apiKeyId: SCOPE,
     })
   );
-  // KNOWN SPEC DIVERGENCE (pinned, not endorsed): docs/openapi.yaml documents
-  // `201` with a bare MemoryEntry, but the handler answers `200` with
-  // `{ success: true, id: <the full MemoryEntry> }` — the field named `id`
-  // carries the whole record. The dashboard and CLI consume this shape today,
-  // so the test pins the real wire contract; aligning route and spec is a
-  // precondition for promoting this operation to `stable`.
+  // KNOWN DESIGN DEBT (pinned, documented in docs/openapi.yaml): the handler
+  // answers `200` with `{ success: true, id: <the full MemoryEntry> }` — the
+  // field named `id` carries the whole record, not an identifier. The
+  // dashboard and CLI consume this shape, so it is kept for compatibility; it
+  // blocks promoting this operation to `stable` until an additive fix lands.
   assert.equal(created.status, 200);
   const body = await readJson<{ success: boolean; id: MemoryShape }>(created);
   assert.equal(body.success, true);
