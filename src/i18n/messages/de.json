@@ -1452,13 +1452,20 @@
       "webhookUrl": "Discord-Webhook-URL",
       "webhookUrlPlaceholder": "https://discord.com/api/webhooks/...",
       "webhookUrlHint": "Die aus den Integrationseinstellungen deines Discord-Kanals kopierte Webhook-URL.",
-      "tutorial": "So erstellst du einen Discord-Webhook:"
+      "tutorial": "So erstellst du einen Discord-Webhook:",
+      "tutorialStep1": "Open the settings of the target channel and go to Integrations, then Webhooks.",
+      "tutorialStep2": "Create a webhook, give it a name, and confirm the channel it posts to.",
+      "tutorialStep3": "Copy the webhook URL and paste it in the field above."
     },
     "slack": {
       "webhookUrl": "Slack-Webhook-URL",
       "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
       "webhookUrlHint": "Die aus der Integration für eingehende Slack-Webhooks kopierte Webhook-URL.",
-      "tutorial": "So erstellst du einen Slack-Webhook:"
+      "tutorial": "So erstellst du einen Slack-Webhook:",
+      "tutorialStep1": "Open api.slack.com/apps and create an app, or pick an existing one, in your workspace.",
+      "tutorialStep2": "Enable Incoming Webhooks, then choose Add New Webhook to Workspace.",
+      "tutorialStep3": "Pick the channel that should receive the alerts and authorise the app.",
+      "tutorialStep4": "Copy the generated webhook URL and paste it in the field above."
     },
     "telegram": {
       "botToken": "Telegram-Bot-Token",
@@ -1467,7 +1474,11 @@
       "chatId": "Telegram-Chat-ID / Kanal",
       "chatIdPlaceholder": "-100123456789 oder @channelname",
       "chatIdHint": "Die eindeutige numerische Kennung oder der öffentliche Benutzername des Chats/Kanals.",
-      "tutorial": "So konfigurierst du den Telegram-Webhook:"
+      "tutorial": "So konfigurierst du den Telegram-Webhook:",
+      "tutorialStep1": "Message @BotFather on Telegram and send /newbot to create a bot.",
+      "tutorialStep2": "Copy the HTTP API token BotFather replies with and paste it in the field above.",
+      "tutorialStep3": "Add the bot to the target chat or channel and allow it to post messages.",
+      "tutorialStep4": "Send a message in that chat, then read the chat ID from https://api.telegram.org/botYOUR_TOKEN/getUpdates."
     }
   },
   "compliance": {
@@ -9843,6 +9854,8 @@
     "loading": "Laden...",
     "invalidPassword": "Ungültiges Passwort",
     "errorOccurredRetry": "Es ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "Lassen Sie uns Ihre OmniRoute-Instanz konfigurieren",
     "runOnboardingWizard": "Führen Sie den Onboarding-Assistenten aus, um Ihr Passwort einzurichten und Ihren ersten KI-Anbieter zu verbinden.",
     "startOnboarding": "Beginnen Sie mit dem Onboarding",
@@ -11280,6 +11293,10 @@
     "allModels": "All models",
     "allAccounts": "All accounts",
     "allApiKeys": "All API keys",
+    "filterProvider": "Provider filter",
+    "filterModel": "Model filter",
+    "filterAccount": "Account filter",
+    "filterApiKey": "API key filter",
     "total": "Total",
     "ok": "Success",
     "err": "Error",

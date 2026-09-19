@@ -25,6 +25,8 @@
  *   /dashboard/providers  — provider management (most complex UI surface)
  *   /dashboard/analytics?tab=route-trace — Route Trace tab (routing decision lookup card)
  *   /dashboard/settings   — settings (width sweep + ratchet)
+ *   /dashboard/logs       — request log viewer (filter selects + status pills)
+ *   /dashboard/onboarding?rerun=1 — the first-run wizard a brand-new user lands on
  *
  * Run locally (requires the app running on the Playwright baseURL):
  *   REQUIRE_AXE=1 npx playwright test tests/e2e/a11y.spec.ts
@@ -67,13 +69,25 @@ try {
 // integrity text) and the unlabelled storage inputs/selects (was 5 frozen; 3 measured).
 // Final audit C M3 (2026-09-18): the Route Trace tab had one critical `select-name`
 // violation (unlabelled "Request log" select) at every width; fixed at the source.
+// Final audit NEW-MEDIUM-1/-6 (2026-09-19): /dashboard/logs was never in this list, so the
+// gate never saw its five unlabelled filter selects (critical `select-name` x4) or its
+// status/column pills (`color-contrast`, 4.44:1 x14). Both fixed at the source; the page
+// is gated from now on. NEW-MEDIUM-4: the first-run onboarding wizard is a new surface in
+// this release and was equally ungated — its amber/red/green copy used dark-theme-only
+// literals that measured as low as 1.72:1 on the light card.
 const ROUTE_TRACE_PATH = "/dashboard/analytics?tab=route-trace";
+const LOGS_PATH = "/dashboard/logs";
+// `?rerun=1` reopens the wizard after setup completed — the only way to reach the
+// first-run surface on an already-configured instance.
+const ONBOARDING_PATH = "/dashboard/onboarding?rerun=1";
 const VIOLATION_BASELINES: Record<string, number> = {
   "/login": 0,
   "/dashboard": 0,
   "/dashboard/providers": 0,
   [ROUTE_TRACE_PATH]: 0,
   "/dashboard/settings": 0,
+  [LOGS_PATH]: 0,
+  [ONBOARDING_PATH]: 0,
 };
 
 const BLOCKING_IMPACTS = new Set(["critical", "serious"]);
@@ -145,6 +159,14 @@ async function openPage(page: Page, path: string) {
     await page.locator('input[type="password"]').first().waitFor({ state: "visible" });
     return;
   }
+  if (path === ONBOARDING_PATH) {
+    // gotoDashboardRoute() clicks "skip wizard" whenever it lands on the onboarding
+    // route, so authenticate on an ordinary route first and open the wizard directly.
+    await gotoDashboardRoute(page, "/dashboard");
+    await page.goto(path, { waitUntil: "domcontentloaded" });
+    await page.getByRole("button", { name: /get started/i }).waitFor({ state: "visible" });
+    return;
+  }
   await gotoDashboardRoute(page, path);
   await page.locator("main, #main-content").first().waitFor({ state: "visible" });
 }
@@ -193,6 +215,8 @@ test.describe("A11y — Dashboard key surfaces (@axe-core, nightly)", () => {
     "/dashboard/providers",
     "/dashboard/settings",
     ROUTE_TRACE_PATH,
+    LOGS_PATH,
+    ONBOARDING_PATH,
   ]) {
     test(`${path} — zero critical/serious violations at 768–1440px and total within baseline`, async ({
       page,

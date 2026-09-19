@@ -109,7 +109,7 @@ export default function BootstrapBanner() {
           {t("zeroConfigBannerTitle")}
         </p>
         <p
-          className="mt-0.5 text-amber-800/80 dark:text-amber-200/80"
+          className="mt-0.5 text-amber-800 dark:text-amber-200"
           aria-busy={pathState.status === "loading" ? "true" : undefined}
         >
           {pathState.status === "unavailable"

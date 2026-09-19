@@ -1452,13 +1452,20 @@
       "webhookUrl": "Discord वेबहुक URL",
       "webhookUrlPlaceholder": "https://discord.com/api/webhooks/...",
       "webhookUrlHint": "आपके Discord चैनल इंटीग्रेशन सेटिंग्स से कॉपी किया गया वेबहुक URL।",
-      "tutorial": "Discord वेबहुक कैसे बनाएं:"
+      "tutorial": "Discord वेबहुक कैसे बनाएं:",
+      "tutorialStep1": "Open the settings of the target channel and go to Integrations, then Webhooks.",
+      "tutorialStep2": "Create a webhook, give it a name, and confirm the channel it posts to.",
+      "tutorialStep3": "Copy the webhook URL and paste it in the field above."
     },
     "slack": {
       "webhookUrl": "Slack वेबहुक URL",
       "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
       "webhookUrlHint": "आपके Slack Incoming Webhooks इंटीग्रेशन से कॉपी किया गया वेबहुक URL।",
-      "tutorial": "Slack वेबहुक कैसे बनाएं:"
+      "tutorial": "Slack वेबहुक कैसे बनाएं:",
+      "tutorialStep1": "Open api.slack.com/apps and create an app, or pick an existing one, in your workspace.",
+      "tutorialStep2": "Enable Incoming Webhooks, then choose Add New Webhook to Workspace.",
+      "tutorialStep3": "Pick the channel that should receive the alerts and authorise the app.",
+      "tutorialStep4": "Copy the generated webhook URL and paste it in the field above."
     },
     "telegram": {
       "botToken": "Telegram बॉट टोकन",
@@ -1467,7 +1474,11 @@
       "chatId": "Telegram चैट ID / चैनल",
       "chatIdPlaceholder": "-100123456789 या @channelname",
       "chatIdHint": "चैट/चैनल का यूनीक संख्यात्मक पहचानकर्ता या सार्वजनिक यूज़रनेम।",
-      "tutorial": "Telegram वेबहुक कैसे कॉन्फ़िगर करें:"
+      "tutorial": "Telegram वेबहुक कैसे कॉन्फ़िगर करें:",
+      "tutorialStep1": "Message @BotFather on Telegram and send /newbot to create a bot.",
+      "tutorialStep2": "Copy the HTTP API token BotFather replies with and paste it in the field above.",
+      "tutorialStep3": "Add the bot to the target chat or channel and allow it to post messages.",
+      "tutorialStep4": "Send a message in that chat, then read the chat ID from https://api.telegram.org/botYOUR_TOKEN/getUpdates."
     }
   },
   "compliance": {
@@ -9843,6 +9854,8 @@
     "loading": "लोड हो रहा है...",
     "invalidPassword": "अमान्य पासवर्ड",
     "errorOccurredRetry": "एक त्रुटि हुई. कृपया पुन: प्रयास करें।",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "आइए आपका ओम्निरूट इंस्टेंस कॉन्फ़िगर करें",
     "runOnboardingWizard": "अपना पासवर्ड सेट करने और अपने पहले AI प्रदाता को कनेक्ट करने के लिए ऑनबोर्डिंग विज़ार्ड चलाएँ।",
     "startOnboarding": "ऑनबोर्डिंग प्रारंभ करें",
@@ -11280,6 +11293,10 @@
     "allModels": "All models",
     "allAccounts": "All accounts",
     "allApiKeys": "All API keys",
+    "filterProvider": "Provider filter",
+    "filterModel": "Model filter",
+    "filterAccount": "Account filter",
+    "filterApiKey": "API key filter",
     "total": "Total",
     "ok": "Success",
     "err": "Error",

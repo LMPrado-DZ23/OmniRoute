@@ -1452,13 +1452,20 @@
       "webhookUrl": "Discord Webhook URL",
       "webhookUrlPlaceholder": "https://discord.com/api/webhooks/...",
       "webhookUrlHint": "從 Discord 頻道整合設定中複製的 Webhook URL。",
-      "tutorial": "如何建立 Discord Webhook："
+      "tutorial": "如何建立 Discord Webhook：",
+      "tutorialStep1": "Open the settings of the target channel and go to Integrations, then Webhooks.",
+      "tutorialStep2": "Create a webhook, give it a name, and confirm the channel it posts to.",
+      "tutorialStep3": "Copy the webhook URL and paste it in the field above."
     },
     "slack": {
       "webhookUrl": "Slack Webhook URL",
       "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
       "webhookUrlHint": "從 Slack Incoming Webhooks 整合中複製的 Webhook URL。",
-      "tutorial": "如何建立 Slack Webhook："
+      "tutorial": "如何建立 Slack Webhook：",
+      "tutorialStep1": "Open api.slack.com/apps and create an app, or pick an existing one, in your workspace.",
+      "tutorialStep2": "Enable Incoming Webhooks, then choose Add New Webhook to Workspace.",
+      "tutorialStep3": "Pick the channel that should receive the alerts and authorise the app.",
+      "tutorialStep4": "Copy the generated webhook URL and paste it in the field above."
     },
     "telegram": {
       "botToken": "Telegram 機器人權杖",
@@ -1467,7 +1474,11 @@
       "chatId": "Telegram 聊天 ID / 頻道",
       "chatIdPlaceholder": "-100123456789 或 @channelname",
       "chatIdHint": "聊天/頻道的唯一數字識別符號或公開使用者名稱。",
-      "tutorial": "如何設定 Telegram Webhook："
+      "tutorial": "如何設定 Telegram Webhook：",
+      "tutorialStep1": "Message @BotFather on Telegram and send /newbot to create a bot.",
+      "tutorialStep2": "Copy the HTTP API token BotFather replies with and paste it in the field above.",
+      "tutorialStep3": "Add the bot to the target chat or channel and allow it to post messages.",
+      "tutorialStep4": "Send a message in that chat, then read the chat ID from https://api.telegram.org/botYOUR_TOKEN/getUpdates."
     }
   },
   "compliance": {
@@ -9843,6 +9854,8 @@
     "loading": "正在載入...",
     "invalidPassword": "密碼無效",
     "errorOccurredRetry": "發生錯誤。請再試一次。",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "開始設定你的 OmniRoute 例項",
     "runOnboardingWizard": "執行入門嚮導來設定您的密碼並連線您的第一個 AI 提供者。",
     "startOnboarding": "開始引導",
@@ -11280,6 +11293,10 @@
     "allModels": "所有模型",
     "allAccounts": "所有帳戶",
     "allApiKeys": "所有API金鑰",
+    "filterProvider": "Provider filter",
+    "filterModel": "Model filter",
+    "filterAccount": "Account filter",
+    "filterApiKey": "API key filter",
     "total": "總計",
     "ok": "成功",
     "err": "錯誤",

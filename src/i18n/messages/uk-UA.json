@@ -1452,13 +1452,20 @@
       "webhookUrl": "URL веб-хука Discord",
       "webhookUrlPlaceholder": "https://discord.com/api/webhooks/...",
       "webhookUrlHint": "URL веб-хука, скопійований з налаштувань інтеграції каналу Discord.",
-      "tutorial": "Як створити веб-хук у Discord:"
+      "tutorial": "Як створити веб-хук у Discord:",
+      "tutorialStep1": "Open the settings of the target channel and go to Integrations, then Webhooks.",
+      "tutorialStep2": "Create a webhook, give it a name, and confirm the channel it posts to.",
+      "tutorialStep3": "Copy the webhook URL and paste it in the field above."
     },
     "slack": {
       "webhookUrl": "URL веб-хука Slack",
       "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
       "webhookUrlHint": "URL веб-хука, скопійований з інтеграції Incoming Webhooks у Slack.",
-      "tutorial": "Як створити веб-хук у Slack:"
+      "tutorial": "Як створити веб-хук у Slack:",
+      "tutorialStep1": "Open api.slack.com/apps and create an app, or pick an existing one, in your workspace.",
+      "tutorialStep2": "Enable Incoming Webhooks, then choose Add New Webhook to Workspace.",
+      "tutorialStep3": "Pick the channel that should receive the alerts and authorise the app.",
+      "tutorialStep4": "Copy the generated webhook URL and paste it in the field above."
     },
     "telegram": {
       "botToken": "Токен Telegram-бота",
@@ -1467,7 +1474,11 @@
       "chatId": "Telegram Chat ID / канал",
       "chatIdPlaceholder": "-100123456789 або @channelname",
       "chatIdHint": "Унікальний числовий ідентифікатор або публічний username чату/каналу.",
-      "tutorial": "Як налаштувати веб-хук Telegram:"
+      "tutorial": "Як налаштувати веб-хук Telegram:",
+      "tutorialStep1": "Message @BotFather on Telegram and send /newbot to create a bot.",
+      "tutorialStep2": "Copy the HTTP API token BotFather replies with and paste it in the field above.",
+      "tutorialStep3": "Add the bot to the target chat or channel and allow it to post messages.",
+      "tutorialStep4": "Send a message in that chat, then read the chat ID from https://api.telegram.org/botYOUR_TOKEN/getUpdates."
     }
   },
   "compliance": {
@@ -9843,6 +9854,8 @@
     "loading": "Завантаження...",
     "invalidPassword": "Недійсний пароль",
     "errorOccurredRetry": "Сталася помилка. Спробуйте ще раз.",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "Давайте налаштуємо ваш екземпляр OmniRoute",
     "runOnboardingWizard": "Запустіть майстер адаптації, щоб налаштувати пароль і підключити свого першого постачальника AI.",
     "startOnboarding": "Почніть адаптацію",
@@ -11280,6 +11293,10 @@
     "allModels": "All models",
     "allAccounts": "All accounts",
     "allApiKeys": "All API keys",
+    "filterProvider": "Provider filter",
+    "filterModel": "Model filter",
+    "filterAccount": "Account filter",
+    "filterApiKey": "API key filter",
     "total": "Total",
     "ok": "Success",
     "err": "Error",

@@ -1452,13 +1452,20 @@
       "webhookUrl": "URL webhook Discord",
       "webhookUrlPlaceholder": "https://discord.com/api/webhooks/...",
       "webhookUrlHint": "URL webhook được sao chép từ cài đặt tích hợp kênh Discord của bạn.",
-      "tutorial": "Cách tạo webhook Discord:"
+      "tutorial": "Cách tạo webhook Discord:",
+      "tutorialStep1": "Mở cài đặt của kênh đích rồi vào Integrations, sau đó Webhooks.",
+      "tutorialStep2": "Tạo một webhook, đặt tên cho nó và xác nhận kênh mà nó sẽ đăng bài.",
+      "tutorialStep3": "Sao chép URL webhook và dán vào ô phía trên."
     },
     "slack": {
       "webhookUrl": "URL webhook Slack",
       "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
       "webhookUrlHint": "URL webhook được sao chép từ tích hợp Incoming Webhooks của Slack.",
-      "tutorial": "Cách tạo webhook Slack:"
+      "tutorial": "Cách tạo webhook Slack:",
+      "tutorialStep1": "Mở api.slack.com/apps và tạo một ứng dụng, hoặc chọn ứng dụng có sẵn, trong workspace của bạn.",
+      "tutorialStep2": "Bật Incoming Webhooks, sau đó chọn Add New Webhook to Workspace.",
+      "tutorialStep3": "Chọn kênh sẽ nhận cảnh báo và cấp quyền cho ứng dụng.",
+      "tutorialStep4": "Sao chép URL webhook vừa tạo và dán vào ô phía trên."
     },
     "telegram": {
       "botToken": "Token của bot Telegram",
@@ -1467,7 +1474,11 @@
       "chatId": "ID cuộc trò chuyện / kênh Telegram",
       "chatIdPlaceholder": "-100123456789 hoặc @channelname",
       "chatIdHint": "Mã định danh số duy nhất hoặc tên người dùng công khai của cuộc trò chuyện/kênh.",
-      "tutorial": "Cách cấu hình webhook Telegram:"
+      "tutorial": "Cách cấu hình webhook Telegram:",
+      "tutorialStep1": "Nhắn tin cho @BotFather trên Telegram và gửi /newbot để tạo một bot.",
+      "tutorialStep2": "Sao chép token HTTP API mà BotFather trả về và dán vào ô phía trên.",
+      "tutorialStep3": "Thêm bot vào cuộc trò chuyện hoặc kênh đích và cho phép bot đăng tin nhắn.",
+      "tutorialStep4": "Gửi một tin nhắn trong cuộc trò chuyện đó, rồi đọc ID cuộc trò chuyện tại https://api.telegram.org/botYOUR_TOKEN/getUpdates."
     }
   },
   "compliance": {
@@ -10001,6 +10012,8 @@
     "loading": "Đang tải...",
     "invalidPassword": "Mật khẩu không hợp lệ",
     "errorOccurredRetry": "Đã xảy ra lỗi. Vui lòng thử lại.",
+    "setupCheckFailedTitle": "Chưa hoàn tất kiểm tra thiết lập",
+    "setupCheckFailedDescription": "OmniRoute không thể xác nhận phiên bản này đã có mật khẩu hay chưa. Lần khởi động đầu tiên có thể mất một lúc, vì cơ sở dữ liệu được tạo và di trú trước khi máy chủ phản hồi. Hãy đợi một lát rồi thử lại.",
     "configureInstance": "Hãy cấu hình phiên bản OmniRoute của bạn",
     "runOnboardingWizard": "Chạy trình hướng dẫn thiết lập ban đầu để cài đặt mật khẩu và kết nối với nhà cung cấp AI đầu tiên của bạn.",
     "startOnboarding": "Bắt đầu thiết lập",
@@ -11438,6 +11451,10 @@
     "allModels": "Tất cả mô hình",
     "allAccounts": "Tất cả tài khoản",
     "allApiKeys": "Tất cả khóa API",
+    "filterProvider": "Bộ lọc nhà cung cấp",
+    "filterModel": "Bộ lọc mô hình",
+    "filterAccount": "Bộ lọc tài khoản",
+    "filterApiKey": "Bộ lọc khóa API",
     "total": "Tổng cộng",
     "ok": "Thành công",
     "err": "Lỗi",
