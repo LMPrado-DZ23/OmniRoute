@@ -28,8 +28,14 @@ describe("skip link", () => {
   it("targets a focusable <main> in every /login render branch", () => {
     const login = read("src/app/login/page.tsx");
     const mains = login.match(/<main\s+id="main-content"\s+tabIndex=\{-1\}/g) ?? [];
-    // loading, bootstrap/welcome, second-state and the sign-in form branches
-    assert.equal(mains.length, 4);
+    // probe-failed (NEW-MEDIUM-3), loading, bootstrap/welcome, second-state and the
+    // sign-in form branches. Every JSX-returning branch in the page must render the
+    // target, so the count is tied to the number of `return (` statements rather than
+    // pinned to a literal — a new branch without a skip target fails here.
+    // `[ ]` (not \s) and the optional \r keep this identical under LF and CRLF.
+    const branches = login.match(/^[ ]{2,4}return \(\r?$/gm) ?? [];
+    assert.equal(branches.length, 5);
+    assert.equal(mains.length, branches.length);
     assert.doesNotMatch(login, /<div className="min-h-screen/);
   });
 });

@@ -1452,13 +1452,20 @@
       "webhookUrl": "URL Webhook Discord",
       "webhookUrlPlaceholder": "https://discord.com/api/webhooks/...",
       "webhookUrlHint": "URL webhook yang disalin dari pengaturan integrasi saluran Discord Anda.",
-      "tutorial": "Cara membuat webhook Discord:"
+      "tutorial": "Cara membuat webhook Discord:",
+      "tutorialStep1": "Open the settings of the target channel and go to Integrations, then Webhooks.",
+      "tutorialStep2": "Create a webhook, give it a name, and confirm the channel it posts to.",
+      "tutorialStep3": "Copy the webhook URL and paste it in the field above."
     },
     "slack": {
       "webhookUrl": "URL Webhook Slack",
       "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
       "webhookUrlHint": "URL webhook yang disalin dari integrasi Incoming Webhooks Slack Anda.",
-      "tutorial": "Cara membuat webhook Slack:"
+      "tutorial": "Cara membuat webhook Slack:",
+      "tutorialStep1": "Open api.slack.com/apps and create an app, or pick an existing one, in your workspace.",
+      "tutorialStep2": "Enable Incoming Webhooks, then choose Add New Webhook to Workspace.",
+      "tutorialStep3": "Pick the channel that should receive the alerts and authorise the app.",
+      "tutorialStep4": "Copy the generated webhook URL and paste it in the field above."
     },
     "telegram": {
       "botToken": "Token Bot Telegram",
@@ -1467,7 +1474,11 @@
       "chatId": "ID Chat / Saluran Telegram",
       "chatIdPlaceholder": "-100123456789 atau @channelname",
       "chatIdHint": "Pengidentifikasi numerik unik atau nama pengguna publik dari chat/saluran.",
-      "tutorial": "Cara mengonfigurasi webhook Telegram:"
+      "tutorial": "Cara mengonfigurasi webhook Telegram:",
+      "tutorialStep1": "Message @BotFather on Telegram and send /newbot to create a bot.",
+      "tutorialStep2": "Copy the HTTP API token BotFather replies with and paste it in the field above.",
+      "tutorialStep3": "Add the bot to the target chat or channel and allow it to post messages.",
+      "tutorialStep4": "Send a message in that chat, then read the chat ID from https://api.telegram.org/botYOUR_TOKEN/getUpdates."
     }
   },
   "compliance": {
@@ -9843,6 +9854,8 @@
     "loading": "Memuat...",
     "invalidPassword": "Kata sandi tidak valid",
     "errorOccurredRetry": "Terjadi kesalahan. Silakan coba lagi.",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "Mari konfigurasikan instans OmniRoute Anda",
     "runOnboardingWizard": "Jalankan wizard orientasi untuk menyiapkan kata sandi Anda dan menghubungkan penyedia AI pertama Anda.",
     "startOnboarding": "Mulai Orientasi",
@@ -11280,6 +11293,10 @@
     "allModels": "All models",
     "allAccounts": "All accounts",
     "allApiKeys": "All API keys",
+    "filterProvider": "Provider filter",
+    "filterModel": "Model filter",
+    "filterAccount": "Account filter",
+    "filterApiKey": "API key filter",
     "total": "Total",
     "ok": "Success",
     "err": "Error",
