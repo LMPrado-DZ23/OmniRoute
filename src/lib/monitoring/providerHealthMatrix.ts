@@ -1,7 +1,7 @@
 import { getSyncedAvailableModelsByConnection } from "@/lib/db/models";
 import { getProviderConnections } from "@/lib/db/providers";
 import { getDbInstance } from "@/lib/db/core";
-import { getAllCircuitBreakerStatuses } from "@/shared/utils/circuitBreaker";
+import { getAllCircuitBreakerSnapshots } from "@/shared/utils/circuitBreaker";
 import { getAllModelLockouts } from "@omniroute/open-sse/services/accountFallback";
 import { resolveProviderAlias } from "@omniroute/open-sse/services/model";
 import { getWebSessionPoolHealth } from "@omniroute/open-sse/services/webSessionPoolHealth";
@@ -360,7 +360,7 @@ export async function buildProviderHealthMatrix(
   // so a provider has one health row with every related signal attached.
   const [connections, breakers, lockouts, rawStats] = await Promise.all([
     getProviderConnections({}),
-    getAllCircuitBreakerStatuses(),
+    getAllCircuitBreakerSnapshots(),
     getAllModelLockouts(),
     Promise.resolve(queryCallLogTargetStats(cutoff, null)),
   ]);

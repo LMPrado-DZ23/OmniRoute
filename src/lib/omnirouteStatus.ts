@@ -25,7 +25,7 @@ export async function buildOmniRouteStatus() {
     import("../../open-sse/services/quotaMonitor").catch(() => null),
   ]);
   const pools = listPools().items;
-  const circuitStatuses = circuitModule?.getAllCircuitBreakerStatuses() ?? null;
+  const circuitStatuses = circuitModule?.getAllCircuitBreakerSnapshots() ?? null;
   const quotaSummary = quotaMonitorModule?.getQuotaMonitorSummary() ?? null;
   const active = connections.filter(
     (connection) => connection.is_active !== 0 && connection.is_active !== false
