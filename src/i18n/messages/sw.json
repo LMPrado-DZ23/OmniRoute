@@ -1335,7 +1335,9 @@
       "open": "fungua",
       "close": "funga"
     },
-    "noResults": "Hakuna matokeo"
+    "noResults": "Hakuna matokeo",
+    "costsWorkspaces": "Workspaces",
+    "costsWorkspacesSubtitle": "Shared budgets"
   },
   "webhooks": {
     "title": "Viboko vya mtandao",
@@ -14305,5 +14307,46 @@
     "errorRejected": "__MISSING__:The server rejected the request.",
     "errorGone": "__MISSING__:The allowlist endpoint is not available on this server.",
     "errorHttp": "__MISSING__:The server answered with HTTP {status}."
+  },
+  "workspaces": {
+    "title": "Workspaces",
+    "subtitle": "Group API keys into projects and workspaces and cap their combined spend.",
+    "rollupNote": "Spend rolls up: a project counts its API keys, a workspace counts all of its projects. A request is refused as soon as its key, its project or its workspace is out of budget.",
+    "createWorkspaceTitle": "New workspace",
+    "createWorkspaceAction": "Create workspace",
+    "createProjectTitle": "New project",
+    "createProjectAction": "Add project",
+    "nameLabel": "Name",
+    "budgetLimitLabel": "Budget (USD)",
+    "budgetLimitHint": "Leave empty for no budget.",
+    "intervalLabel": "Budget period",
+    "intervalDaily": "Daily",
+    "intervalWeekly": "Weekly",
+    "intervalMonthly": "Monthly",
+    "thresholdLabel": "Alert at (% of budget)",
+    "saveBudgetAction": "Save budget",
+    "listLabel": "Your workspaces",
+    "emptyTitle": "No workspaces yet",
+    "emptyDescription": "Create a workspace to group API keys and give them a shared budget.",
+    "selectPrompt": "Select a workspace to manage its budget and projects.",
+    "workspaceBudgetTitle": "Workspace budget",
+    "projectsTitle": "Projects",
+    "noProjects": "This workspace has no projects yet.",
+    "spendWithLimit": "{spent} spent of {limit} this period",
+    "spendNoLimit": "{spent} spent this period, no budget set",
+    "statusBlocked": "Out of budget",
+    "statusWarning": "Near the limit",
+    "statusOk": "Within budget",
+    "keysLegend": "API keys in this project",
+    "keysEmpty": "There are no API keys yet.",
+    "keyAssignedElsewhere": "{name} (assigned to another project)",
+    "saveKeysAction": "Save API keys",
+    "deleteWorkspaceAction": "Delete workspace",
+    "deleteProjectAction": "Delete project",
+    "savedMessage": "Changes saved.",
+    "createdMessage": "Created.",
+    "deletedMessage": "Deleted.",
+    "loadError": "Could not load workspaces.",
+    "requestError": "The change was not saved: {message}"
   }
 }

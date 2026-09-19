@@ -45,6 +45,10 @@ const membersRoute = await import("../../../src/app/api/workspaces/[id]/members/
 const memberRoute =
   await import("../../../src/app/api/workspaces/[id]/members/[principal]/route.ts");
 
+// After every import: open-sse's proxyFetch replaces globalThis.fetch at import time.
+const { blockOutboundFetch } = await import("../_helpers/blockOutboundFetch.ts");
+const network = blockOutboundFetch();
+
 type Who = "owner" | "keyA" | "keyB" | "viewer" | "writer" | "outsider" | "client" | "anonymous";
 interface Reply {
   status: number;
@@ -138,6 +142,7 @@ function assertSame(actual: Reply, expected: Reply, label: string): void {
 const missing = () => `missing-${crypto.randomUUID()}`;
 
 test.before(async () => {
+  assert.ok(network.isLive(), "the throwing fetch stub must be the live globalThis.fetch");
   core.resetDbInstance();
   apiKeysDb.resetApiKeyState();
   await settingsDb.updateSettings({ requireLogin: true });
@@ -418,4 +423,8 @@ test("audit: successful mutations are recorded with the principal; no response o
       "a response leaks a secret"
     );
   }
+});
+
+test("no outbound network request was attempted", () => {
+  assert.deepEqual(network.attempts, []);
 });

@@ -24,6 +24,9 @@ const workspacesDb = await import("../../src/lib/db/workspaces.ts");
 const costRules = await import("../../src/domain/costRules.ts");
 const policyEngine = await import("../../src/domain/policyEngine.ts");
 const rollup = await import("../../src/lib/usage/workspaceBudgets.ts");
+// After every import: open-sse's proxyFetch replaces globalThis.fetch at import time.
+const { blockOutboundFetch } = await import("./_helpers/blockOutboundFetch.ts");
+const network = blockOutboundFetch();
 
 type Budget = {
   limitUsd: number | null;
@@ -38,6 +41,7 @@ const monthly = (limitUsd: number | null): Budget => ({
 });
 
 test.before(() => {
+  assert.ok(network.isLive(), "the throwing fetch stub must be the live globalThis.fetch");
   core.resetDbInstance();
   apiKeysDb.resetApiKeyState();
   costRules.resetCostData();
@@ -271,4 +275,8 @@ test("a key with no project skips the hierarchy entirely", async () => {
     reason: null,
     levels: [],
   });
+});
+
+test("no outbound network request was attempted", () => {
+  assert.deepEqual(network.attempts, []);
 });

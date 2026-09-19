@@ -30,6 +30,9 @@ const apiKeysDb = await import("../../src/lib/db/apiKeys.ts");
 const costRules = await import("../../src/domain/costRules.ts");
 const policyEngine = await import("../../src/domain/policyEngine.ts");
 const rollup = await import("../../src/lib/usage/workspaceBudgets.ts");
+// After every import: open-sse's proxyFetch replaces globalThis.fetch at import time.
+const { blockOutboundFetch } = await import("./_helpers/blockOutboundFetch.ts");
+const network = blockOutboundFetch();
 
 const MIGRATION_TABLES = ["workspaces", "projects", "workspace_members"];
 const MIGRATION_INDEXES = [
@@ -70,6 +73,7 @@ function rewindTo177(): void {
 }
 
 test.before(() => {
+  assert.ok(network.isLive(), "the throwing fetch stub must be the live globalThis.fetch");
   core.resetDbInstance();
   apiKeysDb.resetApiKeyState();
   costRules.resetCostData();
@@ -154,4 +158,8 @@ test("existing per-key budget behaviour is unchanged on the migrated schema with
   costRules.recordCost(unbudgeted.id, 999);
   assert.equal(costRules.checkBudget(unbudgeted.id).allowed, true);
   assert.equal(policyEngine.evaluateRequest({ model: "m", apiKeyId: unbudgeted.id }).allowed, true);
+});
+
+test("no outbound network request was attempted", () => {
+  assert.deepEqual(network.attempts, []);
 });
