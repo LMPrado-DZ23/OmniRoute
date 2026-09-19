@@ -60,7 +60,7 @@ export function TierTour() {
         />
       </div>
 
-      <p className="text-xs text-text-muted/60 text-center">
+      <p className="text-xs text-text-muted text-center">
         <Link href="/dashboard/providers/new" className="underline hover:text-text-muted">
           {t("configure")}
         </Link>{" "}

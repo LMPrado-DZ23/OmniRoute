@@ -48,6 +48,12 @@
   --color-error: #ef4444;
   --color-success: #22c55e;
   --color-warning: #f59e0b;
+  /* The semantic fills above are tuned for backgrounds/borders and are far below AA as
+     TEXT on a light surface (#f59e0b = 2.15:1, #ef4444 = 3.76:1 on white). These are the
+     text-weight variants, so a warning or error sentence is readable in both themes. */
+  --color-warning-strong: #b45309;
+  --color-error-strong: #b91c1c;
+  --color-success-strong: #15803d;
 
   /* Orchestration status tokens — light values (AA sobre fundo claro) */
   --orch-status-success: #15803d;
@@ -131,6 +137,10 @@
      coral already passes (5.1:1 on --color-bg) and a darker shade would not. */
   --color-primary: #e54d5e;
   --color-primary-hover: #c93d4e;
+  /* On dark surfaces the semantic fills already read well as text. */
+  --color-warning-strong: #fbbf24;
+  --color-error-strong: #f87171;
+  --color-success-strong: #4ade80;
   --color-bg: #0b0e14;
   --color-bg-alt: #111520;
   --color-bg-primary: #0b0e14;
@@ -199,6 +209,9 @@
   --color-error: var(--color-error);
   --color-success: var(--color-success);
   --color-warning: var(--color-warning);
+  --color-warning-strong: var(--color-warning-strong);
+  --color-error-strong: var(--color-error-strong);
+  --color-success-strong: var(--color-success-strong);
 
   /* Auto-switch colors (use CSS variables from :root/.dark) */
   --color-bg: var(--color-bg);

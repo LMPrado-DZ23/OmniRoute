@@ -9,7 +9,7 @@ type CredentialCheck = ReturnType<typeof useCredentialCheck>;
 type ModelTrial = ReturnType<typeof useModelTrial>;
 
 const INPUT_CLASS =
-  "w-full min-w-0 px-3 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-text-main text-sm focus:outline-none focus:ring-2 focus:ring-primary/40";
+  "w-full min-w-0 px-3 py-2 bg-bg-subtle border border-border rounded-lg text-text-main text-sm focus:outline-none focus:ring-2 focus:ring-primary/40";
 
 function Spinner({ label }: { label: string }) {
   return (
@@ -59,7 +59,7 @@ function CredentialPanel({
       )}
       {status === "testing" && <Spinner label={message} />}
       {status === "success" && (
-        <div className="flex items-center justify-center gap-2 text-green-400">
+        <div className="flex items-center justify-center gap-2 text-success-strong">
           <span className="material-symbols-outlined text-[20px]" aria-hidden="true">
             check_circle
           </span>
@@ -117,7 +117,7 @@ function TrialResult({ trial }: { trial: ModelTrial }) {
   if (trial.trialState === "running") return <Spinner label={t("sendingTestRequest")} />;
   if (trial.trialState === "ok") {
     return (
-      <p className="flex items-center justify-center gap-2 text-sm text-green-400">
+      <p className="flex items-center justify-center gap-2 text-sm text-success-strong">
         <span className="material-symbols-outlined text-[20px]" aria-hidden="true">
           check_circle
         </span>
@@ -142,7 +142,7 @@ function ModelTrialPanel({ trial }: { trial: ModelTrial }) {
   if (trial.listState === "idle") return null;
   if (trial.listState === "loading") return <Spinner label={t("loadingModels")} />;
   return (
-    <section className="space-y-3 border-t border-white/[0.06] pt-4 text-left">
+    <section className="space-y-3 border-t border-border pt-4 text-left">
       <div>
         <h3 className="text-sm font-semibold text-text-main">{t("chooseModelTitle")}</h3>
         <p className="mt-1 text-xs text-text-muted">{t("chooseModelDesc")}</p>

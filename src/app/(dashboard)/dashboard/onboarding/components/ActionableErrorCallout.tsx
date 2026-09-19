@@ -30,7 +30,7 @@ export function ActionableErrorCallout({
       data-error-kind={guide.kind}
       className="space-y-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-left animate-in fade-in duration-200"
     >
-      <p role="alert" className="text-sm font-medium text-red-400 break-words">
+      <p role="alert" className="text-sm font-medium text-error-strong break-words">
         {message}
       </p>
       <dl className="space-y-1 text-xs text-text-muted">

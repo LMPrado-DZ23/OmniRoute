@@ -40,7 +40,7 @@ function ClientConfig({ apiEndpoint, modelId }: { apiEndpoint: string; modelId: 
   };
 
   return (
-    <section className="space-y-3 rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 text-left">
+    <section className="space-y-3 rounded-xl border border-border bg-bg-subtle p-4 text-left">
       <div>
         <h3 className="text-sm font-semibold text-text-main">{t("clientConfigTitle")}</h3>
         <p className="mt-1 text-xs text-text-muted">{t("clientConfigDesc")}</p>
@@ -67,7 +67,7 @@ function ClientConfig({ apiEndpoint, modelId }: { apiEndpoint: string; modelId: 
         </Link>
       </div>
       {copyState === "failed" && (
-        <p role="status" className="text-xs text-amber-400">
+        <p role="status" className="text-xs text-warning-strong">
           {t("copyFailed")}
         </p>
       )}
@@ -114,7 +114,7 @@ function FirstRequest() {
   }, []);
 
   return (
-    <section className="space-y-2 rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 text-left">
+    <section className="space-y-2 rounded-xl border border-border bg-bg-subtle p-4 text-left">
       <h3 className="text-sm font-semibold text-text-main">{t("firstRequestTitle")}</h3>
       <p className="text-xs text-text-muted" aria-live="polite">
         <RequestSummary state={state} />

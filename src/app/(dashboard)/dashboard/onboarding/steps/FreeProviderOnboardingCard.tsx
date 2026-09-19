@@ -120,7 +120,7 @@ export function FreeProviderOnboardingCard({
         {providers.map((provider) => (
           <label
             key={provider.id}
-            className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-3"
+            className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-bg-subtle p-3"
           >
             <input
               type="checkbox"
@@ -158,7 +158,7 @@ export function FreeProviderOnboardingCard({
         <span>{t("confirmation")}</span>
       </label>
 
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-error-strong">{error}</p>}
       {results.length > 0 && (
         <ul className="space-y-1 text-xs text-text-muted">
           {results.map((result) => (
@@ -184,7 +184,7 @@ export function FreeProviderOnboardingCard({
             type="button"
             disabled={submitting}
             onClick={() => void submit(failedIds)}
-            className="rounded-lg border border-white/10 px-4 py-2 text-xs text-text-main disabled:opacity-50"
+            className="rounded-lg border border-border px-4 py-2 text-xs text-text-main disabled:opacity-50"
           >
             {t("retryFailed")}
           </button>

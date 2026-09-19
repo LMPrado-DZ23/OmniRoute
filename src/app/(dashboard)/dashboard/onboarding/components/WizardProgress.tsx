@@ -17,10 +17,10 @@ export function WizardProgress({ stepCount, current }: { stepCount: number; curr
           <div
             className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-all duration-300 ${
               i < current
-                ? "bg-green-500/20 text-green-400"
+                ? "bg-green-500/20 text-success-strong"
                 : i === current
                   ? "bg-primary/20 text-primary ring-2 ring-primary/40"
-                  : "bg-white/5 text-text-muted"
+                  : "bg-bg-subtle text-text-muted"
             }`}
           >
             {i < current ? (
@@ -34,7 +34,7 @@ export function WizardProgress({ stepCount, current }: { stepCount: number; curr
           {i < stepCount - 1 && (
             <div
               className={`mx-1 h-0.5 min-w-2 flex-1 rounded-full transition-colors sm:mx-2 ${
-                i < current ? "bg-green-500/40" : "bg-white/10"
+                i < current ? "bg-green-500/40" : "bg-border"
               }`}
             />
           )}
