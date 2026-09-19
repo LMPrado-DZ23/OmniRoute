@@ -8,7 +8,7 @@
 
 ---
 
-## [3.8.54] — 2026-09-18
+## [3.8.54] — 2026-09-19
 
 _Evolution release of the `LMPrado-DZ23/OmniRoute` fork: the phased stabilization and evolution plan tracked in `docs/EVOLUTION_STATUS.md`. HTTP contracts are kept; new fields, headers and endpoints are additive, and behavior that could surprise an existing installation is opt-in._
 
@@ -31,6 +31,9 @@ _Evolution release of the `LMPrado-DZ23/OmniRoute` fork: the phased stabilizatio
 - **fix(sdk):** neither SDK forwards credentials on a cross-origin redirect (and an https→http downgrade is refused); a chat completion `POST` that may already have run is no longer replayed; retry backoff has jitter; every credential header variant is redacted in the debug hooks ([#37](https://github.com/LMPrado-DZ23/OmniRoute/pull/37))
 - **fix(routing):** the live decision store is bounded by size as well as by count; an explicit router strategy keeps its own pick and reports it as the selected candidate; scraping reads the circuit breakers without changing them; an idle open breaker no longer breaches `provider_recovery` forever; SLO alert state resets when alerts are turned off; junk model ids no longer crowd real models out of the metric label slots ([#38](https://github.com/LMPrado-DZ23/OmniRoute/pull/38))
 - **fix(dashboard):** the webhook wizard offers only API-valid events, shows readable errors instead of `[object Object]`, and leaves no enabled all-events draft behind when it is cancelled (`POST /api/webhooks` takes an optional `enabled`, default `true`); route preview `400`s carry a readable message and the decision lookup card is localized and tells auth errors apart ([#39](https://github.com/LMPrado-DZ23/OmniRoute/pull/39), [#38](https://github.com/LMPrado-DZ23/OmniRoute/pull/38))
+- **fix(security):** the TypeScript SDK no longer replays the request body to a cross-origin redirect target and refuses an `https` → non-`https` redirect, matching the guarantee the Python SDK already had; both SDKs redact every credential header variant in their debug hooks ([#42](https://github.com/LMPrado-DZ23/OmniRoute/pull/42))
+- **fix(resilience):** reading provider health no longer probes the circuit breakers. Eight read paths — `/api/resilience/connections`, the health matrix and autopilot, `GET /api/monitoring/health`, the status summary, the web session pool, the account fallback cooldown list and A2A provider discovery — used a call that transitioned an OPEN breaker to HALF_OPEN and persisted it, so merely polling health could let a request through to a provider that was still down ([#41](https://github.com/LMPrado-DZ23/OmniRoute/pull/41))
+- **fix(api):** the routing decision lookup requires authentication even when `requireLogin` is off, matching `/api/metrics` — its payload names the same providers and models ([#42](https://github.com/LMPrado-DZ23/OmniRoute/pull/42))
 
 ### 📝 Maintenance
 
@@ -39,6 +42,9 @@ _Evolution release of the `LMPrado-DZ23/OmniRoute` fork: the phased stabilizatio
 - **docs:** routing contract and route explanation, API governance reference, SDK reference, and the monitoring guide corrected for SLO alert paths and the backup encryption key ([#34](https://github.com/LMPrado-DZ23/OmniRoute/pull/34), [#38](https://github.com/LMPrado-DZ23/OmniRoute/pull/38), [#39](https://github.com/LMPrado-DZ23/OmniRoute/pull/39))
 - **security:** vulnerability register for the dependency audit (0 high/critical in production dependencies) and digest-pinned sidecar images ([#27](https://github.com/LMPrado-DZ23/OmniRoute/pull/27))
 - **a11y:** WCAG 2.2 AA pass over login, dashboard, providers and settings — dialog semantics and focus management, explicit control labels, theme-aware contrast, a single skip link with a focusable main target, and an e2e gate of zero serious axe violations from 375 to 1440 px including keyboard flows ([#32](https://github.com/LMPrado-DZ23/OmniRoute/pull/32), [#39](https://github.com/LMPrado-DZ23/OmniRoute/pull/39))
+- **perf(routing):** the recorded routing decision is built in the shape it is retained in, instead of materialising every candidate with every score factor and letting the store discard the rest: **17.0 ms → 4.6 ms** and **591 KiB → 26.5 KiB** per request at 300 candidates (3.1 ms → 1.2 ms at 50). The preview endpoint still returns the full, uncompacted candidate list ([#41](https://github.com/LMPrado-DZ23/OmniRoute/pull/41))
+- **security:** `adm-zip` bumped to 0.6.1 (lockfile only, inside the existing `^0.6.0` override), taking the root production audit from one high advisory (GHSA-7q85-xj36-vmfc) to zero ([#42](https://github.com/LMPrado-DZ23/OmniRoute/pull/42))
+- **fix(ci):** `check:lockfile` runs on Windows and reports a tool that could not start separately from a real policy violation, instead of blaming supply-chain poisoning for a spawn failure ([#42](https://github.com/LMPrado-DZ23/OmniRoute/pull/42))
 
 ---
 

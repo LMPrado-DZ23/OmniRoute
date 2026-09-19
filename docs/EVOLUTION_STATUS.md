@@ -1,7 +1,7 @@
 ---
 title: "Evolution Status"
 version: 3.8.54
-lastUpdated: 2026-09-18
+lastUpdated: 2026-09-19
 ---
 
 # OmniRoute evolution status
@@ -35,11 +35,18 @@ alerts, routing diagnostics) is opt-in and off by default.
 | 11    | Documentation                                                    | [#28](https://github.com/LMPrado-DZ23/OmniRoute/pull/28) | `9403957c7`  | Done   |
 | 12    | SDKs                                                             | [#29](https://github.com/LMPrado-DZ23/OmniRoute/pull/29) | `a7623af65`  | Done   |
 
-Three further pull requests closed the findings of the independent audit that followed the phases:
-[#37](https://github.com/LMPrado-DZ23/OmniRoute/pull/37) (SDK and credential handling),
-[#38](https://github.com/LMPrado-DZ23/OmniRoute/pull/38) (routing and SLO) and
-[#39](https://github.com/LMPrado-DZ23/OmniRoute/pull/39) (product and UX).
-The consolidated result is in [`audit/FINAL_THREE_AGENT_REVIEW.md`](../audit/FINAL_THREE_AGENT_REVIEW.md).
+Five further pull requests closed the findings of the independent audits that followed the phases.
+The first audit round produced [#37](https://github.com/LMPrado-DZ23/OmniRoute/pull/37) (SDK and
+credential handling), [#38](https://github.com/LMPrado-DZ23/OmniRoute/pull/38) (routing and SLO) and
+[#39](https://github.com/LMPrado-DZ23/OmniRoute/pull/39) (product and UX). The verification round —
+the same three auditors re-checking those fixes on the final tree — produced
+[#41](https://github.com/LMPrado-DZ23/OmniRoute/pull/41) (a routing hot-path regression this release
+had introduced, plus eight health read paths that were mutating circuit-breaker state) and
+[#42](https://github.com/LMPrado-DZ23/OmniRoute/pull/42) (a cross-origin redirect body leak in the
+TypeScript SDK, a stale supply-chain claim, and three smaller items).
+
+The consolidated result is in
+[`audit/FINAL_THREE_AGENT_REVIEW.md`](../audit/FINAL_THREE_AGENT_REVIEW.md).
 
 ## Phase 0: diagnosis
 
