@@ -457,7 +457,10 @@ export default function Sidebar({
       "flex items-center gap-3 rounded-lg transition-all group",
       collapsed ? "justify-center px-2 py-2.5" : "px-3 py-1.5",
       active
-        ? "bg-primary/10 text-primary"
+        ? // Audit NEW-MEDIUM-5: the label sits on a primary tint, where the brand primary
+          // measured 4.43:1 in dark theme. text-primary-on-tint is the theme-aware shade
+          // for exactly this case; the tint fill still uses the brand primary.
+          "bg-primary/10 text-primary-on-tint"
         : "text-text-muted hover:bg-surface/50 hover:text-text-main"
     );
     const iconClassName = cn(
@@ -466,7 +469,15 @@ export default function Sidebar({
     );
     const content = (
       <>
-        <span className={iconClassName} style={getIconStyle(item.id)} aria-hidden="true">
+        {/* The per-item accent colours are picked for the plain sidebar background; on the
+            active item's primary tint they land well under AA (e.g. #60a5fa on #efe1e8 =
+            2.01:1 in light theme). The active glyph follows the same on-tint token as its
+            label instead. */}
+        <span
+          className={iconClassName}
+          style={active ? undefined : getIconStyle(item.id)}
+          aria-hidden="true"
+        >
           {item.icon}
         </span>
         {!collapsed && (
