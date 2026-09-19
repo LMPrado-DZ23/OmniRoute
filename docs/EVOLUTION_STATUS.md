@@ -182,12 +182,24 @@ in the end-to-end suite. The settings page baseline went from 5 violations to 0.
 
 ## Phase 10: supply chain
 
-A vulnerability register records every advisory with its blast radius and decision. The production
-dependency audit reports **0 high/critical**. Sidecar images are digest-pinned.
+A vulnerability register records every advisory with its blast radius and decision, and the sidecar
+images are digest-pinned. Measured on the release tree with `npm audit --omit=dev
+--package-lock-only`:
 
-One advisory is accepted as residual: `js-yaml` 4.3.1 (high) reachable only from the Electron shell
-chain, register id **R-10**. It needs an Electron lockfile refresh, which is out of scope for this
-release; it does not affect the server or dashboard runtime.
+| Tree                | info | low | moderate | high  | critical |
+| ------------------- | ---- | --- | -------- | ----- | -------- |
+| Root production     | 0    | 0   | 0        | **0** | **0**    |
+| Electron production | 0    | 0   | 0        | **1** | **0**    |
+
+The verification round caught this claim being stale: a second, higher advisory on `adm-zip`
+(GHSA-7q85-xj36-vmfc, high, fixed in 0.6.1) had appeared in the root production tree through the
+optional `@huggingface/transformers` → `onnxruntime-node` chain, while the register still said there
+was none. It was fixed rather than re-documented — a lockfile-only bump to 0.6.1 inside the existing
+`^0.6.0` override, a three-line diff that took root production from `high: 1, moderate: 2` to zero.
+
+The remaining `high` is accepted as residual: `js-yaml` 4.3.1, register id **R-10**, reachable only
+from the Electron shell's update-check chain. It is not in the container image, the npm package or
+the server runtime, and clearing it needs an Electron lockfile refresh that is out of scope here.
 
 ## Phase 11: documentation
 
