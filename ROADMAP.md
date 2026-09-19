@@ -1,13 +1,13 @@
 ---
 title: "OmniRoute Roadmap"
-version: 3.8.50
-lastUpdated: 2026-08-06
+version: 3.8.54
+lastUpdated: 2026-09-19
 ---
 
 # OmniRoute Roadmap
 
 > Version-gated, not date-gated: each milestone ships when its quality gates pass.
-> Current line: **v3.8.x** (this branch). Last updated: 2026-08-06.
+> Current line: **v3.8.x** (this branch). Last updated: 2026-09-19.
 
 OmniRoute is heading from a monolithic router to a **modular AI platform**: a lightweight
 core engine, a typed SDK, and everything else as installable modules and plugins. The path
@@ -29,26 +29,44 @@ modular **4.0**.
 Non-breaking structural work that de-risks the modular split. Every version closes with a
 mandatory quality-gate battery before new merges open.
 
-| Version | Focus |
-| --- | --- |
-| 3.8.50 | CI safety net on release branches · dead-code cleanup · community-reported catalog/topology bug fixes · contributor "golden path" guide |
-| 3.8.51 | Executor registry (in-place) · end-to-end provider-journey contract test becomes a CI gate · official scoped-test dev loop · CI lane consolidation (shared install/setup across gate jobs, #8084) |
-| 3.8.52 | `combo.ts` decomposition · routing-strategy registry · unified model-catalog contract for `/v1/models` · one CI policy for PRs to `release/**` and `main` (#8084) |
-| 3.8.53 | `chatCore.ts` decomposition · headless mode (`OMNIROUTE_HEADLESS=1`) · local candidate build/promote loop |
-| 3.8.54 | Release infrastructure (dormant): channels, labels, PR templates, merge queue · full-regression authority moves to the merge queue once TIA shadow evidence clears (#8084) · public feature-freeze announcement |
+| Version | Focus                                                                                                                                                                                                           |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 3.8.50  | CI safety net on release branches · dead-code cleanup · community-reported catalog/topology bug fixes · contributor "golden path" guide                                                                         |
+| 3.8.51  | Executor registry (in-place) · end-to-end provider-journey contract test becomes a CI gate · official scoped-test dev loop · CI lane consolidation (shared install/setup across gate jobs, #8084)               |
+| 3.8.52  | `combo.ts` decomposition · routing-strategy registry · unified model-catalog contract for `/v1/models` · one CI policy for PRs to `release/**` and `main` (#8084)                                               |
+| 3.8.53  | `chatCore.ts` decomposition · headless mode (`OMNIROUTE_HEADLESS=1`) · local candidate build/promote loop                                                                                                       |
+| 3.8.54  | Release infrastructure (dormant): channels, labels, PR templates, merge queue · full-regression authority moves to the merge queue once TIA shadow evidence clears (#8084) · public feature-freeze announcement |
+
+## Evolution plan delivered in 3.8.54
+
+The 3.8.54 line of the `LMPrado-DZ23` fork also carries the phased evolution plan tracked in [docs/EVOLUTION_STATUS.md](docs/EVOLUTION_STATUS.md). It is non-breaking: every HTTP contract is kept, new response fields, headers and endpoints are additive, and new behavior that could surprise an existing installation (SLO webhook alerts, routing diagnostics) is opt-in.
+
+| Area                  | Delivered in 3.8.54                                                                                                | Next                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| Typecheck and runtime | Core, API, dashboard and open-sse typecheck at 0 errors; 22 runtime bugs fixed red-first                           | Keep the ratchets at 0                                                             |
+| Tests                 | Live tests opt-in behind `RUN_LIVE_TESTS=1`; 5-shard PR fast-path with failure artifacts                           | Bring Fast Quality Gates under 10 minutes                                          |
+| Routing               | Router contract, explainable decisions, shared preview/live selection, decision lookup by request id               | Quota-known flag and a live latency budget once `combo.ts` is decomposed           |
+| Observability         | Bounded-cardinality metrics, `GET /api/metrics`, configurable SLOs, opt-in alerts                                  | Persist counters; attempt and fallback fields on routing events                    |
+| Onboarding            | One-time `INITIAL_PASSWORD` bootstrap, re-runnable wizard, actionable provider errors, end-to-end coverage         | Guided first combo and first key                                                   |
+| API governance        | Every operation classified; 100% OpenAPI coverage gate; deprecation headers                                        | Contract tests for the 151 routes no test references yet                           |
+| Workspaces and RBAC   | Role layer, admin audit, budget alerts, credential-reveal hardening; design ADR                                    | Workspace and project tables and the budget hierarchy (3.9.x, additive migrations) |
+| Accessibility         | 0 serious axe violations on login, dashboard, providers and settings from 375 to 1440 px                           | Combos, logs and onboarding pages; dark-theme contrast                             |
+| Supply chain          | Vulnerability register; 0 high/critical in production dependencies; digest-pinned sidecars                         | Lockfile-only refresh PR for the recorded Electron advisory (R-10)                 |
+| Documentation         | First 10 minutes, backup/restore, migration, compatibility matrix, routing contract, API governance, SDK reference | Keep pt-BR in step                                                                 |
+| SDKs                  | Experimental TypeScript and Python SDKs with contract fixtures and an OpenAPI drift test                           | Decide publication after the HTTP contract freeze in 3.8.59                        |
 
 ## Phase 2 — Validation (3.8.55 → 3.8.59)
 
 **External feature PRs pause here** (they get the `v4-feature` label and are re-targeted to
 the v4 channel when it opens). Fixes, docs, i18n, and provider updates keep flowing.
 
-| Version | Focus |
-| --- | --- |
-| 3.8.55 | Characterization tests for every extraction candidate · coupling re-measurement |
-| 3.8.56 | Extended canary · performance baselines (heap, TTFB, build) |
-| 3.8.57 | Security & compliance sweep · publish provenance (OIDC) rehearsal |
-| 3.8.58 | Full dry-run of the 3.9.0 cut (branches, channels, forward-port) — includes the PR preview-artifact + build-once promotion rehearsal (#8084) |
-| 3.8.59 | Final freeze · full-suite audit · GO/NO-GO |
+| Version | Focus                                                                                                                                        |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 3.8.55  | Characterization tests for every extraction candidate · coupling re-measurement                                                              |
+| 3.8.56  | Extended canary · performance baselines (heap, TTFB, build)                                                                                  |
+| 3.8.57  | Security & compliance sweep · publish provenance (OIDC) rehearsal                                                                            |
+| 3.8.58  | Full dry-run of the 3.9.0 cut (branches, channels, forward-port) — includes the PR preview-artifact + build-once promotion rehearsal (#8084) |
+| 3.8.59  | Final freeze · full-suite audit · GO/NO-GO                                                                                                   |
 
 ## Phase 3 — v3.9.0 LTS
 
@@ -86,11 +104,11 @@ The monolith is intentionally disassembled on `develop`:
 
 ## For contributors
 
-| You are sending... | Target today | From 3.8.55 | After 3.9.0 |
-| --- | --- | --- | --- |
-| Bug fix / security | active `release/v3.8.x` | same | `stable/v3` |
-| Provider update | active `release/v3.8.x` | same | `stable/v3` |
-| Docs / i18n | active `release/v3.8.x` | same | `stable/v3` |
-| New feature | active `release/v3.8.x` | held with `v4-feature` label | `develop` (v4) |
+| You are sending... | Target today            | From 3.8.55                  | After 3.9.0    |
+| ------------------ | ----------------------- | ---------------------------- | -------------- |
+| Bug fix / security | active `release/v3.8.x` | same                         | `stable/v3`    |
+| Provider update    | active `release/v3.8.x` | same                         | `stable/v3`    |
+| Docs / i18n        | active `release/v3.8.x` | same                         | `stable/v3`    |
+| New feature        | active `release/v3.8.x` | held with `v4-feature` label | `develop` (v4) |
 
 See `CONTRIBUTING.md` for the golden path per change type.

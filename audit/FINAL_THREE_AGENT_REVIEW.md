@@ -1,11 +1,148 @@
-# FINAL_THREE_AGENT_REVIEW — consolidação das três auditorias independentes
+# FINAL_THREE_AGENT_REVIEW — consolidação das auditorias independentes
+
+Registro das auditorias por linha de release, da mais recente para a mais antiga. Cada seção guarda
+os vereditos, os achados classificados e onde cada um foi corrigido.
+
+## v3.8.54 — evolução em 13 fases (2026-09-19)
+
+Linha `release/v3.8.54` do fork `LMPrado-DZ23/OmniRoute`, criada de `release/v3.8.53` (`2560ec3a4`).
+
+Houve **duas rodadas**. Na primeira, três auditores revisaram a árvore com as fases integradas. Na
+segunda — a rodada de verificação — os **mesmos três** voltaram para conferir, na árvore final, se as
+correções que a primeira rodada gerou realmente estavam lá e se nada regrediu. Em ambas eles
+trabalharam em paralelo, sem acesso às conclusões uns dos outros.
+
+Regras que valeram para os seis trabalhos: todo comando rodou com `DATA_DIR`, `HOME`, `USERPROFILE`
+e `APPDATA` isolados; nenhum provedor de IA real foi chamado; nenhum segredo foi impresso. O banco de
+produção `~/.omniroute/storage.sqlite` não foi aberto — o auditor C confirmou o `mtime` intacto ao
+encerrar.
+
+### Rodada 1 — árvore `20d5b2ca2`
+
+| Auditor | Foco                     | Veredito               | CRIT | HIGH | MED | LOW | MELHORIA |
+| ------- | ------------------------ | ---------------------- | ---- | ---- | --- | --- | -------- |
+| A       | Arquitetura / engenharia | Aprovado com ressalvas | 0    | 1    | 3   | 5   | 5        |
+| B       | Segurança / DevSecOps    | Aprovado com achados   | 0    | 0    | 1   | 4   | 5        |
+| C       | Produto / QA / UX        | Aprovado com ressalvas | 0    | 1    | 4   | 10  | 2        |
+
+Os dois HIGH:
+
+| Id   | Achado                                                                                                                                                                                            | Correção                                                                                                                                                                        | PR  |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- |
+| A-H1 | O armazenamento de decisões era limitado só por contagem; a ~2,1 KB por candidato, 2000 decisões × 300 candidatos chegariam a 1,19 GB                                                             | Decisão guardada compacta (≤40 candidatos, fatores do selecionado + 10, `omittedCandidates`) e orçamento de 32 MB; sonda mediu 1189,5 MB → 28,3 MB                              | #38 |
+| C-H1 | O assistente de webhook oferecia eventos que a API rejeita, exibia `[object Object]`, deixava um webhook de todos-os-eventos **habilitado** ao cancelar, e não permitia escolher os eventos novos | Eventos vindos de `WEBHOOK_EVENT_VALUES`, erros legíveis, rascunho salvo desabilitado e apagado no cancelamento; `POST /api/webhooks` aceita `enabled` opcional (padrão `true`) | #39 |
+
+Os MEDIUM e LOW da rodada 1, com sua correção:
+
+| Id                    | Sev | Achado                                                                                                                   | Correção                                                                                                                                               | PR            |
+| --------------------- | --- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------- |
+| A-M1                  | MED | A ordenação por orçamento passava por cima de uma estratégia de roteador explícita (mudança de comportamento vs v3.8.53) | Ordenação por orçamento só no caminho de regras                                                                                                        | #38           |
+| A-M2                  | MED | O contrato dava a entender que existia um orçamento de latência aplicado no tráfego real                                 | Documentação e JSDoc passam a dizer exatamente o que o tráfego real aplica                                                                             | #38           |
+| A-M3                  | MED | Um breaker aberto só por ociosidade deixava `provider_recovery` violado para sempre                                      | Breaker aberto por ociosidade → `insufficient_data`                                                                                                    | #38           |
+| B-01 / A-L3           | MED | O SDK Python repassava `Authorization` em redirecionamento para outro host                                               | O handler remove credenciais na troca de origem e recusa `https`→`http`; o SDK TS usa redirecionamento manual quando há headers de credencial próprios | #37           |
+| C-M1                  | MED | Não havia interface para os SLOs                                                                                         | Cartão de SLO em Configurações → Resiliência                                                                                                           | #39           |
+| C-M2                  | MED | A documentação de backup errava sobre a chave de criptografia (`server.env` não é copiado)                               | Corrigida em inglês e pt-BR                                                                                                                            | #39           |
+| C-M3                  | MED | O `select` de "Request log" do Route Trace não tinha nome acessível (crítico no axe)                                     | Rótulo associado; a aba entrou na cobertura de a11y do e2e                                                                                             | #39           |
+| C-M4                  | MED | Exemplos de SDK com `model: "auto"` podiam alcançar endpoints de terceiros sem chave, sem aviso                          | Marcador explícito `<provider>/<model>` e aviso                                                                                                        | #37           |
+| A-L1                  | LOW | `/api/metrics` e o timer de SLO mutavam o estado dos breakers                                                            | Leitura por snapshot, sem efeito colateral                                                                                                             | #38           |
+| A-L2 / B-05           | LOW | Os SDKs repetiam um POST de chat não idempotente após timeout, sem jitter                                                | POST só é repetido quando comprovadamente não foi enviado, ou em 429/503 com `Retry-After`; backoff com jitter                                         | #37           |
+| A-L4                  | LOW | Estado de alerta de SLO ficava obsoleto ao alternar a configuração                                                       | `SloAlertRunner` reinicia o estado                                                                                                                     | #38           |
+| A-L5                  | LOW | Decisão com estratégia explícita podia não ter candidato selecionado                                                     | A escolha da estratégia é reportada quando há rota                                                                                                     | #38           |
+| B-02                  | LOW | Revelação de credencial por chave de gerenciamento `x-goog-api-key`                                                      | Revelar exige sessão de dashboard carimbada pelo pipeline                                                                                              | #37           |
+| B-04                  | LOW | Nomes de modelo inventados podiam ocupar as vagas de rótulo das métricas                                                 | Valores fixos não consomem vaga; só respostas bem-sucedidas criam rótulo                                                                               | #38           |
+| C-L1..L3              | LOW | Cartão de consulta sem tradução, erros de auth agrupados, 400 da preview despejando JSON cru                             | Traduzido, mensagem específica de auth, 400 legível                                                                                                    | #38           |
+| C-L4, L6, L8, L9, L10 | LOW | Precisão do guia de monitoramento, rótulos/aria do assistente, labels de issue, link de pular duplicado, versão nos docs | Corrigidos                                                                                                                                             | #39           |
+| C-L5                  | LOW | Contraste em `/dashboard/settings`                                                                                       | Corrigido; axe 0 em todas as larguras, baseline 5 → 0                                                                                                  | #39           |
+| C-L7                  | LOW | Instruções de import do SDK Python                                                                                       | Documentação                                                                                                                                           | #37           |
+| B-03                  | LOW | `js-yaml` 4.3.1 na cadeia do Electron (registro R-10)                                                                    | **Não corrigido** — exige renovação do lockfile do Electron; aceito como risco residual                                                                | —             |
+| Melhorias             | —   | A-I1..I5, B-06..B-10, C-I1..I2                                                                                           | Aplicadas: A-I1, A-I4, A-I5, B-07, B-08, B-09, B-10, C-I2. Registradas sem alteração: A-I2, A-I3, B-06, C-I1                                           | #37, #38, #39 |
+
+### Rodada 2 — verificação na árvore final `68a00d025`
+
+| Auditor | Veredito | CRIT | HIGH | Novos MED | Novos LOW | Novas melhorias | Afirmações verificadas |
+| ------- | -------- | ---- | ---- | --------- | --------- | --------------- | ---------------------- |
+| A       | PASS     | 0    | 0    | 2         | 3         | —               | 8 de 8                 |
+| B       | PASS     | 0    | 0    | 2         | 2         | 1               | 9 de 9                 |
+| C       | PASS     | 0    | 0    | 6         | —         | —               | 14 de 14               |
+
+Nenhuma correção da rodada 1 foi encontrada ausente, parcial ou incorreta.
+
+Evidência de que o comportamento não mudou, que era a preocupação central desta release:
+
+- **Seleção de provedor idêntica à v3.8.53 em 700 de 700 casos**, com RNG semeado e relógio
+  congelado, e zero divergências na contagem de chamadas a `Math.random`. O auditor extraiu o motor
+  da v3.8.53 por `git show`, em somente leitura, e o ligou aos mesmos módulos de pontuação.
+- **`previewRoutingDecision` chamou `Math.random` zero vezes** em 200 previews, produziu uma única
+  seleção, e um experimento de controle com pontuações empatadas confirmou `ROTATOR UNCHANGED BY
+PREVIEWS: true` — a preview não consome rotação nem altera as exclusões do self-healing.
+- Typecheck em **0 erros** nos quatro projetos; **160/160** testes de roteamento (A), **486/486**
+  entre autorização, segurança, SDKs e contrato (B), e as 14 afirmações de produto conferidas com o
+  produto no ar (C).
+- Dez tentativas adversariais de revelar uma credencial passando pelo `runAuthzPipeline` real: todas
+  mascaradas. Só a sessão de dashboard genuína revela — e mesmo ela volta a mascarar se um header
+  programático for contrabandeado junto.
+
+Achados novos da rodada 2 e onde foram corrigidos:
+
+| Id   | Origem | Sev      | Achado                                                                                                                                                                 | Correção                                                                                                                                                                                                                                                                                                                                                                        | PR  |
+| ---- | ------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- |
+| A-V1 | A      | MED      | Regressão desta release: gravar a decisão materializava todos os candidatos com todos os fatores antes de compactar — 17,0 ms e 591 KiB por request com 300 candidatos | A gravação constrói a decisão já no formato em que ela é retida: 4,6 ms e 26,5 KiB (3,1 → 1,2 ms com 50). A preview segue devolvendo a lista completa                                                                                                                                                                                                                           | #41 |
+| A-V2 | A      | MED      | Pré-existente, idêntico na v3.8.53: sete caminhos de **leitura** de saúde usavam uma chamada que transiciona um breaker OPEN → HALF_OPEN e persiste                    | Os sete convertidos para leitura por snapshot — mais uma oitava ocorrência que o auditor apontou fora da lista                                                                                                                                                                                                                                                                  | #41 |
+| B-V1 | B      | MED      | O SDK TypeScript seguia um `307` cross-origin e **reenviava o corpo** do request (com o prompt) para a outra origem; sem guarda de `https`→`http`                      | Redirecionamento manual em toda requisição, com `vetRedirect()` recusando outra origem e rebaixamento de esquema                                                                                                                                                                                                                                                                | #42 |
+| B-V2 | B      | MED      | O registro de vulnerabilidades estava desatualizado: um advisory **high** novo (`adm-zip <0.6.1`, GHSA-7q85-xj36-vmfc) havia entrado na árvore de produção da raiz     | Corrigido em vez de redocumentado: `adm-zip` → 0.6.1 só no lockfile, dentro do override `^0.6.0` já existente. Produção da raiz: `high:1, moderate:2` → **zero**                                                                                                                                                                                                                | #42 |
+| B-V3 | B      | LOW      | `check:lockfile` falhava no Windows e culpava envenenamento de supply chain por uma falha de spawn                                                                     | O gate roda e separa "ferramenta não executável" de "violação de política". Tinha uma segunda causa que o achado não cobria: o `--path` é tratado como glob, onde a barra invertida do Windows é escape                                                                                                                                                                         | #42 |
+| B-V4 | B      | LOW      | A consulta de decisão de rota aceitava chamador anônimo com `requireLogin=false`, ao contrário de `/api/metrics`                                                       | `alwaysRequireAuth: true`, igual `/api/metrics` — o corpo nomeia os mesmos provedores e modelos                                                                                                                                                                                                                                                                                 | #42 |
+| B-V5 | B      | MELHORIA | `escapeLabelValue` não escapava `\r`                                                                                                                                   | Escapado junto com os demais caracteres de controle                                                                                                                                                                                                                                                                                                                             | #42 |
+| C-V1 | C      | MED      | Na partida a frio, `/login` abortava a checagem após 5 s e deixava um usuário novo num campo de senha inutilizável; a primeira chamada foi medida em 44,7 s            | A página de login espera a resposta em vez de adivinhar, com orçamento de repetição e, na falha total, um alerta explicado com botão de repetir — sem recarregar. Causa medida dos 44,7 s: 27,2 s são a compilação do grafo de módulos da rota pelo Next no primeiro request (só em desenvolvimento); o bootstrap do banco leva 1,45–3,5 s e já roda fora do caminho do request | #43 |
+| C-V2 | C      | MED      | O assistente de webhook exibia as chaves cruas `webhooks.{slack,discord,telegram}.tutorialStep1..4`, ausentes nos três idiomas                                         | As 11 strings que os componentes pedem foram escritas, traduzidas para pt-BR e vi, e replicadas em inglês nos demais idiomas conforme a convenção do repositório; teste garante que nenhum nó renderizado casa com o padrão de chave crua                                                                                                                                       | #43 |
+| C-V3 | C      | MED      | `/dashboard/logs` com 4 violações críticas de `select-name`                                                                                                            | Rótulos associados por `htmlFor`/`id`; a página entrou na suíte de axe com baseline 0                                                                                                                                                                                                                                                                                           | #43 |
+| C-V4 | C      | MED      | Contraste de 1,72 no aviso âmbar do onboarding, no tema claro                                                                                                          | Tokens novos de ênfase para aviso, erro e sucesso; sem hex no ponto de uso. O assistente entrou na suíte de axe                                                                                                                                                                                                                                                                 | #43 |
+| C-V5 | C      | MED      | Item ativo da barra lateral em 4,43 no tema escuro                                                                                                                     | Token `--color-primary-on-tint`, derivado de `--color-primary` por `color-mix`, para que um preset personalizado o acompanhe                                                                                                                                                                                                                                                    | #43 |
+| C-V6 | C      | MED      | Pílulas de status de `/dashboard/logs` em 4,44                                                                                                                         | Mesmo token                                                                                                                                                                                                                                                                                                                                                                     | #43 |
+
+Medições de acessibilidade do auditor C na árvore final, com o próprio conjunto de tags do
+repositório, em 375 / 768 / 1024 / 1440 px:
+
+| Página                                     | Claro   | Observação                   |
+| ------------------------------------------ | ------- | ---------------------------- |
+| `/login`                                   | 0       | medido em 1440               |
+| `/home`                                    | 0/0/0/0 | 1 no tema escuro (nav ativa) |
+| `/dashboard/providers`                     | 0/0/0/0 | 1 no tema escuro (nav ativa) |
+| `/dashboard/settings`                      | 0/0/0/0 | 0 também no tema escuro      |
+| `/dashboard/settings/resilience`           | 0/0/0/0 |                              |
+| `/dashboard/analytics?tab=route-trace`     | 0/0/0/0 |                              |
+| `/dashboard/webhooks`                      | 0/0/0/0 |                              |
+| `/dashboard/combos`                        | 0/0/0/0 |                              |
+| `/dashboard/logs`                          | 2/2/2/2 | C-V3 e C-V6                  |
+| Assistente de onboarding (instalação nova) | 1/1/1/1 | C-V4                         |
+
+Nenhuma página teve transbordo horizontal em nenhuma largura.
+
+Uma decisão registrada, não um esquecimento: branco sobre a cor primária da marca no tema
+escuro (`#ffffff` sobre `#e54d5e`) mede 3,78:1, abaixo de AA. É idêntico na base e mudar isso
+significa mudar a cor da marca, o que não cabe numa release de correção. É a única violação
+que resta em toda a matriz de acessibilidade.
+
+### Portão de release
+
+Critério: `CRITICAL = 0` e `HIGH = 0` após as correções, com cada correção verificada por um auditor
+independente na árvore final.
+
+**Atingido.** Os três auditores deram PASS na rodada de verificação, com CRITICAL 0 e HIGH 0 cada
+um. Os achados novos da rodada 2 são MEDIUM ou menos e foram corrigidos nos PRs #41, #42 e #43, não
+adiados. O único item aceito sem correção é o **B-03 / R-10** (`js-yaml` 4.3.1), restrito à cadeia de
+verificação de atualização do Electron — não está na imagem de container, no pacote npm nem no
+runtime do servidor — e sua remoção depende de uma renovação do lockfile do Electron, fora do escopo
+desta linha.
+
+## v3.8.51 — prontidão para o usuário final (2026-09-12)
 
 - **HEAD auditado pelos três agentes:** `b623dc3aa` (fix/final-user-readiness, 120 commits desde `2a156c738`). Os auditores trabalharam em paralelo, sem acesso às conclusões uns dos outros, com briefing comum (somente leitura no repositório; revalidar no código, não nos documentos do executor). Relatórios brutos: scratchpad da sessão `auditA/REPORT.md`, `auditB/REPORT.md`, `auditC/REPORT.md` (+ logs e sondas).
 - **Vereditos:** A (Architect/Engineering) **APROVADO COM RESSALVAS** · B (Security/DevSecOps) **APROVADO COM RESSALVAS** · C (Product/QA/UX, usou o produto no navegador) **APROVADO COM RESSALVAS**. Nenhum CRITICAL. HIGH: 3 (todos do Auditor C).
 - **Fix loop (rodada 1 concluída; 24 commits `7dcfcfa83`…`check:standalone-hygiene`):** cada achado abaixo tem estado `CORRIGIDO (commit)`, `EM CORREÇÃO`, `ACEITO COM JUSTIFICATIVA`, `RESIDUAL DOCUMENTADO` ou `FALSE_POSITIVE`. Critério de saída (05-EXECUTION-PLAN §5): CRITICAL = 0, HIGH = 0, blockers internos = 0.
 - Além dos auditores, o E2E real com provedor local (Ollama, `test:compat:ollama`) e a inspeção dos artefatos empacotados revelaram defeitos adicionais (seção 4), tratados no mesmo loop.
 
-## 1. Auditor A — Architect / Engineering
+### 1. Auditor A — Architect / Engineering
 
 | ID        | Sev            | Achado                                                                                                                                                                       | Estado                                                                                                       |
 | --------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
@@ -23,7 +160,7 @@
 
 Correções de documentos apontadas por A (R-6 "coberto", R-9 "cap coberto", "0 regressões" com teste novo falhando, R-3 "sem parar o loop", R-2 diagnóstico `setNoLog`) — aplicadas em `02-ARCHITECTURE.md`/`TEST_MATRIX.md` nesta rodada.
 
-## 2. Auditor B — Security / DevSecOps
+### 2. Auditor B — Security / DevSecOps
 
 | ID  | Sev         | Achado                                                                                             | Estado                                                                                                                                    |
 | --- | ----------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
@@ -33,7 +170,7 @@ Correções de documentos apontadas por A (R-6 "coberto", R-9 "cap coberto", "0 
 
 Verificações executadas pelo auditor (não apenas lidas): 65/65 (MCP scope + private-host gaps), 26/26 (authz matriz + webhook SSRF + sinks), 258 `uses:` pinados, `npm audit --omit=dev` 0/0/3/0, SC-1 strict, 0 segredos no diff da missão. Limitação registrada: sem instância viva (build ainda rodando) — as 5 requisições ofensivas HTTP não foram feitas; cobertas em parte pelo Auditor C (401 tipado, LOCAL_ONLY) e pelo E2E Ollama (401 com chave inválida/anônimo).
 
-## 3. Auditor C — Product / QA / UX (uso real no navegador, porta 20413)
+### 3. Auditor C — Product / QA / UX (uso real no navegador, porta 20413)
 
 | ID        | Sev            | Achado                                                                                                                                             | Estado                                                                                                                                                                                                                 |
 | --------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -58,7 +195,7 @@ Verificações executadas pelo auditor (não apenas lidas): 65/65 (MCP scope + p
 
 Não verificável pelo auditor (ambiente): `npm run test:compat` 0/8 por timeout de boot (180 s) com a máquina sob carga — o executor tem 8/8 em execução anterior e o E2E Ollama 7/7 (`TEST_MATRIX.md`); jornadas 9/10/11 cobertas por esses dois gates.
 
-## 4. Achados adicionais do fix loop (executor)
+### 4. Achados adicionais do fix loop (executor)
 
 | ID  | Sev          | Achado                                                                                                                                                                                                                                                                                                                               | Estado                                                                                                                                                                                                                                                                                                                                     |
 | --- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -69,7 +206,7 @@ Não verificável pelo auditor (ambiente): `npm run test:compat` 0/8 por timeout
 | X-5 | LOW          | Caminho literal `C:\Program Files\Tailscale` fazia o tracer tentar copiá-lo para o standalone                                                                                                                                                                                                                                        | **CORRIGIDO** `30ae54ee5`                                                                                                                                                                                                                                                                                                                  |
 | X-6 | LOW          | `check-test-discovery` varria `electron/dist-electron` e reportava órfãos do pacote                                                                                                                                                                                                                                                  | **CORRIGIDO** `47df55119`                                                                                                                                                                                                                                                                                                                  |
 
-## 5. Verificação pós-correção
+### 5. Verificação pós-correção
 
 **Verificação cruzada pelos auditores (mesmo checkout, somente leitura, HEAD `f14815025`):**
 
@@ -86,7 +223,7 @@ Não verificável pelo auditor (ambiente): `npm run test:compat` 0/8 por timeout
 
 **Artefatos reconstruídos (build #6, `NEXT_DIST_DIR=.build/next-verify`, prune completo):** exit 0 em 1547 s, 0 avisos de tracing; `.env`, `.env.local`, `server.env`, `.git`, `.github`, `tests`, `audit`, `.install-upgrade`, `_tasks`, `dist-electron`, `.next`, `.build/next` (sibling) **ausentes**; dist dir próprio com `server/` e `BUILD_ID`; `server.js` e `node_modules/next` presentes (107 entradas na raiz). Primeiro smoke de boot falhou por **erro do próprio script de smoke** (`NODE_ENV=production` sem `STORAGE_ENCRYPTION_KEY` → readiness `#3` recusa iniciar, comportamento correto); smoke repetido com a chave, gate `check:standalone-hygiene` no standalone e no `resources/app` do Electron pack #3 — resultados em `TEST_MATRIX.md` §3/§5.
 
-## 6. Contagem final
+### 6. Contagem final
 
 | Severidade       | Encontrados (A+B+C+X)                                       | Corrigidos                                  | Aceitos / residuais documentados                                        | Falsos positivos |
 | ---------------- | ----------------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------- | ---------------- |
@@ -99,7 +236,7 @@ Não verificável pelo auditor (ambiente): `npm run test:compat` 0/8 por timeout
 
 **Critério de saída (05 §5): CRITICAL = 0 ✔ · HIGH = 0 ✔ · blockers internos = 0 ✔.** Residuais MEDIUM/LOW aceitos com justificativa e rastreados em `04-PRODUCT-GAPS.md` (addendum) e `03-SECURITY-FINDINGS.md` (addendum).
 
-## 7. Pós-COMPLETED — regressões pegas pelo CI Linux do PR #5
+### 7. Pós-COMPLETED — regressões pegas pelo CI Linux do PR #5
 
 Após o push, o CI Linux reprovou 31 testes unitários e 8 gates de qualidade que a verificação local no Windows havia classificado como "Windows-only" ou não cobria. Reclassificação honesta (detalhe e commits em `AUTONOMOUS_MISSION_STATE.md`):
 
