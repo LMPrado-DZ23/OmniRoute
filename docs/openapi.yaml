@@ -18614,8 +18614,10 @@ paths:
         - Webhooks
       summary: "POST webhooks"
       responses:
-        "200":
-          description: OK
+        "201":
+          description: Webhook created. Body is `{ webhook }`, the stored row.
+        "400":
+          description: Invalid body (unknown event, blocked private URL, or telegram without storage encryption).
   /api/webhooks/{id}:
     delete:
       x-stability: internal
