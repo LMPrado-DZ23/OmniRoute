@@ -404,7 +404,7 @@
   },
   "policy": {
     "description": "登录锁定：列出并解锁因多次登录失败而被锁定的标识",
-    "relatedFeatures": "此命令仅管理登录锁定。要屏蔽模型，请使用按 API 密钥的模型限制（控制台：API Keys）；要设置提供商偏好，请使用组合（omniroute combo）；要设置支出上限，请使用 omniroute usage budget。",
+    "relatedFeatures": "此命令仅管理登录锁定。要屏蔽模型，请使用按 API 密钥的模型限制（控制台：API Keys）；要设置提供者偏好，请使用组合（omniroute combo）；要设置支出上限，请使用 omniroute usage budget。",
     "list": {
       "description": "列出当前被锁定的登录标识"
     },

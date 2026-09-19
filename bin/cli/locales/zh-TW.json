@@ -404,7 +404,7 @@
   },
   "policy": {
     "description": "登入鎖定：列出並解鎖因多次登入失敗而被鎖定的識別碼",
-    "relatedFeatures": "此指令僅管理登入鎖定。要封鎖模型，請使用依 API 金鑰的模型限制（控制台：API Keys）；要設定供應商偏好，請使用組合（omniroute combo）；要設定支出上限，請使用 omniroute usage budget。",
+    "relatedFeatures": "此指令僅管理登入鎖定。要封鎖模型，請使用依 API 金鑰的模型限制（控制台：API Keys）；要設定提供者偏好，請使用組合（omniroute combo）；要設定支出上限，請使用 omniroute usage budget。",
     "list": {
       "description": "列出目前被鎖定的登入識別碼"
     },
