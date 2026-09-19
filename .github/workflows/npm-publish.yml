@@ -56,7 +56,49 @@ env:
   NPM_PUBLISH_NODE_VERSION: "24"
 
 jobs:
+  # Authorisation gate for the `release` trigger.
+  #
+  # v3.8.54 shipped and this workflow started on its own, from `release: [released]`,
+  # and went straight for `npm publish` of the `omniroute` package — which upstream
+  # owns, not this fork. It was stopped by hand, seconds before the publish step.
+  #
+  # The brake that was supposed to hold does not: the resolve step only skips when the
+  # version is ALREADY on npm, and this fork is ahead of upstream, so every release
+  # resolves skip=false and proceeds. electron-release.yml has carried the right guard
+  # (`vars.ENABLE_NPM_PUBLISH == 'true'`) since v3.8.51 — but it only covers the
+  # `workflow_call` path INTO this workflow. A GitHub Release published by hand, or by
+  # any other workflow, enters through `release:` and never meets it.
+  #
+  # So the same variable now gates the `release` path here. `workflow_dispatch` is left
+  # alone: it is already a deliberate human action, and it is the emergency route if the
+  # variable is ever wrong. `workflow_call` is left alone too — its only caller gates it.
+  #
+  # To publish to npm from a release, set repository variable ENABLE_NPM_PUBLISH=true.
+  gate:
+    name: Authorisation gate
+    runs-on: ubuntu-latest
+    outputs:
+      allowed: ${{ steps.decide.outputs.allowed }}
+    steps:
+      - id: decide
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          ENABLED: ${{ vars.ENABLE_NPM_PUBLISH }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" != "release" ] || [ "$ENABLED" = "true" ]; then
+            echo "allowed=true" >> "$GITHUB_OUTPUT"
+            echo "✅ npm publishing allowed (event=$EVENT_NAME, ENABLE_NPM_PUBLISH=${ENABLED:-<unset>})."
+          else
+            echo "allowed=false" >> "$GITHUB_OUTPUT"
+            echo "⛔ npm publishing is NOT authorised for a release trigger."
+            echo "   This fork does not own the 'omniroute' name on npm; upstream publishes it."
+            echo "   Set repository variable ENABLE_NPM_PUBLISH=true to allow it."
+          fi
+
   publish:
+    needs: gate
+    if: needs.gate.outputs.allowed == 'true'
     # Same dynamic-runner rule as ci.yml's `build`/`test-unit`: `build:cli` falls back to a
     # full `next build`, whose working set outgrew the 16 GB hosted runner during the
     # v3.8.49 cycle — the publish died with "The runner has received a shutdown signal"
@@ -390,8 +432,8 @@ jobs:
   # enough for build:cli's next-build fallback. So it keeps proving the bytes and
   # this job, which needs no memory at all, performs the upload.
   stage-npm:
-    needs: publish
-    if: needs.publish.outputs.skip != 'true'
+    needs: [gate, publish]
+    if: needs.gate.outputs.allowed == 'true' && needs.publish.outputs.skip != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -490,6 +532,8 @@ jobs:
           echo "✅ Published omniroute@$VERSION (dist-tag=$TAG) [DIRECT mode]"
 
   publish-opencode-plugin:
+    needs: gate
+    if: needs.gate.outputs.allowed == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -579,6 +623,8 @@ jobs:
           echo "✅ Published ${PKG_NAME}@${PKG_VERSION}"
 
   publish-opencode-plugin-v2:
+    needs: gate
+    if: needs.gate.outputs.allowed == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
