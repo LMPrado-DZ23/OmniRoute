@@ -103,7 +103,6 @@
     "confirmRemove": "Remover chave {id}?",
     "confirmRegenerate": "Regenerar chave {id}?",
     "confirmRevoke": "Revogar chave {id}?",
-    "confirmRotate": "Rotacionar chave {id}? (a chave antiga será invalidada após o período de carência)",
     "regenerated": "Chave regenerada. Nova chave: {key}",
     "revoked": "Chave {id} revogada.",
     "providerRequired": "Provedor é obrigatório.",
@@ -167,10 +166,26 @@
       "provider": "Filtrar por ID de provedor"
     },
     "budget": {
-      "description": "Gerenciar budgets de custo",
+      "description": "Gerenciar orçamentos de gasto por chave de API",
+      "list": {
+        "description": "Mostrar orçamento e gasto de todas as chaves de API"
+      },
+      "get": {
+        "description": "Mostrar orçamento e gasto de uma chave de API"
+      },
       "set": {
-        "scope": "Escopo do budget (padrão: global)",
-        "period": "Período do budget: daily|weekly|monthly (padrão: monthly)"
+        "description": "Definir limites de gasto de uma chave de API (0 = sem limite)",
+        "daily": "Limite diário em USD",
+        "weekly": "Limite semanal em USD",
+        "monthly": "Limite mensal em USD",
+        "warningThreshold": "Avisar nesta fração do limite (0-1)",
+        "resetInterval": "Intervalo de reset: daily|weekly|monthly",
+        "nothingToSet": "Nenhum limite informado. Use --daily, --weekly ou --monthly.",
+        "done": "Orçamento atualizado para {apiKeyId}"
+      },
+      "clear": {
+        "description": "Remover os limites de gasto de uma chave de API (o gasto registrado é mantido)",
+        "done": "Limites de orçamento removidos para {apiKeyId}"
       }
     },
     "quota": {
@@ -369,8 +384,7 @@
       "description": "Log de auditoria MCP (alias para audit --source mcp)"
     },
     "running": "Servidor MCP em execução ({transport})",
-    "stopped": "Servidor MCP parado.",
-    "restarted": "Servidor MCP reiniciado."
+    "stopped": "Servidor MCP parado."
   },
   "a2a": {
     "skills": {
@@ -881,11 +895,7 @@
       "limit": "Máximo de resultados"
     },
     "defaults": {
-      "description": "Gerenciar preços padrão",
-      "input": "Custo de entrada por 1M tokens (USD)",
-      "output": "Custo de saída por 1M tokens (USD)",
-      "cacheRead": "Custo de leitura de cache por 1M tokens (USD)",
-      "cacheWrite": "Custo de escrita de cache por 1M tokens (USD)"
+      "description": "Gerenciar preços padrão"
     },
     "diff": {
       "description": "Mostrar divergências em relação ao upstream",
@@ -1015,31 +1025,6 @@
       "kind": "Filtrar por tipo (dashboard|api-key|mcp|a2a)",
       "active": "Exibir apenas sessões ativas",
       "limit": "Máximo de resultados (padrão: 100)"
-    },
-    "expire": {
-      "yes": "Pular confirmação"
-    },
-    "expireAll": {
-      "user": "Usuário cujas sessões serão encerradas",
-      "yes": "Pular confirmação"
-    }
-  },
-  "tags": {
-    "description": "Gerenciar tags de recursos",
-    "add": {
-      "color": "Cor da tag (hex ou nome)",
-      "description": "Descrição da tag"
-    },
-    "remove": {
-      "yes": "Pular confirmação"
-    },
-    "assign": {
-      "tag": "Nome da tag",
-      "to": "Recurso de destino como tipo:id (ex: provider:openai)"
-    },
-    "unassign": {
-      "tag": "Nome da tag",
-      "from": "Recurso de origem como tipo:id"
     }
   },
   "openapi": {
@@ -1099,11 +1084,7 @@
       "connectionId": "ID de conexão específica para rotacionar"
     },
     "config": {
-      "description": "Exibir ou atualizar configuração do OneProxy",
-      "enabled": "Habilitar pool de proxies (true|false)",
-      "poolSize": "Tamanho do pool",
-      "providerSource": "URL do provedor de proxies",
-      "rotationPolicy": "Política de rotação: sticky|per-request|periodic"
+      "description": "Exibir ou atualizar configuração do OneProxy"
     },
     "pool": {
       "description": "Listar pool de proxies atual com métricas"
@@ -1132,13 +1113,6 @@
       "description": "Enviar config para cloud ou instância remota",
       "target": "Destino (cloud ou context:nome)",
       "bundle": "Partes do bundle para sincronizar",
-      "dryRun": "Visualizar sem aplicar"
-    },
-    "pull": {
-      "description": "Baixar config da cloud ou remoto",
-      "source": "Origem (cloud ou context:nome)",
-      "merge": "Mesclar com config existente",
-      "replace": "Substituir config existente",
       "dryRun": "Visualizar sem aplicar"
     },
     "diff": {

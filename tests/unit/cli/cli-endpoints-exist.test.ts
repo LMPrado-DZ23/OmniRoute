@@ -26,15 +26,8 @@ import { ROOT, matchRoute, relativeToRoot as rel, toApiPathname } from "./_helpe
 const KNOWN_BROKEN = new Set([
   "bin/cli/commands/eval.mjs::GET /api/evals/suites",
   "bin/cli/commands/eval.mjs::POST /api/evals/{}",
-  "bin/cli/commands/mcp.mjs::POST /api/mcp/restart",
   "bin/cli/commands/oauth.mjs::POST /api/providers/{}/auth/apply",
   "bin/cli/commands/oauth.mjs::POST /api/providers/{}/auth/start",
-  "bin/cli/commands/oneproxy.mjs::PUT /api/settings/oneproxy",
-  "bin/cli/commands/pricing.mjs::PUT /api/pricing/defaults",
-  "bin/cli/commands/sessions.mjs::DELETE /api/sessions",
-  "bin/cli/commands/sync.mjs::POST /api/db-backups/exportAll",
-  "bin/cli/commands/tags.mjs::DELETE /api/tags",
-  "bin/cli/commands/tags.mjs::POST /api/tags",
   "bin/cli/commands/tunnel.mjs::DELETE /api/tunnels/{}",
   "bin/cli/commands/tunnel.mjs::GET /api/tunnels",
   "bin/cli/commands/tunnel.mjs::GET /api/tunnels/{}",
@@ -42,7 +35,6 @@ const KNOWN_BROKEN = new Set([
   "bin/cli/commands/tunnel.mjs::GET /api/tunnels/{}/status",
   "bin/cli/commands/tunnel.mjs::POST /api/tunnels",
   "bin/cli/commands/tunnel.mjs::POST /api/tunnels/{}/rotate",
-  "bin/cli/commands/usage.mjs::DELETE /api/usage/budget",
 ]);
 
 type Call = { file: string; method: string; apiPath: string };

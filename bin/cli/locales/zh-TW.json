@@ -115,7 +115,6 @@
     "confirmRemove": "移除金鑰 {id}？",
     "confirmRegenerate": "重新生成金鑰 {id}？",
     "confirmRevoke": "撤銷金鑰 {id}？",
-    "confirmRotate": "輪換金鑰 {id}？（舊金鑰將在寬限期後失效）",
     "regenerated": "已重新生成。新金鑰：{key}",
     "revoked": "金鑰 {id} 已撤銷。",
     "providerRequired": "需要提供者。",
@@ -165,10 +164,26 @@
       "provider": "按提供者 ID 篩選"
     },
     "budget": {
-      "description": "管理成本預算",
+      "description": "管理各 API 金鑰的花費預算",
+      "list": {
+        "description": "顯示所有 API 金鑰的預算與花費"
+      },
+      "get": {
+        "description": "顯示某個 API 金鑰的預算與花費"
+      },
       "set": {
-        "scope": "預算範圍（預設：全域性）",
-        "period": "預算週期：daily|weekly|monthly（預設：monthly）"
+        "description": "設定某個 API 金鑰的花費上限（0 表示不限制）",
+        "daily": "每日上限（美元）",
+        "weekly": "每週上限（美元）",
+        "monthly": "每月上限（美元）",
+        "warningThreshold": "達到上限的該比例時警告（0-1）",
+        "resetInterval": "重設週期：daily|weekly|monthly",
+        "nothingToSet": "未提供任何上限。請使用 --daily、--weekly 或 --monthly。",
+        "done": "已更新 {apiKeyId} 的預算"
+      },
+      "clear": {
+        "description": "解除某個 API 金鑰的所有花費上限（已記錄的花費保留）",
+        "done": "已解除 {apiKeyId} 的預算上限"
       }
     },
     "quota": {
@@ -340,7 +355,6 @@
     "title": "MCP 伺服器",
     "running": "MCP 伺服器正在執行（{transport}）",
     "stopped": "MCP 伺服器已停止。",
-    "restarted": "MCP 伺服器已重啟。",
     "call": {
       "description": "直接呼叫 MCP 工具",
       "args": "JSON 引數物件（內聯）",
@@ -867,11 +881,7 @@
       "limit": "最大結果數"
     },
     "defaults": {
-      "description": "管理預設定價",
-      "input": "每 1M 權杖的輸入成本（美元）",
-      "output": "每 1M 權杖的輸出成本（美元）",
-      "cacheRead": "每 1M 權杖的快取讀取成本（美元）",
-      "cacheWrite": "每 1M 權杖的快取寫入成本（美元）"
+      "description": "管理預設定價"
     },
     "diff": {
       "description": "顯示與上游價格的差異",
@@ -996,31 +1006,6 @@
       "kind": "按型別篩選（dashboard|api-key|mcp|a2a）",
       "active": "僅顯示活動會話",
       "limit": "最大結果數（預設：100）"
-    },
-    "expire": {
-      "yes": "跳過確認"
-    },
-    "expireAll": {
-      "user": "要過期其會話的使用者",
-      "yes": "跳過確認"
-    }
-  },
-  "tags": {
-    "description": "管理資源標籤",
-    "add": {
-      "color": "標籤顏色（十六進位制或名稱）",
-      "description": "標籤描述"
-    },
-    "remove": {
-      "yes": "跳過確認"
-    },
-    "assign": {
-      "tag": "標籤名稱",
-      "to": "目標資源，格式為 type:id（例如 provider:openai）"
-    },
-    "unassign": {
-      "tag": "標籤名稱",
-      "from": "來源資源，格式為 type:id"
     }
   },
   "openapi": {
@@ -1080,11 +1065,7 @@
       "connectionId": "要輪換的特定連線 ID"
     },
     "config": {
-      "description": "顯示或更新 OneProxy 配置",
-      "enabled": "啟用代理池（true|false）",
-      "poolSize": "池大小",
-      "providerSource": "代理提供者的 URL",
-      "rotationPolicy": "輪換策略：sticky|per-request|periodic"
+      "description": "顯示或更新 OneProxy 配置"
     },
     "pool": {
       "description": "列出當前代理池及指標"
@@ -1113,13 +1094,6 @@
       "description": "將配置推送到雲或遠端例項",
       "target": "目標（cloud 或 context:name）",
       "bundle": "要同步的包部分",
-      "dryRun": "預覽但不應用"
-    },
-    "pull": {
-      "description": "從雲或遠端拉取配置",
-      "source": "來源（cloud 或 context:name）",
-      "merge": "與現有配置合併",
-      "replace": "替換現有配置",
       "dryRun": "預覽但不應用"
     },
     "diff": {

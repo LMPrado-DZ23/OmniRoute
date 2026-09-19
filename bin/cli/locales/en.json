@@ -103,7 +103,6 @@
     "confirmRemove": "Remove key {id}?",
     "confirmRegenerate": "Regenerate key {id}?",
     "confirmRevoke": "Revoke key {id}?",
-    "confirmRotate": "Rotate key {id}? (old key will be invalidated after grace period)",
     "regenerated": "Regenerated. New key: {key}",
     "revoked": "Key {id} revoked.",
     "providerRequired": "Provider is required.",
@@ -167,10 +166,26 @@
       "provider": "Filter by provider ID"
     },
     "budget": {
-      "description": "Manage cost budgets",
+      "description": "Manage per-API-key spend budgets",
+      "list": {
+        "description": "Show the budget and spend of every API key"
+      },
+      "get": {
+        "description": "Show the budget and spend of one API key"
+      },
       "set": {
-        "scope": "Budget scope (default: global)",
-        "period": "Budget period: daily|weekly|monthly (default: monthly)"
+        "description": "Set spend limits for an API key (0 = no limit)",
+        "daily": "Daily limit in USD",
+        "weekly": "Weekly limit in USD",
+        "monthly": "Monthly limit in USD",
+        "warningThreshold": "Warn at this fraction of the limit (0-1)",
+        "resetInterval": "Reset interval: daily|weekly|monthly",
+        "nothingToSet": "No limits provided. Use --daily, --weekly or --monthly.",
+        "done": "Budget updated for {apiKeyId}"
+      },
+      "clear": {
+        "description": "Lift all spend limits for an API key (recorded spend is kept)",
+        "done": "Budget limits cleared for {apiKeyId}"
       }
     },
     "quota": {
@@ -342,7 +357,6 @@
     "title": "MCP Server",
     "running": "MCP server running ({transport})",
     "stopped": "MCP server stopped.",
-    "restarted": "MCP server restarted.",
     "call": {
       "description": "Invoke an MCP tool directly",
       "args": "JSON arguments object (inline)",
@@ -881,11 +895,7 @@
       "limit": "Max results"
     },
     "defaults": {
-      "description": "Manage default pricing",
-      "input": "Input cost per 1M tokens (USD)",
-      "output": "Output cost per 1M tokens (USD)",
-      "cacheRead": "Cache read cost per 1M tokens (USD)",
-      "cacheWrite": "Cache write cost per 1M tokens (USD)"
+      "description": "Manage default pricing"
     },
     "diff": {
       "description": "Show divergence from upstream prices",
@@ -1015,31 +1025,6 @@
       "kind": "Filter by kind (dashboard|api-key|mcp|a2a)",
       "active": "Show only active sessions",
       "limit": "Maximum results (default: 100)"
-    },
-    "expire": {
-      "yes": "Skip confirmation"
-    },
-    "expireAll": {
-      "user": "User whose sessions to expire",
-      "yes": "Skip confirmation"
-    }
-  },
-  "tags": {
-    "description": "Manage resource tags",
-    "add": {
-      "color": "Tag color (hex or name)",
-      "description": "Tag description"
-    },
-    "remove": {
-      "yes": "Skip confirmation"
-    },
-    "assign": {
-      "tag": "Tag name",
-      "to": "Target resource as type:id (e.g. provider:openai)"
-    },
-    "unassign": {
-      "tag": "Tag name",
-      "from": "Source resource as type:id"
     }
   },
   "openapi": {
@@ -1099,11 +1084,7 @@
       "connectionId": "Specific connection ID to rotate"
     },
     "config": {
-      "description": "Show or update OneProxy config",
-      "enabled": "Enable proxy pool (true|false)",
-      "poolSize": "Pool size",
-      "providerSource": "URL for proxy provider",
-      "rotationPolicy": "Rotation policy: sticky|per-request|periodic"
+      "description": "Show or update OneProxy config"
     },
     "pool": {
       "description": "List current proxy pool with metrics"
@@ -1132,13 +1113,6 @@
       "description": "Push config to cloud or remote instance",
       "target": "Target (cloud or context:name)",
       "bundle": "Bundle parts to sync",
-      "dryRun": "Preview without applying"
-    },
-    "pull": {
-      "description": "Pull config from cloud or remote",
-      "source": "Source (cloud or context:name)",
-      "merge": "Merge with existing config",
-      "replace": "Replace existing config",
       "dryRun": "Preview without applying"
     },
     "diff": {

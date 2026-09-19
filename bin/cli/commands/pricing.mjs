@@ -85,26 +85,6 @@ export function registerPricing(program) {
     emit(await res.json(), cmd.optsWithGlobals());
   });
 
-  defaults
-    .command("set")
-    .option("--input <p>", t("pricing.defaults.input"), parseFloat)
-    .option("--output <p>", t("pricing.defaults.output"), parseFloat)
-    .option("--cache-read <p>", t("pricing.defaults.cacheRead"), parseFloat)
-    .option("--cache-write <p>", t("pricing.defaults.cacheWrite"), parseFloat)
-    .action(async (opts, cmd) => {
-      const body = {};
-      if (opts.input != null) body.inputPer1M = opts.input;
-      if (opts.output != null) body.outputPer1M = opts.output;
-      if (opts.cacheRead != null) body.cacheReadPer1M = opts.cacheRead;
-      if (opts.cacheWrite != null) body.cacheWritePer1M = opts.cacheWrite;
-      const res = await apiFetch("/api/pricing/defaults", { method: "PUT", body });
-      if (!res.ok) {
-        process.stderr.write(`Error: ${res.status}\n`);
-        process.exit(1);
-      }
-      emit(await res.json(), cmd.optsWithGlobals());
-    });
-
   pricing
     .command("diff")
     .description(t("pricing.diff.description"))
