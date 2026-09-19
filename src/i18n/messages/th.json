@@ -9843,6 +9843,8 @@
     "loading": "กำลังโหลด...",
     "invalidPassword": "รหัสผ่านไม่ถูกต้อง",
     "errorOccurredRetry": "เกิดข้อผิดพลาด โปรดลองอีกครั้ง",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "มากำหนดค่าอินสแตนซ์ OmniRoute ของคุณกันดีกว่า",
     "runOnboardingWizard": "เรียกใช้ตัวช่วยสร้างการเริ่มต้นใช้งานเพื่อตั้งค่ารหัสผ่านของคุณและเชื่อมต่อกับผู้ให้บริการ AI รายแรกของคุณ",
     "startOnboarding": "เริ่มการเริ่มต้นใช้งาน",

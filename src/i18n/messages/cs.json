@@ -9843,6 +9843,8 @@
     "loading": "Načítám...",
     "invalidPassword": "Neplatné heslo",
     "errorOccurredRetry": "Došlo k chybě. Zkuste to prosím znovu.",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "Pojďme nastavit vaši instanci OmniRoute",
     "runOnboardingWizard": "Spusťte průvodce zavedením, nastavte si heslo a připojte svého prvního AI poskytovatele.",
     "startOnboarding": "Začít s nástupem",

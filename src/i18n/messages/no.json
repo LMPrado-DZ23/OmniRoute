@@ -9843,6 +9843,8 @@
     "loading": "Laster inn...",
     "invalidPassword": "Ugyldig passord",
     "errorOccurredRetry": "Det oppsto en feil. Vennligst prøv igjen.",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "La oss få konfigurert OmniRoute-forekomsten",
     "runOnboardingWizard": "Kjør onboarding-veiviseren for å sette opp passordet ditt og koble til din første AI-leverandør.",
     "startOnboarding": "Start onboarding",

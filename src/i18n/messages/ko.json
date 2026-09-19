@@ -9843,6 +9843,8 @@
     "loading": "로드 중...",
     "invalidPassword": "잘못된 비밀번호",
     "errorOccurredRetry": "오류가 발생했습니다. 다시 시도해 주세요.",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "OmniRoute 인스턴스를 구성해 보겠습니다.",
     "runOnboardingWizard": "온보딩 마법사를 실행하여 비밀번호를 설정하고 첫 번째 AI 공급자를 연결하세요.",
     "startOnboarding": "온보딩 시작",

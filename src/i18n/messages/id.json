@@ -9843,6 +9843,8 @@
     "loading": "Memuat...",
     "invalidPassword": "Kata sandi tidak valid",
     "errorOccurredRetry": "Terjadi kesalahan. Silakan coba lagi.",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "Mari konfigurasikan instans OmniRoute Anda",
     "runOnboardingWizard": "Jalankan wizard orientasi untuk menyiapkan kata sandi Anda dan menghubungkan penyedia AI pertama Anda.",
     "startOnboarding": "Mulai Orientasi",

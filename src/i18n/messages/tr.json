@@ -9843,6 +9843,8 @@
     "loading": "Yükleniyor...",
     "invalidPassword": "Geçersiz şifre",
     "errorOccurredRetry": "Bir hata oluştu. Lütfen tekrar deneyin.",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "OmniRoute örneğinizi yapılandıralım",
     "runOnboardingWizard": "Şifrenizi ayarlamak ve ilk AI sağlayıcınızı bağlamak için ilk kurulum sihirbazını çalıştırın.",
     "startOnboarding": "İlk Kurulumu Başlat",

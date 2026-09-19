@@ -9843,6 +9843,8 @@
     "loading": "טוען...",
     "invalidPassword": "סיסמה לא חוקית",
     "errorOccurredRetry": "אירעה שגיאה. אנא נסה שוב.",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "בואו להגדיר את מופע OmniRoute שלך",
     "runOnboardingWizard": "הפעל את אשף ההטמעה כדי להגדיר את הסיסמה שלך ולחבר את ספק הבינה המלאכותית הראשון שלך.",
     "startOnboarding": "התחל את ההטמעה",

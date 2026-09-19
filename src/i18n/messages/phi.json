@@ -9843,6 +9843,8 @@
     "loading": "Naglo-load...",
     "invalidPassword": "Di-wastong password",
     "errorOccurredRetry": "May naganap na error. Pakisubukang muli.",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "I-configure natin ang iyong OmniRoute instance",
     "runOnboardingWizard": "Patakbuhin ang onboarding wizard upang i-set up ang iyong password at ikonekta ang iyong unang AI provider.",
     "startOnboarding": "Simulan ang Onboarding",

@@ -9843,6 +9843,8 @@
     "loading": "Laden...",
     "invalidPassword": "Ungültiges Passwort",
     "errorOccurredRetry": "Es ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "Lassen Sie uns Ihre OmniRoute-Instanz konfigurieren",
     "runOnboardingWizard": "Führen Sie den Onboarding-Assistenten aus, um Ihr Passwort einzurichten und Ihren ersten KI-Anbieter zu verbinden.",
     "startOnboarding": "Beginnen Sie mit dem Onboarding",

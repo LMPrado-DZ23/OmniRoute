@@ -9843,6 +9843,8 @@
     "loading": "लोड हो रहा है...",
     "invalidPassword": "अमान्य पासवर्ड",
     "errorOccurredRetry": "एक त्रुटि हुई. कृपया पुन: प्रयास करें।",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "आइए आपका ओम्निरूट इंस्टेंस कॉन्फ़िगर करें",
     "runOnboardingWizard": "अपना पासवर्ड सेट करने और अपने पहले AI प्रदाता को कनेक्ट करने के लिए ऑनबोर्डिंग विज़ार्ड चलाएँ।",
     "startOnboarding": "ऑनबोर्डिंग प्रारंभ करें",

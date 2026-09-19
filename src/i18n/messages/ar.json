@@ -9843,6 +9843,8 @@
     "loading": "جار التحميل...",
     "invalidPassword": "كلمة المرور غير صالحة",
     "errorOccurredRetry": "حدث خطأ. يرجى المحاولة مرة أخرى.",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "دعنا نقوم بتكوين مثيل OmniRoute الخاص بك",
     "runOnboardingWizard": "قم بتشغيل معالج الإعداد لإعداد كلمة المرور الخاصة بك وتوصيل أول مزود للذكاء الاصطناعي.",
     "startOnboarding": "ابدأ الإعداد",

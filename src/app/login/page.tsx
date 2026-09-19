@@ -8,6 +8,36 @@ import { useRouter } from "next/navigation";
 
 const PASSWORD_INPUT_ID = "login-password";
 
+/**
+ * Shape of `GET /api/settings/require-login`. Every field is optional because an
+ * old or partially-degraded server may answer with a subset.
+ */
+type RequireLoginProbe = {
+  nodeVersion?: string;
+  nodeCompatible?: boolean;
+  authenticated?: boolean;
+  requireLogin?: boolean;
+  hasPassword?: boolean;
+  setupComplete?: boolean;
+  oidcEnabled?: boolean;
+  oidcDisablePasswordLogin?: boolean;
+  usingDefaultPassword?: boolean;
+};
+
+/**
+ * Per-attempt budgets for the first-run probe.
+ *
+ * The very first request a brand-new install ever serves pays a one-time
+ * database bootstrap (schema + every pending migration) before it can answer,
+ * and in dev it also compiles the route's module graph. A single 5 s abort is
+ * far too short for that, so the probe retries with a growing budget.
+ *
+ * It must NEVER guess an answer: assuming "already configured" renders a
+ * password form for a password that does not exist yet, which a first-time user
+ * cannot get past and has no reason to know is fixed by reloading.
+ */
+const PROBE_TIMEOUTS_MS = [15000, 30000, 60000];
+
 export default function LoginPage() {
   const t = useTranslations("auth");
   const [password, setPassword] = useState("");
@@ -20,53 +50,67 @@ export default function LoginPage() {
   // U2: only true while the server says the well-known default password is still active.
   const [usingDefaultPassword, setUsingDefaultPassword] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [nodeVersion, setNodeVersion] = useState(null);
+  const [nodeVersion, setNodeVersion] = useState<string | null>(null);
   const [nodeCompatible, setNodeCompatible] = useState(true);
+  // The probe exhausted every attempt: we still do not know whether this instance
+  // has a password, so the page explains that and offers a retry instead of
+  // rendering a form nobody can submit.
+  const [probeFailed, setProbeFailed] = useState(false);
+  // Bumped by the retry button to re-run the effect below.
+  const [probeAttemptId, setProbeAttemptId] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setMounted(true));
-    async function checkAuth() {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    let cancelled = false;
 
+    async function probeOnce(timeoutMs: number): Promise<RequireLoginProbe | null> {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
       try {
         const res = await fetch(`${baseUrl}/api/settings/require-login`, {
           signal: controller.signal,
         });
-        clearTimeout(timeoutId);
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.nodeVersion) setNodeVersion(data.nodeVersion);
-          if (data.nodeCompatible === false) setNodeCompatible(false);
-          if (data.authenticated === true || data.requireLogin === false) {
-            window.location.href = "/dashboard";
-            return;
-          }
-          setHasPassword(!!data.hasPassword);
-          setSetupComplete(!!data.setupComplete);
-          setOidcEnabled(!!data.oidcEnabled);
-          setOidcDisablePasswordLogin(!!data.oidcDisablePasswordLogin);
-          setUsingDefaultPassword(data.usingDefaultPassword === true);
-        } else {
-          setHasPassword(true);
-          setSetupComplete(true);
-          setOidcEnabled(false);
-          setOidcDisablePasswordLogin(false);
-        }
+        if (!res.ok) return null;
+        const data: RequireLoginProbe = await res.json();
+        return data && typeof data === "object" ? data : null;
       } catch {
+        return null;
+      } finally {
         clearTimeout(timeoutId);
-        setHasPassword(true);
-        setSetupComplete(true);
-        setOidcEnabled(false);
-        setOidcDisablePasswordLogin(false);
       }
     }
+
+    async function checkAuth() {
+      for (const timeoutMs of PROBE_TIMEOUTS_MS) {
+        const data = await probeOnce(timeoutMs);
+        if (cancelled) return;
+        if (!data) continue;
+
+        if (data.nodeVersion) setNodeVersion(data.nodeVersion);
+        if (data.nodeCompatible === false) setNodeCompatible(false);
+        if (data.authenticated === true || data.requireLogin === false) {
+          window.location.href = "/dashboard";
+          return;
+        }
+        setHasPassword(!!data.hasPassword);
+        setSetupComplete(!!data.setupComplete);
+        setOidcEnabled(!!data.oidcEnabled);
+        setOidcDisablePasswordLogin(!!data.oidcDisablePasswordLogin);
+        setUsingDefaultPassword(data.usingDefaultPassword === true);
+        setProbeFailed(false);
+        return;
+      }
+      if (!cancelled) setProbeFailed(true);
+    }
+
     checkAuth();
-    return () => cancelAnimationFrame(raf);
-  }, [router]);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+    };
+  }, [probeAttemptId]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -139,6 +183,53 @@ export default function LoginPage() {
         </div>
       </div>
     ) : null;
+  // The probe never answered. Say so, and offer a retry — never fall through to a
+  // password form, because on a fresh install there is no password to type.
+  if (probeFailed) {
+    return (
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="outline-none min-h-screen flex flex-col items-center justify-center p-6"
+      >
+        {nodeWarningBanner}
+        <div className="w-full max-w-md">
+          <div
+            className="bg-surface border border-border rounded-2xl p-8 shadow-soft text-center"
+            role="alert"
+          >
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 mb-6">
+              <span
+                className="material-symbols-outlined text-amber-600 dark:text-amber-400 text-[32px]"
+                aria-hidden="true"
+              >
+                cloud_off
+              </span>
+            </div>
+            <h1 className="text-xl font-bold text-text-main tracking-tight">
+              {t("setupCheckFailedTitle")}
+            </h1>
+            <p className="text-text-muted leading-relaxed mt-3 mb-6">
+              {t("setupCheckFailedDescription")}
+            </p>
+            <Button
+              variant="primary"
+              className="w-full h-11 text-sm font-medium"
+              onClick={() => {
+                // Clear the failure here, in the event handler, and let the effect
+                // (keyed on probeAttemptId) run the probe again.
+                setProbeFailed(false);
+                setProbeAttemptId((id) => id + 1);
+              }}
+            >
+              {t("tryAgain")}
+            </Button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   if (
     hasPassword === null ||
     setupComplete === null ||

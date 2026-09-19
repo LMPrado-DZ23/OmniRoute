@@ -9843,6 +9843,8 @@
     "loading": "Memuatkan...",
     "invalidPassword": "Kata laluan tidak sah",
     "errorOccurredRetry": "Ralat berlaku. Sila cuba lagi.",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "Mari kita konfigurasikan tika OmniRoute anda",
     "runOnboardingWizard": "Jalankan wizard onboarding untuk menyediakan kata laluan anda dan sambungkan pembekal AI pertama anda.",
     "startOnboarding": "Mulakan Onboarding",

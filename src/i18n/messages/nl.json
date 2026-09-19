@@ -9843,6 +9843,8 @@
     "loading": "Laden...",
     "invalidPassword": "Ongeldig wachtwoord",
     "errorOccurredRetry": "Er is een fout opgetreden. Probeer het opnieuw.",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "Laten we uw OmniRoute-instantie configureren",
     "runOnboardingWizard": "Voer de onboardingwizard uit om uw wachtwoord in te stellen en verbinding te maken met uw eerste AI-provider.",
     "startOnboarding": "Begin met onboarden",

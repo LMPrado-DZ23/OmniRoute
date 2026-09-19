@@ -10001,6 +10001,8 @@
     "loading": "Đang tải...",
     "invalidPassword": "Mật khẩu không hợp lệ",
     "errorOccurredRetry": "Đã xảy ra lỗi. Vui lòng thử lại.",
+    "setupCheckFailedTitle": "Chưa hoàn tất kiểm tra thiết lập",
+    "setupCheckFailedDescription": "OmniRoute không thể xác nhận phiên bản này đã có mật khẩu hay chưa. Lần khởi động đầu tiên có thể mất một lúc, vì cơ sở dữ liệu được tạo và di trú trước khi máy chủ phản hồi. Hãy đợi một lát rồi thử lại.",
     "configureInstance": "Hãy cấu hình phiên bản OmniRoute của bạn",
     "runOnboardingWizard": "Chạy trình hướng dẫn thiết lập ban đầu để cài đặt mật khẩu và kết nối với nhà cung cấp AI đầu tiên của bạn.",
     "startOnboarding": "Bắt đầu thiết lập",

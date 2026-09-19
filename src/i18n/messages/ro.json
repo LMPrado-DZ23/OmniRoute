@@ -9843,6 +9843,8 @@
     "loading": "Se încarcă...",
     "invalidPassword": "Parolă nevalidă",
     "errorOccurredRetry": "A apărut o eroare. Vă rugăm să încercați din nou.",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "Haideți să vă configurați instanța OmniRoute",
     "runOnboardingWizard": "Rulați expertul de onboarding pentru a vă configura parola și pentru a vă conecta primul furnizor de AI.",
     "startOnboarding": "Începeți integrarea",

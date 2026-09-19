@@ -10001,6 +10001,8 @@
     "loading": "Carregando...",
     "invalidPassword": "Senha inválida",
     "errorOccurredRetry": "Ocorreu um erro. Tente novamente.",
+    "setupCheckFailedTitle": "A verificação da configuração não terminou",
+    "setupCheckFailedDescription": "O OmniRoute não conseguiu confirmar se esta instância já tem uma senha. A primeira inicialização pode demorar, porque o banco de dados é criado e migrado antes de o servidor responder. Aguarde um instante e tente novamente.",
     "configureInstance": "Vamos configurar sua instância OmniRoute",
     "runOnboardingWizard": "Execute o assistente de onboarding para definir sua senha e conectar seu primeiro provedor de IA.",
     "startOnboarding": "Iniciar Onboarding",

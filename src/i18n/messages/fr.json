@@ -9843,6 +9843,8 @@
     "loading": "Chargement...",
     "invalidPassword": "Mot de passe invalide",
     "errorOccurredRetry": "Une erreur s'est produite. Veuillez réessayer.",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "Configureons votre instance OmniRoute",
     "runOnboardingWizard": "Exécutez l'assistant d'onboarding pour configurer votre mot de passe et connecter votre premier fournisseur d'IA.",
     "startOnboarding": "Commencer l'intégration",

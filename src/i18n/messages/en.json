@@ -10001,6 +10001,8 @@
     "loading": "Loading...",
     "invalidPassword": "Invalid password",
     "errorOccurredRetry": "An error occurred. Please try again.",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "Let's get your OmniRoute instance configured",
     "runOnboardingWizard": "Run the onboarding wizard to set up your password and connect your first AI provider.",
     "startOnboarding": "Start Onboarding",

@@ -9843,6 +9843,8 @@
     "loading": "Ladataan...",
     "invalidPassword": "Virheellinen salasana",
     "errorOccurredRetry": "Tapahtui virhe. Yritä uudelleen.",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "Määritetään OmniRoute-esiintymäsi",
     "runOnboardingWizard": "Määritä salasanasi ja yhdistä ensimmäinen tekoälypalveluntarjoajasi suorittamalla ohjattu käyttöönottotoiminto.",
     "startOnboarding": "Aloita perehtyminen",

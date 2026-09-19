@@ -9843,6 +9843,8 @@
     "loading": "読み込み中...",
     "invalidPassword": "無効なパスワード",
     "errorOccurredRetry": "エラーが発生しました。もう一度試してください。",
+    "setupCheckFailedTitle": "Setup check did not finish",
+    "setupCheckFailedDescription": "OmniRoute could not confirm whether this instance already has a password. A first boot can take a while, because the database is created and migrated before the server answers. Wait a moment, then try again.",
     "configureInstance": "OmniRoute インスタンスを構成しましょう",
     "runOnboardingWizard": "オンボーディングウィザードを実行して、パスワード設定と最初の AI プロバイダー接続を行います。",
     "startOnboarding": "オンボーディングを開始する",
