@@ -192,13 +192,13 @@ if [ "$FAST" = "1" ]; then
   done
   # Mirror package.json's three test:unit groups exactly (loader + concurrency).
   if [ ${#MAIN[@]} -gt 0 ]; then
-    run_gate "DISABLE_SQLITE_AUTO_BACKUP=true node --max-old-space-size=8192 --import tsx/esm --import ./open-sse/utils/setupPolyfill.ts --import ./tests/_setup/isolateDataDir.ts --test --test-force-exit --test-concurrency=20 ${MAIN[*]}"
+    run_gate "DISABLE_SQLITE_AUTO_BACKUP=true node --max-old-space-size=8192 --import tsx/esm --import ./open-sse/utils/setupPolyfill.ts --import ./tests/_setup/isolateDataDir.ts --import ./tests/_setup/blockNetwork.ts --test --test-force-exit --test-concurrency=20 ${MAIN[*]}"
   fi
   if [ ${#DASH[@]} -gt 0 ]; then
-    run_gate "DISABLE_SQLITE_AUTO_BACKUP=true node --max-old-space-size=8192 --import tsx --import ./open-sse/utils/setupPolyfill.ts --import ./tests/_setup/isolateDataDir.ts --test --test-force-exit --test-concurrency=20 ${DASH[*]}"
+    run_gate "DISABLE_SQLITE_AUTO_BACKUP=true node --max-old-space-size=8192 --import tsx --import ./open-sse/utils/setupPolyfill.ts --import ./tests/_setup/isolateDataDir.ts --import ./tests/_setup/blockNetwork.ts --test --test-force-exit --test-concurrency=20 ${DASH[*]}"
   fi
   if [ ${#SERIAL[@]} -gt 0 ]; then
-    run_gate "DISABLE_SQLITE_AUTO_BACKUP=true node --max-old-space-size=8192 --import tsx/esm --import ./open-sse/utils/setupPolyfill.ts --import ./tests/_setup/isolateDataDir.ts --test --test-force-exit --test-concurrency=1 ${SERIAL[*]}"
+    run_gate "DISABLE_SQLITE_AUTO_BACKUP=true node --max-old-space-size=8192 --import tsx/esm --import ./open-sse/utils/setupPolyfill.ts --import ./tests/_setup/isolateDataDir.ts --import ./tests/_setup/blockNetwork.ts --test --test-force-exit --test-concurrency=1 ${SERIAL[*]}"
   fi
   if [ ${#MAIN[@]} -eq 0 ] && [ ${#DASH[@]} -eq 0 ] && [ ${#SERIAL[@]} -eq 0 ]; then
     echo "[merge-train] (fast) no changed node:test files under tests/unit — static gates + vitest only"
