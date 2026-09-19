@@ -34,6 +34,7 @@ import { useOpenRouterPresetControl } from "../OpenRouterPresetInput";
 import WebSessionCredentialGuide from "../WebSessionCredentialGuide";
 import HarImportButton from "../HarImportButton";
 import CcCompatibleRequestDefaultsFields from "./CcCompatibleRequestDefaultsFields";
+import ProviderKeySourceLink from "./ProviderKeySourceLink";
 import { buildAddProviderSpecificData } from "./connectionProviderSpecificData";
 import { getCommandCodeAuthPhaseLabel } from "./commandCodeAuthPhase";
 import { computeConnectionDefaultName } from "./computeConnectionDefaultName";
@@ -823,6 +824,9 @@ export default function AddApiKeyModal({
                   </div>
                 );
               })()}
+            {/* Where this key comes from. Web-session providers already get the
+                prominent "Open ‹host›" link at the top of the dialog (#6268). */}
+            {!webProviderHostLink && <ProviderKeySourceLink providerId={provider} t={t} />}
             {isChatGptWebCodex && (
               <div className="space-y-3 rounded-lg border border-border bg-surface/40 p-3">
                 <div>
