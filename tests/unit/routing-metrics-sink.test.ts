@@ -274,6 +274,21 @@ test("Prometheus rendering emits HELP/TYPE, cumulative buckets and escaped label
     gauges: [{ name: "g", help: "h", series: [{ labels: { k: 'a"b\\c' }, value: 1 }] }],
   });
   assert.ok(gaugeText.includes('g{k="a\\"b\\\\c"} 1'));
+
+  // A raw CR or LF inside a label value would end the exposition line early and let the rest be
+  // read as a fabricated metric, so both must leave the value as an escape sequence.
+  const controlText = renderPrometheusText({
+    counters: [],
+    histograms: [],
+    gauges: [{ name: "g", help: "h", series: [{ labels: { k: "a\r\nb" }, value: 1 }] }],
+  });
+  assert.ok(controlText.includes('g{k="a\\r\\nb"} 1'));
+  assert.equal(controlText.includes("\r"), false, "no raw CR survives into the exposition");
+  assert.equal(
+    controlText.split("\n").some((line) => line.trim() === 'b"} 1'),
+    false,
+    "the label value cannot break out onto its own line"
+  );
 });
 
 test("registry reset clears counters, histograms and window", () => {

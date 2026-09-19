@@ -19,9 +19,12 @@ import os from "node:os";
 import {
   getLockfileLintConfig,
   buildLockfileLintArgs,
+  getLockfileLintCommand,
   getWorkspaceDependencyCheckCommand,
+  runLockfileLint,
   runWorkspaceDependencyCheck,
 } from "../../../scripts/check/check-lockfile.mjs";
+import { existsSync } from "node:fs";
 
 // ---------------------------------------------------------------------------
 // getLockfileLintConfig
@@ -43,6 +46,16 @@ test("getLockfileLintConfig: lockfilePath points to package-lock.json", () => {
     cfg.lockfilePath.endsWith("package-lock.json"),
     `lockfilePath should end with package-lock.json, got: ${cfg.lockfilePath}`
   );
+});
+
+test("getLockfileLintConfig: lockfilePath uses forward slashes so the glob is not escaped", () => {
+  const cfg = getLockfileLintConfig();
+  assert.equal(
+    cfg.lockfilePath.includes("\\"),
+    false,
+    "lockfile-lint globs --path; a backslash is an escape there, so a native Windows path never matches"
+  );
+  assert.ok(existsSync(cfg.lockfilePath), "a forward-slash absolute path still resolves on disk");
 });
 
 test("getLockfileLintConfig: type is npm", () => {
@@ -184,6 +197,82 @@ test("buildLockfileLintArgs: --allowed-hosts values follow immediately after the
   assert.ok(hostIdx !== -1, "--allowed-hosts should be present");
   assert.equal(args[hostIdx + 1], "npm");
   assert.equal(args[hostIdx + 2], "verdaccio");
+});
+
+// ---------------------------------------------------------------------------
+// invoking lockfile-lint
+// ---------------------------------------------------------------------------
+
+test("getLockfileLintCommand: runs the package JS entry point with the current node binary", () => {
+  const command = getLockfileLintCommand();
+  assert.equal(
+    command.command,
+    process.execPath,
+    "node_modules/.bin/lockfile-lint is an extensionless shim Windows cannot spawn"
+  );
+  assert.ok(command.args.length >= 1, "the JS entry point is the first argument");
+  assert.ok(
+    String(command.args[0]).endsWith(".js"),
+    `expected a .js entry point, got ${String(command.args[0])}`
+  );
+  assert.ok(existsSync(String(command.args[0])), "the resolved entry point exists on disk");
+});
+
+test("runLockfileLint: ENOENT is reported as not-runnable, never as a policy violation", () => {
+  const result = runLockfileLint(getLockfileLintConfig(), {
+    execFile: () => {
+      throw Object.assign(new Error("spawnSync ENOENT"), { code: "ENOENT" });
+    },
+  });
+  assert.equal(result.ok, false);
+  assert.equal(
+    result.kind,
+    "not-runnable",
+    "a runner that cannot start says nothing about the lockfile"
+  );
+});
+
+test("runLockfileLint: a run that never finishes is not-runnable, not a policy violation", () => {
+  const result = runLockfileLint(getLockfileLintConfig(), {
+    execFile: () => {
+      throw Object.assign(new Error("timed out"), { code: "ETIMEDOUT" });
+    },
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.kind, "not-runnable");
+});
+
+test("runLockfileLint: a non-zero exit with diagnostics is a policy violation", () => {
+  const result = runLockfileLint(getLockfileLintConfig(), {
+    execFile: () => {
+      throw Object.assign(new Error("exit 1"), {
+        status: 1,
+        stdout: "detected non-https url",
+        stderr: "",
+      });
+    },
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.kind, "violation");
+  assert.equal(result.stdout, "detected non-https url");
+});
+
+test("runLockfileLint: passes the policy argv to the resolved command and reports success", () => {
+  const calls: unknown[][] = [];
+  const cfg = getLockfileLintConfig();
+  const result = runLockfileLint(cfg, {
+    execFile: (...args: unknown[]) => {
+      calls.push(args);
+      return "✔ lockfile is valid";
+    },
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.kind, "ok");
+  assert.equal(calls[0]?.[0], process.execPath);
+  const argv = calls[0]?.[1] as string[];
+  for (const arg of buildLockfileLintArgs(cfg)) {
+    assert.ok(argv.includes(arg), `argv should carry ${arg}`);
+  }
 });
 
 // ---------------------------------------------------------------------------

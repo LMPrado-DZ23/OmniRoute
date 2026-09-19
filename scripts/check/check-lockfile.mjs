@@ -23,6 +23,14 @@ import { pathToFileURL } from "node:url";
 
 const ROOT = process.cwd();
 
+/** Longest a lockfile-lint run may take before the gate calls it stuck rather than violating. */
+const LOCKFILE_LINT_TIMEOUT_MS = 120_000;
+
+/** Rewrites a native path with forward slashes, which every platform accepts and globs do not escape. */
+export function toPosixPath(value) {
+  return value.split(path.sep).join("/");
+}
+
 /**
  * Returns the canonical lockfile-lint configuration used by this gate.
  * Exporting this object makes the policy auditable and unit-testable without
@@ -38,7 +46,11 @@ const ROOT = process.cwd();
  */
 export function getLockfileLintConfig() {
   return {
-    lockfilePath: path.join(ROOT, "package-lock.json"),
+    // lockfile-lint resolves --path as a glob, where a backslash is an escape character. An
+    // absolute Windows path (C:\...\package-lock.json) therefore matches nothing and the tool
+    // walks the tree looking for it instead of failing, so the gate hangs. Forward slashes are a
+    // valid absolute path on Windows too, and are a no-op on POSIX.
+    lockfilePath: toPosixPath(path.join(ROOT, "package-lock.json")),
     type: "npm",
     validateHttps: true,
     validateIntegrity: true,
@@ -65,6 +77,97 @@ export function buildLockfileLintArgs(cfg) {
     args.push("--allowed-hosts", ...cfg.allowedHosts);
   }
   return args;
+}
+
+/**
+ * Resolves how to invoke the lockfile-lint CLI.
+ *
+ * `node_modules/.bin/lockfile-lint` is an extensionless shell shim: on Windows `execFileSync`
+ * cannot spawn it and raises ENOENT, which the gate used to report as "lockfile-lint found policy
+ * violations" with empty output — pointing at supply-chain poisoning that does not exist. The
+ * package's own JS entry point is run with the current Node binary instead, on every platform.
+ *
+ * @param {string} [root]
+ * @returns {{ command: string | null, args: string[], entry: string | null }}
+ */
+export function getLockfileLintCommand(root = ROOT) {
+  const unavailable = { command: null, args: [], entry: null };
+  const packageDir = path.join(root, "node_modules", "lockfile-lint");
+  const manifestPath = path.join(packageDir, "package.json");
+  if (!fs.existsSync(manifestPath)) return unavailable;
+
+  let manifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  } catch {
+    return unavailable;
+  }
+  const declared =
+    typeof manifest.bin === "string" ? manifest.bin : (manifest.bin?.["lockfile-lint"] ?? null);
+  if (typeof declared !== "string" || declared.length === 0) return unavailable;
+
+  const entry = path.join(packageDir, declared);
+  if (!fs.existsSync(entry)) return unavailable;
+  return { command: process.execPath, args: [entry], entry };
+}
+
+/**
+ * Runs lockfile-lint against `cfg`.
+ *
+ * `kind` separates the two failures the gate used to merge into one message:
+ *   - "violation"     — lockfile-lint ran and rejected the lockfile (a real policy finding)
+ *   - "not-runnable"  — the runner itself never started (ENOENT, or the package is missing),
+ *                       which says nothing at all about the lockfile
+ *
+ * @param {ReturnType<typeof getLockfileLintConfig>} cfg
+ * @param {{ execFile?: typeof execFileSync, command?: ReturnType<typeof getLockfileLintCommand> }} [options]
+ * @returns {{ ok: boolean, kind: "ok" | "violation" | "not-runnable", stdout: string, stderr: string, detail: string }}
+ */
+export function runLockfileLint(cfg, options = {}) {
+  const { execFile = execFileSync, command = getLockfileLintCommand() } = options;
+  if (command.command === null) {
+    return {
+      ok: false,
+      kind: "not-runnable",
+      stdout: "",
+      stderr: "",
+      detail: `lockfile-lint entry point not found under ${path.join(ROOT, "node_modules", "lockfile-lint")}`,
+    };
+  }
+
+  try {
+    const stdout = execFile(command.command, [...command.args, ...buildLockfileLintArgs(cfg)], {
+      encoding: "utf8",
+      timeout: LOCKFILE_LINT_TIMEOUT_MS,
+    });
+    return { ok: true, kind: "ok", stdout: stdout ?? "", stderr: "", detail: "" };
+  } catch (err) {
+    if (err.code === "ENOENT") {
+      return {
+        ok: false,
+        kind: "not-runnable",
+        stdout: "",
+        stderr: "",
+        detail: `could not spawn ${command.command} ${command.args.join(" ")}`,
+      };
+    }
+    if (err.code === "ETIMEDOUT") {
+      return {
+        ok: false,
+        kind: "not-runnable",
+        stdout: "",
+        stderr: "",
+        detail: `lockfile-lint did not finish within ${LOCKFILE_LINT_TIMEOUT_MS}ms`,
+      };
+    }
+    return {
+      ok: false,
+      kind: "violation",
+      stdout: err.stdout ?? "",
+      stderr: err.stderr ?? "",
+      detail: "",
+    };
+  }
 }
 
 /**
@@ -139,27 +242,22 @@ function main() {
     process.exit(1);
   }
 
-  const bin = path.join(ROOT, "node_modules", ".bin", "lockfile-lint");
-  if (!fs.existsSync(bin)) {
+  const result = runLockfileLint(cfg);
+
+  if (result.kind === "not-runnable") {
     console.error(
-      `[check-lockfile] FAIL — lockfile-lint binary not found at:\n  ${bin}\n` +
+      "[check-lockfile] FAIL — lockfile-lint could not be started, so the lockfile was NOT checked.\n" +
+        `  ${result.detail}\n` +
+        "  This is a runner problem, not a lockfile policy violation.\n" +
         "  → Run `npm install` to install dev dependencies"
     );
     process.exit(1);
   }
 
-  const args = buildLockfileLintArgs(cfg);
-
-  try {
-    const output = execFileSync(bin, args, { encoding: "utf8" });
-    // lockfile-lint outputs a green ✔ message on success
-    console.log("[check-lockfile] OK —", output.trim());
-  } catch (err) {
-    const stdout = err.stdout ?? "";
-    const stderr = err.stderr ?? "";
+  if (result.kind === "violation") {
     console.error("[check-lockfile] FAIL — lockfile-lint found policy violations:");
-    if (stdout) console.error(stdout);
-    if (stderr) console.error(stderr);
+    if (result.stdout) console.error(result.stdout);
+    if (result.stderr) console.error(result.stderr);
     console.error(
       "\n  Possible causes:\n" +
         "  • A package was resolved from a non-HTTPS URL (http:// poisoning attempt)\n" +
@@ -170,6 +268,9 @@ function main() {
     );
     process.exit(1);
   }
+
+  // lockfile-lint outputs a green ✔ message on success
+  console.log("[check-lockfile] OK —", result.stdout.trim());
 
   const workspaceResult = runWorkspaceDependencyCheck();
   if (workspaceResult.ok) {
