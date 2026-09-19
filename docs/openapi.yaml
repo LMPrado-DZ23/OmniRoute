@@ -8160,8 +8160,12 @@ paths:
       summary: Get telemetry summary
       description: >-
         Returns aggregated telemetry data including request metrics and performance stats.
-        Always requires management auth (dashboard session or a manage-scoped API key),
-        even when requireLogin is disabled — enforced by the handler.
+        Management-scoped. When login is required, an anonymous caller gets 401 and a
+        key without the manage scope gets 403 (enforced by the central middleware and,
+        as defence in depth, by the handler). With requireLogin disabled — the
+        documented local-only mode, where the whole management surface is open — the
+        route answers anonymous callers, so the dashboard telemetry card works on
+        keyless installs. Unlike /api/metrics it is intentionally not always-protected.
       security:
         - BearerAuth: []
       responses:

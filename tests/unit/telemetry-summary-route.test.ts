@@ -6,24 +6,6 @@ import { RequestTelemetry, recordTelemetry } from "../../src/shared/utils/reques
 import { clearQuotaMonitors, startQuotaMonitor } from "../../open-sse/services/quotaMonitor.ts";
 import { clearSessions, touchSession } from "../../open-sse/services/sessionManager.ts";
 
-// The route always requires management auth (even under requireLogin=false), so
-// these payload-semantics tests authenticate the way a scraper does: with a
-// manage-scoped API key. The auth contract itself is pinned in
-// tests/unit/api/stable-candidates/core-read-contract.test.ts.
-process.env.API_KEY_SECRET ||= "telemetry-summary-route-test-secret";
-let manageKey = "";
-
-test.before(async () => {
-  const apiKeysDb = await import("../../src/lib/db/apiKeys.ts");
-  manageKey = (await apiKeysDb.createApiKey("telemetry-route", "test", ["manage"])).key;
-});
-
-function telemetryRequest(windowMs: number): Request {
-  return new Request(`http://localhost:20128/api/telemetry/summary?windowMs=${windowMs}`, {
-    headers: { Authorization: `Bearer ${manageKey}` },
-  });
-}
-
 test.afterEach(() => {
   clearQuotaMonitors();
   clearSessions();
@@ -40,7 +22,9 @@ test("telemetry summary route includes totalRequests alias plus session/quota mo
     providerSpecificData: { quotaMonitorEnabled: true },
   });
 
-  const response = await GET(telemetryRequest(600000));
+  const response = await GET(
+    new Request("http://localhost:20128/api/telemetry/summary?windowMs=600000")
+  );
   const payload = (await response.json()) as any;
 
   assert.equal(response.status, 200);
@@ -55,7 +39,9 @@ test("errorRate is failed/routed requests in the window, not quota-monitor error
   const { createRoutingEvent } = await import("../../open-sse/services/routing/events.ts");
   routingMetrics.reset();
 
-  const empty = (await (await GET(telemetryRequest(300000))).json()) as { errorRate: number };
+  const empty = (await (
+    await GET(new Request("http://localhost:20128/api/telemetry/summary?windowMs=300000"))
+  ).json()) as { errorRate: number };
   assert.equal(empty.errorRate, 0);
 
   const base = { requestId: "r", provider: "openai", model: "gpt-4o", latencyMs: 100 };
@@ -66,7 +52,9 @@ test("errorRate is failed/routed requests in the window, not quota-monitor error
   // Neutral outcomes (client cancel) are excluded from the denominator.
   routingMetrics.record(createRoutingEvent({ ...base, outcome: "cancelled", status: null }));
 
-  const response = await GET(telemetryRequest(300000));
+  const response = await GET(
+    new Request("http://localhost:20128/api/telemetry/summary?windowMs=300000")
+  );
   const payload = (await response.json()) as {
     errorRate: number;
     quotaMonitor: { errors: number };

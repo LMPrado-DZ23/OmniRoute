@@ -279,12 +279,21 @@ it("GET /api/telemetry/summary answers 401 to an anonymous caller", async () => 
   assert.equal(response.status, 401);
 });
 
-it("GET /api/telemetry/summary stays 401 for anonymous callers under requireLogin=false", async () => {
+it("GET /api/telemetry/summary is open to anonymous callers under requireLogin=false", async () => {
+  // Intended, not an oversight: requireLogin=false is the documented local-only
+  // mode in which the whole management surface is open, and the dashboard
+  // TelemetryCard (which has no session cookie in that mode) must keep working.
+  // Unlike /api/metrics, this route deliberately does not use alwaysRequireAuth.
   await settingsDb.updateSettings({ requireLogin: false });
+  const savedPassword = process.env.INITIAL_PASSWORD;
+  delete process.env.INITIAL_PASSWORD;
   try {
     const response = await telemetryRoute.GET(req("http://localhost/api/telemetry/summary"));
-    assert.equal(response.status, 401, "error rates and volume are never anonymous");
+    assert.equal(response.status, 200);
+    const body = await readJson<{ uptime: number }>(response);
+    assert.equal(typeof body.uptime, "number");
   } finally {
+    process.env.INITIAL_PASSWORD = savedPassword;
     await settingsDb.updateSettings({ requireLogin: true });
   }
 });

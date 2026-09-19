@@ -8,13 +8,16 @@ import { requireManagementAuth } from "@/lib/api/requireManagementAuth";
 /**
  * GET /api/telemetry/summary — request volume, latency and routed error rate.
  *
- * Always requires management auth (dashboard session or a `manage`-scoped API
- * key), even under requireLogin=false: error rates and request volume are as
- * sensitive as the provider/model data /api/metrics protects. Same pattern as
- * /api/metrics and the routing-decision lookup (finding NEW-4, #42).
+ * Management-scoped, with the default requireManagementAuth options: when login
+ * is required, an anonymous caller gets 401 and an under-scoped key 403; with
+ * requireLogin=false the route is open like the rest of the management surface
+ * (the documented local-only mode), so the dashboard TelemetryCard keeps
+ * working on keyless installs. Deliberately NOT `alwaysRequireAuth` (unlike
+ * /api/metrics, which the dashboard never calls). The handler-level check is
+ * defence in depth behind the central authz middleware.
  */
 export async function GET(request: Request) {
-  const authError = await requireManagementAuth(request, { alwaysRequireAuth: true });
+  const authError = await requireManagementAuth(request);
   if (authError) return authError;
 
   try {
