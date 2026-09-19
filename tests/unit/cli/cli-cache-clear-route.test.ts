@@ -1,8 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { runCacheClearCommand } from "../../../bin/cli/commands/cache.mjs";
+// The route-backed helper must load first: it blocks the network before any
+// route (and open-sse/utils/proxyFetch.ts) can be imported.
 import { installRouteBackedFetch } from "./_helpers/routeBackedFetch.ts";
+import { runCacheClearCommand } from "../../../bin/cli/commands/cache.mjs";
 
 // `omniroute cache clear` used to POST /api/cache/clear, a route that never
 // existed. The full clear is DELETE /api/cache (what the dashboard's cache page
