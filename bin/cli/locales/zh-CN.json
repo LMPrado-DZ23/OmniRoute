@@ -521,10 +521,11 @@
     "description": "管理 OmniRoute 技能（沙箱、内置、自定义、混合、skillssh）",
     "list": {
       "description": "列出已安装的技能",
-      "type": "按类型筛选（sandbox|custom|builtin|hybrid|skillssh）",
+      "query": "按名称或描述过滤",
+      "source": "按来源过滤（skillsmp|skillssh|local）",
       "enabled": "仅显示已启用的技能",
       "disabled": "仅显示已禁用的技能",
-      "api_key": "按 API 密钥筛选"
+      "limit": "每页最大结果数"
     },
     "get": {
       "description": "按 ID 获取技能详情"
@@ -600,12 +601,13 @@
       "token_budget": "限制结果中的总令牌数"
     },
     "add": {
-      "description": "添加新的记忆条目",
-      "content": "记忆文本内容",
+      "description": "新增一条记忆",
+      "content": "记忆的文本内容",
+      "key": "条目的唯一键（必填）",
       "file": "从文件读取内容",
-      "type": "记忆类型（默认：user）",
+      "type": "类型：factual、episodic、procedural 或 semantic",
       "metadata": "JSON 元数据对象",
-      "api_key": "关联到 API 密钥"
+      "api_key": "关联到某个 API 密钥 id"
     },
     "clear": {
       "description": "删除匹配筛选条件的记忆条目",
@@ -947,8 +949,8 @@
       "description": "向节点发送测试请求"
     },
     "metrics": {
-      "description": "显示节点指标",
-      "period": "时间范围（例如 24h, 7d）"
+      "description": "显示节点的请求指标（全时段，来自调用日志）",
+      "none": "{id} 没有记录任何指标"
     }
   },
   "context": {
@@ -973,11 +975,15 @@
         "reservePct": "保留百分比"
       },
       "filters": {
-        "description": "管理 RTK 过滤器",
-        "pattern": "过滤器模式（正则）",
-        "priority": "过滤器优先级（默认：100）",
-        "action": "过滤器操作：drop|shrink|replace",
-        "yes": "跳过确认"
+        "description": "查看并导入 RTK 过滤器目录",
+        "list": {
+          "description": "列出已加载的 RTK 过滤器"
+        },
+        "import": {
+          "description": "校验（或安装）filters.toml 包",
+          "install": "安装该包，而不是仅做校验",
+          "overwrite": "替换已有的 filters.toml（会保留 .bak 备份）"
+        }
       },
       "test": {
         "file": "请求 JSON 文件路径"

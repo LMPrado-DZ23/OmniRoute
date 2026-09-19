@@ -24,8 +24,6 @@ import { ROOT, matchRoute, relativeToRoot as rel, toApiPathname } from "./_helpe
 // fails as stale, and a new mismatch fails outright.
 
 const KNOWN_BROKEN = new Set([
-  "bin/cli/commands/context-eng.mjs::DELETE /api/context/rtk/filters/{}",
-  "bin/cli/commands/context-eng.mjs::POST /api/context/rtk/filters",
   "bin/cli/commands/eval.mjs::GET /api/evals/suites",
   "bin/cli/commands/eval.mjs::POST /api/evals/{}",
   "bin/cli/commands/keys.mjs::DELETE /api/v1/providers/keys/{}",
@@ -38,16 +36,11 @@ const KNOWN_BROKEN = new Set([
   "bin/cli/commands/keys.mjs::POST /api/v1/registered-keys/{}/regenerate",
   "bin/cli/commands/keys.mjs::POST /api/v1/registered-keys/{}/rotate",
   "bin/cli/commands/mcp.mjs::POST /api/mcp/restart",
-  "bin/cli/commands/memory.mjs::DELETE /api/memory",
-  "bin/cli/commands/nodes.mjs::GET /api/provider-nodes/{}",
   "bin/cli/commands/oauth.mjs::POST /api/providers/{}/auth/apply",
   "bin/cli/commands/oauth.mjs::POST /api/providers/{}/auth/start",
   "bin/cli/commands/oneproxy.mjs::PUT /api/settings/oneproxy",
   "bin/cli/commands/pricing.mjs::PUT /api/pricing/defaults",
-  "bin/cli/commands/quota.mjs::GET /api/quota",
-  "bin/cli/commands/quota.mjs::GET /api/v1/providers",
   "bin/cli/commands/sessions.mjs::DELETE /api/sessions",
-  "bin/cli/commands/skills.mjs::GET /api/skills/{}",
   "bin/cli/commands/sync.mjs::POST /api/db-backups/exportAll",
   "bin/cli/commands/tags.mjs::DELETE /api/tags",
   "bin/cli/commands/tags.mjs::POST /api/tags",

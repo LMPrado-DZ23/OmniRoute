@@ -523,10 +523,11 @@
     "description": "Manage OmniRoute skills (sandbox, builtin, custom, hybrid, skillssh)",
     "list": {
       "description": "List installed skills",
-      "type": "Filter by type (sandbox|custom|builtin|hybrid|skillssh)",
+      "query": "Filter by name or description",
+      "source": "Filter by source (skillsmp|skillssh|local)",
       "enabled": "Show only enabled skills",
       "disabled": "Show only disabled skills",
-      "api_key": "Filter by API key"
+      "limit": "Maximum results per page"
     },
     "get": {
       "description": "Get details for a skill by ID"
@@ -604,10 +605,11 @@
     "add": {
       "description": "Add a new memory entry",
       "content": "Memory text content",
+      "key": "Unique key for the entry (required)",
       "file": "Read content from file",
-      "type": "Memory type (default: user)",
+      "type": "Memory type: factual, episodic, procedural or semantic",
       "metadata": "JSON metadata object",
-      "api_key": "Associate with API key"
+      "api_key": "Associate with an API key id"
     },
     "clear": {
       "description": "Delete memory entries matching filters",
@@ -966,8 +968,8 @@
       "description": "Send test request to node"
     },
     "metrics": {
-      "description": "Show node metrics",
-      "period": "Time period (e.g. 24h, 7d)"
+      "description": "Show request metrics for a node (all-time, from the call log)",
+      "none": "No metrics recorded for {id}"
     }
   },
   "context": {
@@ -992,11 +994,15 @@
         "reservePct": "Reserve percentage"
       },
       "filters": {
-        "description": "Manage RTK filters",
-        "pattern": "Filter pattern (regex)",
-        "priority": "Filter priority (default: 100)",
-        "action": "Filter action: drop|shrink|replace",
-        "yes": "Skip confirmation"
+        "description": "Inspect and import the RTK filter catalog",
+        "list": {
+          "description": "List the loaded RTK filters"
+        },
+        "import": {
+          "description": "Validate (or install) a filters.toml bundle",
+          "install": "Install the bundle instead of only validating it",
+          "overwrite": "Replace an existing filters.toml (a .bak copy is kept)"
+        }
       },
       "test": {
         "file": "Path to request JSON file"

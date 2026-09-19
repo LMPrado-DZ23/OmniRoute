@@ -523,10 +523,11 @@
     "description": "Gerenciar skills do OmniRoute (sandbox, builtin, custom, hybrid, skillssh)",
     "list": {
       "description": "Listar skills instaladas",
-      "type": "Filtrar por tipo (sandbox|custom|builtin|hybrid|skillssh)",
+      "query": "Filtrar por nome ou descrição",
+      "source": "Filtrar por origem (skillsmp|skillssh|local)",
       "enabled": "Mostrar apenas skills habilitadas",
       "disabled": "Mostrar apenas skills desabilitadas",
-      "api_key": "Filtrar por chave de API"
+      "limit": "Máximo de resultados por página"
     },
     "get": {
       "description": "Obter detalhes de uma skill por ID"
@@ -602,12 +603,13 @@
       "token_budget": "Limitar total de tokens nos resultados"
     },
     "add": {
-      "description": "Adicionar nova entrada de memória",
+      "description": "Adicionar uma nova memória",
       "content": "Conteúdo textual da memória",
-      "file": "Ler conteúdo de arquivo",
-      "type": "Tipo de memória (padrão: user)",
+      "key": "Chave única da entrada (obrigatória)",
+      "file": "Ler o conteúdo de um arquivo",
+      "type": "Tipo: factual, episodic, procedural ou semantic",
       "metadata": "Objeto JSON de metadados",
-      "api_key": "Associar a chave de API"
+      "api_key": "Associar ao id de uma chave de API"
     },
     "clear": {
       "description": "Deletar entradas de memória que correspondem aos filtros",
@@ -966,8 +968,8 @@
       "description": "Enviar requisição de teste ao node"
     },
     "metrics": {
-      "description": "Exibir métricas do node",
-      "period": "Período de tempo (ex: 24h, 7d)"
+      "description": "Mostrar métricas de requisições do node (desde sempre, do log de chamadas)",
+      "none": "Nenhuma métrica registrada para {id}"
     }
   },
   "context": {
@@ -992,11 +994,15 @@
         "reservePct": "Percentual de reserva"
       },
       "filters": {
-        "description": "Gerenciar filtros RTK",
-        "pattern": "Padrão do filtro (regex)",
-        "priority": "Prioridade do filtro (padrão: 100)",
-        "action": "Ação: drop|shrink|replace",
-        "yes": "Pular confirmação"
+        "description": "Inspecionar e importar o catálogo de filtros do RTK",
+        "list": {
+          "description": "Listar os filtros RTK carregados"
+        },
+        "import": {
+          "description": "Validar (ou instalar) um pacote filters.toml",
+          "install": "Instalar o pacote em vez de apenas validar",
+          "overwrite": "Substituir um filters.toml existente (uma cópia .bak é mantida)"
+        }
       },
       "test": {
         "file": "Caminho para arquivo JSON de requisição"

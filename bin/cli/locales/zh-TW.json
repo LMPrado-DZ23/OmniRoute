@@ -521,10 +521,11 @@
     "description": "管理 OmniRoute 技能（沙箱、內建、自定義、混合、skillssh）",
     "list": {
       "description": "列出已安裝的技能",
-      "type": "按型別篩選（sandbox|custom|builtin|hybrid|skillssh）",
+      "query": "依名稱或描述過濾",
+      "source": "依來源過濾（skillsmp|skillssh|local）",
       "enabled": "僅顯示已啟用的技能",
       "disabled": "僅顯示已停用的技能",
-      "api_key": "按 API 金鑰篩選"
+      "limit": "每頁最大結果數"
     },
     "get": {
       "description": "按 ID 獲取技能詳情"
@@ -600,12 +601,13 @@
       "token_budget": "限制結果中的總權杖數"
     },
     "add": {
-      "description": "新增新的記憶條目",
-      "content": "記憶文本內容",
+      "description": "新增一筆記憶",
+      "content": "記憶的文字內容",
+      "key": "項目的唯一鍵（必填）",
       "file": "從檔案讀取內容",
-      "type": "記憶型別（預設：user）",
-      "metadata": "JSON 後設資料物件",
-      "api_key": "關聯到 API 金鑰"
+      "type": "類型：factual、episodic、procedural 或 semantic",
+      "metadata": "JSON 中繼資料物件",
+      "api_key": "關聯到某個 API 金鑰 id"
     },
     "clear": {
       "description": "刪除匹配篩選條件的記憶條目",
@@ -947,8 +949,8 @@
       "description": "向節點發送測試請求"
     },
     "metrics": {
-      "description": "顯示節點指標",
-      "period": "時間範圍（例如 24h, 7d）"
+      "description": "顯示節點的請求指標（全時段，來自呼叫紀錄）",
+      "none": "{id} 沒有記錄任何指標"
     }
   },
   "context": {
@@ -973,11 +975,15 @@
         "reservePct": "保留百分比"
       },
       "filters": {
-        "description": "管理 RTK 過濾器",
-        "pattern": "過濾器模式（正則）",
-        "priority": "過濾器優先順序（預設：100）",
-        "action": "過濾器操作：drop|shrink|replace",
-        "yes": "跳過確認"
+        "description": "檢視並匯入 RTK 過濾器目錄",
+        "list": {
+          "description": "列出已載入的 RTK 過濾器"
+        },
+        "import": {
+          "description": "驗證（或安裝）filters.toml 套件",
+          "install": "安裝該套件，而不是只做驗證",
+          "overwrite": "取代既有的 filters.toml（會保留 .bak 備份）"
+        }
       },
       "test": {
         "file": "請求 JSON 檔案路徑"

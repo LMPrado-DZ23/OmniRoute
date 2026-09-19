@@ -57,31 +57,49 @@ const marketplaceSchema = [
   { key: "author", header: "Author", width: 18 },
 ];
 
+/** The catalog route understands q / mode / source / page / limit only. */
+function skillListParams(opts) {
+  const params = new URLSearchParams();
+  if (opts.query) params.set("q", opts.query);
+  if (opts.source) params.set("source", opts.source);
+  if (opts.enabled) params.set("mode", "on");
+  if (opts.disabled) params.set("mode", "off");
+  if (opts.limit) params.set("limit", String(opts.limit));
+  return params;
+}
+
 export async function runSkillsList(opts, cmd) {
   const globalOpts = cmd.optsWithGlobals();
-  const params = new URLSearchParams();
-  if (opts.type) params.set("type", opts.type);
-  if (opts.enabled) params.set("enabled", "true");
-  if (opts.disabled) params.set("enabled", "false");
-  if (opts.apiKey) params.set("apiKey", opts.apiKey);
+  const res = await apiFetch(`/api/skills?${skillListParams(opts)}`);
+  if (!res.ok) {
+    process.stderr.write(`Error: ${res.status}\n`);
+    process.exit(1);
+  }
+  const data = await res.json();
+  emit(data.skills ?? data.data ?? data, globalOpts, skillSchema);
+}
+
+// /api/skills/{id} exports DELETE and PUT only — there is no single-skill GET,
+// so read the catalog and pick the entry, the way the dashboard list does.
+export async function runSkillsGet(id, opts, cmd) {
+  const globalOpts = cmd.optsWithGlobals();
+  const params = new URLSearchParams({ q: id, limit: "200" });
   const res = await apiFetch(`/api/skills?${params}`);
   if (!res.ok) {
     process.stderr.write(`Error: ${res.status}\n`);
     process.exit(1);
   }
   const data = await res.json();
-  emit(data.items ?? data, globalOpts, skillSchema);
-}
-
-export async function runSkillsGet(id, opts, cmd) {
-  const globalOpts = cmd.optsWithGlobals();
-  const res = await apiFetch(`/api/skills/${id}`);
-  if (!res.ok) {
+  const catalog = data.skills ?? data.data ?? [];
+  const skill = (Array.isArray(catalog) ? catalog : []).find(
+    (entry) => entry.id === id || entry.name === id
+  );
+  if (!skill) {
     process.stderr.write(`Not found: ${id}\n`);
     process.exit(1);
+    return;
   }
-  const data = await res.json();
-  emit(data, globalOpts, skillSchema);
+  emit(skill, globalOpts, skillSchema);
 }
 
 export async function runSkillsInstall(opts, cmd) {
@@ -143,7 +161,7 @@ export async function runSkillsExecute(id, opts, cmd) {
   const data = await mcpCallTool(
     "omniroute_skills_execute",
     { skillId: id, input },
-    { timeout: opts.timeout ?? 30000 },
+    { timeout: opts.timeout ?? 30000 }
   );
   emit(data, globalOpts);
 }
@@ -300,10 +318,11 @@ export function registerSkills(program) {
   skills
     .command("list")
     .description(t("skills.list.description"))
-    .option("--type <type>", t("skills.list.type"))
+    .option("--query <text>", t("skills.list.query"))
+    .option("--source <source>", t("skills.list.source"))
     .option("--enabled", t("skills.list.enabled"))
     .option("--disabled", t("skills.list.disabled"))
-    .option("--api-key <key>", t("skills.list.api_key"))
+    .option("--limit <n>", t("skills.list.limit"), parseInt)
     .action(runSkillsList);
 
   skills.command("get <id>").description(t("skills.get.description")).action(runSkillsGet);
