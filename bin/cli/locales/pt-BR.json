@@ -433,11 +433,11 @@
       "description": "Gerenciar estatísticas de combos de compressão"
     },
     "rules": {
-      "description": "Gerenciar regras de compressão",
-      "add": {
-        "pattern": "Padrão para corresponder (regex ou campo:padrão)",
-        "action": "Ação: drop|shrink|replace"
-      }
+      "description": "Inspecionar as regras de compressão embutidas no engine",
+      "list": {
+        "description": "Listar as regras caveman embutidas"
+      },
+      "readOnly": "As regras são embutidas no engine e não podem ser criadas nem removidas. Para ignorar uma regra ou proteger trechos, use cavemanConfig.skipRules / preservePatterns em Configurações → Compressão."
     },
     "language_packs": {
       "description": "Listar language packs de compressão disponíveis"
@@ -1073,14 +1073,11 @@
     "noCombos": "Nenhum combo configurado.",
     "confirmDelete": "Remover combo {name}?",
     "suggest": {
-      "description": "Sugerir o melhor combo para uma tarefa usando scoring de IA",
-      "task": "Descrição da tarefa",
+      "description": "Recomendar um combo para um tipo de tarefa (MCP omniroute_best_combo_for_task)",
+      "taskType": "Tipo de tarefa: coding, review, planning, analysis, debugging ou documentation",
       "maxCost": "Custo máximo por requisição em USD",
       "maxLatencyMs": "Latência máxima em milissegundos",
-      "weights": "Pesos JSON ex: {\"latency\":0.7,\"cost\":0.3}",
-      "top": "Número de candidatos a exibir (padrão: 5)",
-      "explain": "Imprimir justificativa no stderr",
-      "switch": "Ativar o combo mais bem classificado"
+      "useHint": "Para usá-lo, envie \"model\": \"{name}\" nas suas requisições — combos são escolhidos por requisição, pelo nome."
     }
   },
   "oneproxy": {

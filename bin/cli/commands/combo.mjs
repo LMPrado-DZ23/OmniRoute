@@ -24,67 +24,78 @@ const VALID_STRATEGIES = [
   "reset-aware",
 ];
 
+// omniroute_best_combo_for_task answers with a recommendation plus
+// alternatives (open-sse/mcp-server/schemas/tools.ts::bestComboForTaskOutput),
+// not a scored candidate list.
 const suggestSchema = [
   { key: "rank", header: "#" },
   { key: "name", header: "Combo", width: 24 },
-  { key: "strategy", header: "Strategy", width: 16 },
-  { key: "score", header: "Score", formatter: (v) => (v != null ? v.toFixed(3) : "-") },
-  { key: "latencyP50Ms", header: "Latency P50", formatter: (v) => (v != null ? `${v}ms` : "-") },
-  { key: "costPer1k", header: "Cost/1k", formatter: (v) => (v != null ? `$${v.toFixed(5)}` : "-") },
+  { key: "kind", header: "Kind", width: 14 },
   {
-    key: "rationale",
-    header: "Rationale",
-    width: 40,
+    key: "why",
+    header: "Why",
+    width: 48,
     formatter: (v) => {
       if (!v) return "-";
       const s = String(v);
-      return s.length > 40 ? s.slice(0, 39) + "…" : s;
+      return s.length > 48 ? s.slice(0, 47) + "\u2026" : s;
     },
   },
 ];
+
+export const TASK_TYPES = [
+  "coding",
+  "review",
+  "planning",
+  "analysis",
+  "debugging",
+  "documentation",
+];
+
+/** Flattens the tool's recommendation + alternatives + free option into rows. */
+export function suggestRows(data) {
+  const rows = [];
+  if (data?.recommendedCombo?.name) {
+    rows.push({
+      rank: 1,
+      name: data.recommendedCombo.name,
+      kind: "recommended",
+      why: data.recommendedCombo.reason,
+    });
+  }
+  for (const alt of Array.isArray(data?.alternatives) ? data.alternatives : []) {
+    if (!alt?.name) continue;
+    rows.push({ rank: rows.length + 1, name: alt.name, kind: "alternative", why: alt.tradeoff });
+  }
+  if (data?.freeAlternative?.name) {
+    rows.push({ rank: rows.length + 1, name: data.freeAlternative.name, kind: "free", why: "" });
+  }
+  return rows;
+}
 
 export function extendComboSuggest(combo) {
   combo
     .command("suggest")
     .description(t("combo.suggest.description"))
-    .requiredOption("--task <description>", t("combo.suggest.task"))
+    .addOption(
+      new Option("--task-type <type>", t("combo.suggest.taskType"))
+        .choices(TASK_TYPES)
+        .makeOptionMandatory()
+    )
     .option("--max-cost <usd>", t("combo.suggest.maxCost"), parseFloat)
     .option("--max-latency-ms <ms>", t("combo.suggest.maxLatencyMs"), parseInt)
-    .option("--weights <json>", t("combo.suggest.weights"))
-    .option("--top <n>", t("combo.suggest.top"), parseInt, 5)
-    .option("--explain", t("combo.suggest.explain"))
-    .option("--switch", t("combo.suggest.switch"))
     .action(async (opts, cmd) => {
-      const body = {
-        task: opts.task,
-        constraints: {
-          maxCostUsd: opts.maxCost,
-          maxLatencyMs: opts.maxLatencyMs,
-        },
-        weights: opts.weights ? JSON.parse(opts.weights) : undefined,
-        top: opts.top,
-      };
-      const data = await mcpCallTool("omniroute_best_combo_for_task", body);
-      const candidates = data.candidates ?? data;
-      const rows = (Array.isArray(candidates) ? candidates : []).map((c, i) => ({
-        rank: i + 1,
-        ...c,
-      }));
+      const data = await mcpCallTool("omniroute_best_combo_for_task", {
+        taskType: opts.taskType,
+        ...(opts.maxCost != null ? { budgetConstraint: opts.maxCost } : {}),
+        ...(opts.maxLatencyMs != null ? { latencyConstraint: opts.maxLatencyMs } : {}),
+      });
+      const rows = suggestRows(data);
       emit(rows, cmd.optsWithGlobals(), suggestSchema);
-      if (opts.explain && !cmd.optsWithGlobals().quiet) {
-        process.stderr.write(`\nRationale:\n${data.rationale ?? "(no rationale)"}\n`);
-      }
-      if (opts.switch && rows[0]) {
-        const best = rows[0].name;
-        const switchRes = await apiFetch("/api/combos/switch", {
-          method: "POST",
-          body: { name: best },
-        });
-        if (!switchRes.ok) {
-          process.stderr.write(`Switch failed: ${switchRes.status}\n`);
-          process.exit(1);
-        }
-        process.stderr.write(`\nSwitched to: ${best}\n`);
+      // There is no "active combo": a combo is chosen per request by sending its
+      // name as the model (src/sse/services/model.ts resolves it with getComboByName).
+      if (rows[0]?.name && !cmd.optsWithGlobals().quiet) {
+        process.stderr.write(`\n${t("combo.suggest.useHint", { name: rows[0].name })}\n`);
       }
     });
 }

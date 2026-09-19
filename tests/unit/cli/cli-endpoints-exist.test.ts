@@ -24,9 +24,6 @@ import { ROOT, matchRoute, relativeToRoot as rel, toApiPathname } from "./_helpe
 // fails as stale, and a new mismatch fails outright.
 
 const KNOWN_BROKEN = new Set([
-  "bin/cli/commands/combo.mjs::POST /api/combos/switch",
-  "bin/cli/commands/compression.mjs::DELETE /api/compression/rules",
-  "bin/cli/commands/compression.mjs::POST /api/compression/rules",
   "bin/cli/commands/context-eng.mjs::DELETE /api/context/rtk/filters/{}",
   "bin/cli/commands/context-eng.mjs::POST /api/context/rtk/filters",
   "bin/cli/commands/eval.mjs::GET /api/evals/suites",

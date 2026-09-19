@@ -150,6 +150,13 @@ export async function runCompressionPreview(opts, cmd) {
   }
 }
 
+const rulesSchema = [
+  { key: "name", header: "Rule", width: 28 },
+  { key: "category", header: "Category", width: 14 },
+  { key: "minIntensity", header: "Min intensity", width: 14 },
+  { key: "description", header: "Description", width: 44 },
+];
+
 export function registerCompression(program) {
   const cmp = program.command("compression").description(t("compression.description"));
 
@@ -193,46 +200,26 @@ export function registerCompression(program) {
       emit(data, cmd.optsWithGlobals());
     });
 
-  const rules = cmp.command("rules").description(t("compression.rules.description"));
-  rules.command("list").action(async (opts, cmd) => {
-    const res = await apiFetch("/api/compression/rules");
-    if (!res.ok) {
-      process.stderr.write(`Error: ${res.status}\n`);
-      process.exit(1);
-    }
-    emit(await res.json(), cmd.optsWithGlobals());
-  });
+  // The rules are the engine's built-in caveman rules
+  // (open-sse/services/compression/cavemanRules.ts): GET /api/compression/rules
+  // returns their metadata and there is no create/delete route, because a user
+  // cannot define a rule. Tuning happens through cavemanConfig.skipRules and
+  // preservePatterns on the compression settings.
+  const rules = cmp
+    .command("rules")
+    .description(t("compression.rules.description"))
+    .addHelpText("after", `\n${t("compression.rules.readOnly")}\n`);
   rules
-    .command("add")
-    .requiredOption("--pattern <p>", t("compression.rules.add.pattern"))
-    .requiredOption("--action <a>", t("compression.rules.add.action"))
-    .option("--replacement <r>")
+    .command("list")
+    .description(t("compression.rules.list.description"))
     .action(async (opts, cmd) => {
-      const body = { pattern: opts.pattern, action: opts.action };
-      if (opts.replacement) body.replacement = opts.replacement;
-      const res = await apiFetch("/api/compression/rules", { method: "POST", body });
+      const res = await apiFetch("/api/compression/rules");
       if (!res.ok) {
         process.stderr.write(`Error: ${res.status}\n`);
         process.exit(1);
       }
-      emit(await res.json(), cmd.optsWithGlobals());
-    });
-  rules
-    .command("remove <id>")
-    .option("--yes")
-    .action(async (id, opts, cmd) => {
-      if (!opts.yes) {
-        const ok = await confirm(`Remove rule ${id}?`);
-        if (!ok) return;
-      }
-      const res = await apiFetch(`/api/compression/rules?id=${encodeURIComponent(id)}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        process.stderr.write(`Error: ${res.status}\n`);
-        process.exit(1);
-      }
-      process.stdout.write("Removed\n");
+      const data = await res.json();
+      emit(data.rules ?? data, cmd.optsWithGlobals(), rulesSchema);
     });
 
   cmp

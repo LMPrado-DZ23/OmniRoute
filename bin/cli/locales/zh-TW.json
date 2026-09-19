@@ -431,11 +431,11 @@
       "description": "管理壓縮組合統計"
     },
     "rules": {
-      "description": "管理壓縮規則",
-      "add": {
-        "pattern": "要匹配的模式（正則或 field:pattern）",
-        "action": "操作：drop|shrink|replace"
-      }
+      "description": "檢視引擎內建的壓縮規則",
+      "list": {
+        "description": "列出內建的 caveman 規則"
+      },
+      "readOnly": "規則內建於引擎中，無法新增或刪除。要略過某條規則或保護文字，請在設定 → 壓縮中設定 cavemanConfig.skipRules / preservePatterns。"
     },
     "language_packs": {
       "description": "列出可用的壓縮語言包"
@@ -1054,14 +1054,11 @@
     "noCombos": "未配置組合。",
     "confirmDelete": "刪除組合 {name}？",
     "suggest": {
-      "description": "使用 AI 評分為任務推薦最佳組合",
-      "task": "任務描述",
+      "description": "為某類任務推薦組合（MCP omniroute_best_combo_for_task）",
+      "taskType": "任務類型：coding、review、planning、analysis、debugging 或 documentation",
       "maxCost": "每次請求的最大成本（美元）",
       "maxLatencyMs": "最大延遲（毫秒）",
-      "weights": "JSON 評分權重，例如 {\"latency\":0.7,\"cost\":0.3}",
-      "top": "要顯示的候選數（預設：5）",
-      "explain": "將理由列印到 stderr",
-      "switch": "啟用排名最高的組合"
+      "useHint": "要使用它，請在請求中傳送 \"model\": \"{name}\" —— 組合依名稱逐請求選擇。"
     }
   },
   "oneproxy": {

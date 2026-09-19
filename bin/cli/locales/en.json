@@ -433,11 +433,11 @@
       "description": "Manage compression combo statistics"
     },
     "rules": {
-      "description": "Manage compression rules",
-      "add": {
-        "pattern": "Pattern to match (regex or field:pattern)",
-        "action": "Action: drop|shrink|replace"
-      }
+      "description": "Inspect the engine's built-in compression rules",
+      "list": {
+        "description": "List the built-in caveman rules"
+      },
+      "readOnly": "Rules are built into the engine and cannot be created or deleted. To skip one or protect text, set cavemanConfig.skipRules / preservePatterns in Settings → Compression."
     },
     "language_packs": {
       "description": "List available compression language packs"
@@ -1073,14 +1073,11 @@
     "noCombos": "No combos configured.",
     "confirmDelete": "Delete combo {name}?",
     "suggest": {
-      "description": "Suggest the best combo for a task using AI scoring",
-      "task": "Task description",
+      "description": "Recommend a combo for a task type (MCP omniroute_best_combo_for_task)",
+      "taskType": "Task type: coding, review, planning, analysis, debugging or documentation",
       "maxCost": "Maximum cost per request in USD",
       "maxLatencyMs": "Maximum latency in milliseconds",
-      "weights": "JSON scoring weights e.g. {\"latency\":0.7,\"cost\":0.3}",
-      "top": "Number of top candidates to show (default: 5)",
-      "explain": "Print rationale to stderr",
-      "switch": "Activate the top-ranked combo"
+      "useHint": "To use it, send \"model\": \"{name}\" in your requests — combos are selected per request by name."
     }
   },
   "oneproxy": {

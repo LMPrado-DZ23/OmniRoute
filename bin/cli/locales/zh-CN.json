@@ -431,11 +431,11 @@
       "description": "管理压缩组合统计"
     },
     "rules": {
-      "description": "管理压缩规则",
-      "add": {
-        "pattern": "要匹配的模式（正则或 field:pattern）",
-        "action": "操作：drop|shrink|replace"
-      }
+      "description": "查看引擎内置的压缩规则",
+      "list": {
+        "description": "列出内置的 caveman 规则"
+      },
+      "readOnly": "规则内置于引擎中，无法新增或删除。要跳过某条规则或保护文本，请在设置 → 压缩中配置 cavemanConfig.skipRules / preservePatterns。"
     },
     "language_packs": {
       "description": "列出可用的压缩语言包"
@@ -1054,14 +1054,11 @@
     "noCombos": "未配置组合。",
     "confirmDelete": "删除组合 {name}？",
     "suggest": {
-      "description": "使用 AI 评分为任务推荐最佳组合",
-      "task": "任务描述",
+      "description": "为某类任务推荐组合（MCP omniroute_best_combo_for_task）",
+      "taskType": "任务类型：coding、review、planning、analysis、debugging 或 documentation",
       "maxCost": "每次请求的最大成本（美元）",
       "maxLatencyMs": "最大延迟（毫秒）",
-      "weights": "JSON 评分权重，例如 {\"latency\":0.7,\"cost\":0.3}",
-      "top": "要显示的候选数（默认：5）",
-      "explain": "将理由打印到 stderr",
-      "switch": "激活排名最高的组合"
+      "useHint": "要使用它，请在请求中发送 \"model\": \"{name}\" —— 组合按名称逐请求选择。"
     }
   },
   "oneproxy": {
