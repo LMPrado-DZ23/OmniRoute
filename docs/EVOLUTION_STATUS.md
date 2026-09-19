@@ -198,7 +198,11 @@ images are digest-pinned. Measured on the release tree with `npm audit --omit=de
 | Tree                | info | low | moderate | high  | critical |
 | ------------------- | ---- | --- | -------- | ----- | -------- |
 | Root production     | 0    | 0   | 0        | **0** | **0**    |
-| Electron production | 0    | 0   | 0        | **1** | **0**    |
+| Electron production | 0    | 0   | 0        | **0** | **0**    |
+
+Re-measured on 2026-09-19 after the `js-yaml` fix below. The Electron tree is also clean in the
+full run that includes dev dependencies (`npm audit --package-lock-only`: 0 across every
+severity).
 
 The verification round caught this claim being stale: a second, higher advisory on `adm-zip`
 (GHSA-7q85-xj36-vmfc, high, fixed in 0.6.1) had appeared in the root production tree through the
@@ -206,9 +210,13 @@ optional `@huggingface/transformers` → `onnxruntime-node` chain, while the reg
 was none. It was fixed rather than re-documented — a lockfile-only bump to 0.6.1 inside the existing
 `^0.6.0` override, a three-line diff that took root production from `high: 1, moderate: 2` to zero.
 
-The remaining `high` is accepted as residual: `js-yaml` 4.3.1, register id **R-10**, reachable only
-from the Electron shell's update-check chain. It is not in the container image, the npm package or
-the server runtime, and clearing it needs an Electron lockfile refresh that is out of scope here.
+The last remaining `high` was then cleared the same way rather than carried: `js-yaml` 4.3.1, register
+id **R-10**, reachable only from the Electron shell's update-check chain (`electron-updater` 6.8.9 →
+`js-yaml`), never in the container image, the npm package or the server runtime. A lockfile-only bump
+to 4.3.2 inside the existing `^4.2.0` override took Electron production from `high: 1` to zero, and
+the shared hoisted copy meant it cleared the dev-tree `electron-builder` entries too. `package.json`
+is unchanged; the diff is five lines of `electron/package-lock.json`. **No advisory is accepted as
+residual in either shipped production tree.**
 
 ## Phase 11: documentation
 
@@ -265,7 +273,7 @@ have been irreversible or contract-breaking in a patch release.
 | The in-memory decision store grows under a burst of wide candidate pools                          | Low        | Memory pressure on the server process                         | Bounded by count, by a 32 MB byte budget and by a 30-minute TTL; candidates are compacted before storage                                                         |
 | An operator enables SLO webhook alerts and gets paged by a breach that is really an idle provider | Low        | Alert fatigue                                                 | An idle open breaker reports `insufficient_data` instead of breaching; alert state resets when alerting is toggled                                               |
 | A routing decision id is guessed and read by another caller                                       | Low        | Disclosure of routing metadata (never prompts or credentials) | Management auth on the lookup route; identical `404` for unknown and malformed ids                                                                               |
-| The Electron `js-yaml` advisory (R-10) is exploited                                               | Low        | Build-chain only; no server or dashboard exposure             | Recorded in the vulnerability register; a lockfile-only refresh is planned                                                                                       |
+| The Electron `js-yaml` advisory (R-10) is exploited                                               | Closed     | Build-chain only; no server or dashboard exposure             | **Fixed** 2026-09-19: lockfile-only bump to `js-yaml` 4.3.2; Electron production audit is now clean                                                              |
 | The 151 OpenAPI-covered routes without a contract test drift from the served contract             | Medium     | Documentation and SDKs disagree with the server               | The governance baseline tracks them and cannot grow; the SDK drift test covers the documented surface                                                            |
 | A gate or test run without isolated `DATA_DIR`/`HOME` touches a developer's real database         | Medium     | Unintended migration on a production install                  | Every command in this release exported isolated `DATA_DIR`, `HOME`, `USERPROFILE` and `APPDATA`; `tests/_setup/isolateDataDir.ts` enforces it in the test runner |
 
@@ -274,7 +282,9 @@ have been irreversible or contract-breaking in a patch release.
 - The **workspace and budget hierarchy** is designed but not implemented (Phase 8 ADR).
 - **151 routes** are covered by OpenAPI but have no contract test referencing them yet; the
   governance baseline tracks them.
-- The **`js-yaml` R-10** advisory in the Electron chain is accepted as residual.
+- ~~The **`js-yaml` R-10** advisory in the Electron chain is accepted as residual.~~ Fixed
+  2026-09-19 — `js-yaml` 4.3.2, lockfile only. No advisory is accepted as residual in either
+  shipped production tree.
 - A live **latency budget** is not enforced per candidate; the contract documents exactly what live
   traffic does enforce, and the remaining work depends on decomposing `open-sse/services/combo.ts`.
 - Accessibility was gated on login, dashboard, providers and settings; combos, logs and onboarding
