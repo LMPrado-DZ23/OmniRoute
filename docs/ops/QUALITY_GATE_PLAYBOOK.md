@@ -85,8 +85,36 @@ alignment signal (we didn't copy a checklist; we converged on the right practice
 5. **🟡 Runtime security is nightly-only.** schemathesis/garak/promptfoo/chaos/k6 run at night.
    Correct decision (slow, need a live server), but a PR can introduce an injection-guard regression
    that only gets caught the following night.
-6. **🟡 Branch-protection on `main` is OFF.** `BRANCH_LOCK_TOKEN` locks _release_ branches, but
-   `main` itself is unprotected. Scorecard/DSOMM ding. Owner action required.
+6. **🟡 Branch protection is owner-blocked, and it is wider than this line used to say.**
+   `BRANCH_LOCK_TOKEN` is **not set**, so `lock-released-branch` fails on every release and no
+   release branch is locked automatically — v3.8.54 shipped with the branch still writable, and
+   it was locked by hand afterwards. `main` is unprotected too. Only the repository owner can fix
+   the root cause: `GITHUB_TOKEN` cannot be granted the `Administration` scope, so the lock needs
+   a PAT or fine-grained token with `Administration: read & write`, stored as the repository
+   secret `BRANCH_LOCK_TOKEN`. Until then, lock each released branch manually right after
+   publishing the Release:
+
+   ```bash
+   gh api -X PUT "repos/<owner>/<repo>/branches/release%2Fv<X.Y.Z>/protection" --input - <<'JSON'
+   {
+     "required_status_checks": null,
+     "enforce_admins": true,
+     "required_pull_request_reviews": null,
+     "restrictions": null,
+     "lock_branch": true,
+     "allow_force_pushes": false,
+     "allow_deletions": false
+   }
+   JSON
+   ```
+
+   Confirm it took, because a silent failure here is what caused the v3.8.3 incident:
+
+   ```bash
+   gh api "repos/<owner>/<repo>/branches/release%2Fv<X.Y.Z>/protection" \
+     --jq '{lock_branch:.lock_branch.enabled, enforce_admins:.enforce_admins.enabled}'
+   ```
+
 7. **🟡 CodeQL default-setup; semgrep not codified.** default-setup works (0 alerts), but a
    committed `codeql.yml` gives more control; semgrep runs via an external cloud platform, not
    versioned in the repo.
