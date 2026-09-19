@@ -6357,6 +6357,8 @@
     "bedrockModelPlaceholder": "antropik.claude-sonnet-4-6",
     "addProviderSessionCookieTitle": "Tambahkan {provider} kuki sesi",
     "openWebProviderSite": "Buka {host}",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "Tambahkan {provider} token web",
     "addProviderConnectionTitle": "Tambahkan sambungan {provider}",
     "webTokenCredentialLabel": "Token sesi web",

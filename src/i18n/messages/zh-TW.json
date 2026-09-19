@@ -6357,6 +6357,8 @@
     "bedrockModelPlaceholder": "人類.克勞德十四行詩-4-6",
     "addProviderSessionCookieTitle": "新增 {provider} 會話 cookie",
     "openWebProviderSite": "開啟 {host}",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "新增 {provider} 網路權杖",
     "addProviderConnectionTitle": "新增 {provider} 連線",
     "webTokenCredentialLabel": "網路會話權杖",

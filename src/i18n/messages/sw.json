@@ -6357,6 +6357,8 @@
     "bedrockModelPlaceholder": "anthropic.claude-sonnet-4-6",
     "addProviderSessionCookieTitle": "Ongeza {provider} kidakuzi cha kipindi",
     "openWebProviderSite": "Fungua {host}",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "Ongeza {provider} tokeni ya wavuti",
     "addProviderConnectionTitle": "Ongeza muunganisho wa {provider}",
     "webTokenCredentialLabel": "Ishara ya kikao cha wavuti",
