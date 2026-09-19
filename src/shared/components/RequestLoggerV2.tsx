@@ -1061,7 +1061,7 @@ const RequestLoggerV2 = forwardRef<RequestLoggerV2Handle, { initialSelectedId?: 
               </span>
             )}
             {apiKeyCount > 0 && (
-              <span className="px-2 py-1 rounded bg-primary/10 text-primary font-mono">
+              <span className="px-2 py-1 rounded bg-primary/10 text-primary-on-tint font-mono">
                 {apiKeyCount} {t("keys")}
               </span>
             )}
@@ -1193,7 +1193,7 @@ const RequestLoggerV2 = forwardRef<RequestLoggerV2Handle, { initialSelectedId?: 
               onClick={() => toggleColumn(col.key)}
               className={`px-2 py-0.5 rounded text-[10px] font-medium border transition-all ${
                 visibleColumns[col.key]
-                  ? "bg-primary/15 text-primary border-primary/30"
+                  ? "bg-primary/15 text-primary-on-tint border-primary/30"
                   : "bg-bg-subtle text-text-muted border-border opacity-50 hover:opacity-80"
               }`}
             >
