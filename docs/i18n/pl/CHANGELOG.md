@@ -8,6 +8,22 @@
 
 ---
 
+## [3.8.55] — TBD
+
+_Follow-up to the 3.8.54 evolution release: the gaps that release documented as known limits, and the release-automation defects its own publication exposed._
+
+### 🐛 Bug Fixes
+
+- **fix(ci):** a GitHub Release can no longer publish to npm on its own. Publishing the v3.8.54 Release started `npm-publish.yml` through its `release:` trigger and it went for `npm publish` of `omniroute`, a package upstream owns; it was cancelled by hand. The only brake skipped when the version was *already* on npm, which never holds for a fork running ahead of upstream. A `gate` job now makes every publishing job depend on the `ENABLE_NPM_PUBLISH` repository variable, and a test rejects a bare `needs:` as a guard ([#44](https://github.com/LMPrado-DZ23/OmniRoute/pull/44))
+- **fix(deps):** `js-yaml` 4.3.1 → 4.3.2 in the Electron chain (via `electron-updater`), clearing advisory R-10 — the Electron production audit is now zero advisories of any severity ([#47](https://github.com/LMPrado-DZ23/OmniRoute/pull/47))
+- **fix(docs):** the README and the Docker guide still said no versioned release existed and sent users to the mutable `:next` tag; they now point at `:latest` and the immutable `:X.Y.Z`, every channel was pulled anonymously before the text was written, and `:main` / `:main-web` are stated plainly as not published ([#45](https://github.com/LMPrado-DZ23/OmniRoute/pull/45))
+
+### 📝 Maintenance
+
+- **feat(release):** `npm run release:lock -- <version>` locks a released branch and **re-reads the protection from GitHub**, exiting non-zero unless it is genuinely locked. `lock-released-branch.yml` cannot run until the `BRANCH_LOCK_TOKEN` secret exists, and the quality playbook, which claimed release branches were being locked, is corrected ([#44](https://github.com/LMPrado-DZ23/OmniRoute/pull/44), [#46](https://github.com/LMPrado-DZ23/OmniRoute/pull/46))
+
+---
+
 ## [3.8.54] — 2026-09-19
 
 _Evolution release of the `LMPrado-DZ23/OmniRoute` fork: the phased stabilization and evolution plan tracked in `docs/EVOLUTION_STATUS.md`. HTTP contracts are kept; new fields, headers and endpoints are additive, and behavior that could surprise an existing installation is opt-in._
