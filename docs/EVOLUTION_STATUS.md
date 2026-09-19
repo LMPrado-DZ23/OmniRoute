@@ -50,8 +50,10 @@ The consolidated result is in
 
 ## Phase 0: diagnosis
 
-- Toolchain: Node v24.16.0 (inside the supported `>=24.0.0 <27` range), npm 11.13.0,
-  `package-lock.json`.
+- Toolchain: Node v24.16.0, npm 11.13.0. The declared `engines` range is
+  `>=22.22.2 <23 || >=24.0.0 <27`; which of those majors is tested per PR, tested nightly or
+  only declared is in [the compatibility matrix](reference/COMPATIBILITY_MATRIX.md), and
+  `npm run check:node-runtime` exits non-zero outside the range. Lockfile: `package-lock.json`.
 - Inventory: 3400 files in `src/`, 5736 in `tests/`, 709 `route.ts` files under `src/app/api`.
 - Baseline before any change:
 
