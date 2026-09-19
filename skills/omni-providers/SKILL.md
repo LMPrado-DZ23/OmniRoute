@@ -231,17 +231,6 @@ curl -X PUT https://localhost:20128/api/provider-nodes/{id} \
   -d '{}'
 ```
 
-### PATCH /api/provider-nodes/{id}
-
-Update provider node
-
-```bash
-curl -X PATCH https://localhost:20128/api/provider-nodes/{id} \
-  -H "Authorization: Bearer $OMNIROUTE_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{}'
-```
-
 ### DELETE /api/provider-nodes/{id}
 
 Delete provider node

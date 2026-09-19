@@ -61,15 +61,6 @@ export function register_oauth(parent) {
       const data = res.ok ? await res.json() : await res.text();
       emit(data, gOpts);
     });
-  tag.command("get-api-oauth-kiro-import")
-    .description("Get Kiro import status")
-    .action(async (opts, cmd) => {
-      const gOpts = cmd.optsWithGlobals();
-      let url = "/api/oauth/kiro/import";
-      const res = await apiFetch(url, { method: "GET", baseUrl: gOpts.baseUrl, apiKey: gOpts.apiKey });
-      const data = res.ok ? await res.json() : await res.text();
-      emit(data, gOpts);
-    });
   tag.command("post-api-oauth-kiro-import")
     .description("Import Kiro OAuth credentials")
     .option("--body <jsonOrPath>", "JSON body or @path/to/file.json")

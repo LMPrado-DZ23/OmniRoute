@@ -129,84 +129,18 @@ omniroute policy
 
 ### `policy list`
 
-**Flags:**
-
-- `--kind <k>`
-- `--scope <s>`
-
 **Example:**
 
 ```bash
 omniroute policy list
 ```
 
-### `policy get <id>`
+### `policy unlock <identifier>`
 
 **Example:**
 
 ```bash
-omniroute policy get <id>
-```
-
-### `policy create`
-
-**Example:**
-
-```bash
-omniroute policy create
-```
-
-### `policy update <id>`
-
-**Example:**
-
-```bash
-omniroute policy update <id>
-```
-
-### `policy delete <id>`
-
-**Flags:**
-
-- `--yes`
-
-**Example:**
-
-```bash
-omniroute policy delete <id>
-```
-
-### `policy evaluate`
-
-**Flags:**
-
-- `--resource <r>`
-- `--context <json>`
-
-**Example:**
-
-```bash
-omniroute policy evaluate
-```
-
-### `policy export <file>`
-
-**Example:**
-
-```bash
-omniroute policy export <file>
-```
-
-### `policy import <file>`
-
-**Flags:**
-
-- `--overwrite`
-
-**Example:**
-
-```bash
-omniroute policy import <file>
+omniroute policy unlock <identifier>
 ```
 
 ### `telemetry`

@@ -268,17 +268,6 @@ curl -X PUT https://localhost:20128/api/settings/proxy \
   -d '{}'
 ```
 
-### PATCH /api/settings/proxy
-
-Update proxy settings
-
-```bash
-curl -X PATCH https://localhost:20128/api/settings/proxy \
-  -H "Authorization: Bearer $OMNIROUTE_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{}'
-```
-
 ### DELETE /api/settings/proxy
 
 DELETE settings › proxy
