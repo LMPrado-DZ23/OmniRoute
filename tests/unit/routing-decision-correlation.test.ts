@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { makeManagementSessionRequest } from "../helpers/managementSession.ts";
 
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-routing-correlation-"));
 process.env.DATA_DIR = TEST_DATA_DIR;
@@ -120,10 +121,8 @@ test("the handler runs inside the stamped request id and the response gets decis
   assertNoSecrets(headerText, "response headers");
 
   const lookup = await getDecision(
-    new Request(`http://localhost/api/omniroute/route/decisions/req-corr-1`),
-    {
-      params: Promise.resolve({ id: "req-corr-1" }),
-    }
+    await makeManagementSessionRequest("http://localhost/api/omniroute/route/decisions/req-corr-1"),
+    { params: Promise.resolve({ id: "req-corr-1" }) }
   );
   assert.equal(lookup.status, 200);
   const body = (await lookup.json()) as { decision: { decisionId: string; requestId: string } };
@@ -148,11 +147,28 @@ test("a decision id does not answer for a different request id", () => {
   assert.equal(response.headers.get("x-omniroute-decision-id"), null);
 });
 
+test("an anonymous caller is refused even when requireLogin is off", async () => {
+  recordRoutingDecision(storedDecision("rd_anon", "req-anon"));
+  const anonymous = await getDecision(
+    new Request("http://localhost/api/omniroute/route/decisions/req-anon"),
+    { params: Promise.resolve({ id: "req-anon" }) }
+  );
+  assert.ok(
+    anonymous.status === 401 || anonymous.status === 403,
+    `expected the lookup to be refused, got ${anonymous.status}`
+  );
+  assert.ok(
+    !JSON.stringify(await anonymous.json()).includes("rd_anon"),
+    "a refused lookup must not leak the decision"
+  );
+});
+
 test("unknown and malformed ids get the same 404", async () => {
-  const lookup = (id: string) =>
-    getDecision(new Request("http://localhost/api/omniroute/route/decisions/x"), {
-      params: Promise.resolve({ id }),
-    });
+  const lookup = async (id: string) =>
+    getDecision(
+      await makeManagementSessionRequest("http://localhost/api/omniroute/route/decisions/x"),
+      { params: Promise.resolve({ id }) }
+    );
   const unknown = await lookup("req-does-not-exist");
   const malformed = await lookup("bad id\r\nx-injected: 1");
   assert.equal(unknown.status, 404);
