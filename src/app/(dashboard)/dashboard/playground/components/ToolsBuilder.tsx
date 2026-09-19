@@ -185,7 +185,7 @@ export default function ToolsBuilder({ toolsBuilder }: ToolsBuilderProps) {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleUpdate(idx)}
-                        className="text-xs px-2.5 py-1 rounded bg-primary text-white hover:bg-primary/90 transition-colors"
+                        className="text-xs px-2.5 py-1 rounded bg-primary text-on-primary hover:bg-primary/90 transition-colors"
                       >
                         {t("save")}
                       </button>
@@ -243,7 +243,7 @@ export default function ToolsBuilder({ toolsBuilder }: ToolsBuilderProps) {
 
         <button
           onClick={handleAdd}
-          className="text-xs px-3 py-1.5 rounded bg-primary text-white hover:bg-primary/90 transition-colors self-start"
+          className="text-xs px-3 py-1.5 rounded bg-primary text-on-primary hover:bg-primary/90 transition-colors self-start"
         >
           + {t("addTool")}
         </button>

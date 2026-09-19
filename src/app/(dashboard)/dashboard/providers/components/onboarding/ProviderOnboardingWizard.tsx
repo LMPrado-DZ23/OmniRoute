@@ -330,7 +330,7 @@ export function ResultSummary({
               detailsHref && (
                 <Link
                   href={detailsHref}
-                  className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+                  className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-primary/90"
                 >
                   {providerText(t, "onboardingOpenProviderDetails", "Open provider details")}
                 </Link>

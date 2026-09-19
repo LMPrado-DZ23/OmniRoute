@@ -238,7 +238,7 @@ export default function ProviderUtilizationTab() {
               type="button"
               onClick={handleRetry}
               disabled={retrying}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {retrying ? (
                 <>

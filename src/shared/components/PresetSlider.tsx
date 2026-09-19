@@ -33,7 +33,7 @@ export default function PresetSlider({
               "px-3 py-1.5 text-xs font-medium rounded-full transition-colors",
               "border",
               value === preset.value
-                ? "bg-primary text-white border-primary"
+                ? "bg-primary text-on-primary border-primary"
                 : "bg-transparent text-text-muted border-black/10 dark:border-white/10 hover:border-primary/30 hover:text-text-main"
             )}
           >

@@ -429,7 +429,7 @@ export default function FreePoolTab() {
                 onClick={() => handlePageChange(p)}
                 className={`px-2.5 py-1 text-xs rounded ${
                   p === page
-                    ? "bg-primary text-white font-medium"
+                    ? "bg-primary text-on-primary font-medium"
                     : "hover:bg-black/5 dark:hover:bg-white/5"
                 }`}
               >

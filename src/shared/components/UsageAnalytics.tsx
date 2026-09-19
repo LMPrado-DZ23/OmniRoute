@@ -223,7 +223,7 @@ export default function UsageAnalytics() {
                 onClick={() => handleRangeSelect(r.value)}
                 className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
                   range === r.value
-                    ? "bg-primary text-white shadow-sm"
+                    ? "bg-primary text-on-primary shadow-sm"
                     : "text-text-muted hover:text-text-main hover:bg-black/5 dark:hover:bg-white/5"
                 }`}
               >
@@ -234,7 +234,7 @@ export default function UsageAnalytics() {
               onClick={() => handleRangeSelect("custom")}
               className={`px-3 py-1 rounded-md text-xs font-semibold transition-all flex items-center gap-1 ${
                 range === "custom"
-                  ? "bg-primary text-white shadow-sm"
+                  ? "bg-primary text-on-primary shadow-sm"
                   : "text-text-muted hover:text-text-main hover:bg-black/5 dark:hover:bg-white/5"
               }`}
             >

@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { THEME_CONFIG } from "@/shared/constants/appConfig";
+import { getContrastRatio } from "@/shared/utils/a11yAudit";
 
 interface ThemeState {
   theme: string;
@@ -94,15 +95,39 @@ function applyColorTheme(colorTheme: string, customColor: string) {
   if (usesDefaultPreset) {
     root.style.removeProperty("--color-primary");
     root.style.removeProperty("--color-primary-hover");
+    root.style.removeProperty("--color-on-primary");
     return;
   }
 
   const baseColor =
     colorTheme === "custom" ? normalizeHexColor(customColor) : COLOR_THEMES[colorTheme];
-  const hoverColor = shadeHexColor(baseColor, -0.14);
+  // The inline preset beats the theme-aware tokens in BOTH themes, so the text colour on a
+  // primary surface must be derived from this exact colour. The hover shade moves AWAY
+  // from that text colour (darker under white text, lighter under black text), so the
+  // hover state keeps at least the base colour's contrast.
+  const onPrimary = pickOnPrimary(baseColor);
+  const hoverColor = shadeHexColor(baseColor, onPrimary === ON_PRIMARY_LIGHT ? -0.14 : 0.14);
 
   root.style.setProperty("--color-primary", baseColor);
   root.style.setProperty("--color-primary-hover", hoverColor);
+  root.style.setProperty("--color-on-primary", onPrimary);
+}
+
+/** WCAG 2.x AA minimum for normal-size text (SC 1.4.3). */
+const AA_NORMAL_TEXT = 4.5;
+/** Text on a primary surface: white — the look the app always had — whenever it passes AA. */
+export const ON_PRIMARY_LIGHT = "#ffffff";
+/**
+ * Otherwise pure black. It is the only dark foreground that clears AA on EVERY colour
+ * white fails on: white failing means luminance > 0.183, so black reaches at least 4.67:1.
+ */
+export const ON_PRIMARY_DARK = "#000000";
+
+/** Foreground for text on a solid `primary` surface that meets WCAG AA for that colour. */
+export function pickOnPrimary(primary: string) {
+  return getContrastRatio(ON_PRIMARY_LIGHT, primary) >= AA_NORMAL_TEXT
+    ? ON_PRIMARY_LIGHT
+    : ON_PRIMARY_DARK;
 }
 
 function normalizeHexColor(color: string) {
