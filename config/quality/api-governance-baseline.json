@@ -68,12 +68,6 @@
     "/api/v1/vscode/raw/{token}/v1/models",
     "/api/v1/vscode/{token}/api/chat",
     "/api/v1/vscode/{token}/combos",
-    "/api/version-manager/check-update",
-    "/api/version-manager/install",
-    "/api/version-manager/restart",
-    "/api/version-manager/start",
-    "/api/version-manager/status",
-    "/api/version-manager/stop",
     "/api/vnc-session/{params}"
   ],
   "phantomOperations": []
