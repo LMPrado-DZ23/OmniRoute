@@ -31,6 +31,32 @@ export const authRouteInternals = {
   getCookieStore: cookies,
 };
 
+/**
+ * The address the brute-force guard counts against.
+ *
+ * Behind a reverse proxy the socket peer is the PROXY, not the end user — every client
+ * on the internet presents the same loopback address. Keying the guard on it put them
+ * all in one bucket, so five wrong passwords from anywhere locked the operator out of
+ * their own dashboard for fifteen minutes, renewable indefinitely by a stranger.
+ *
+ * The authz pipeline already made this call for the IP filter —
+ * `checkRequestIP(request, viaProxy ? null : trustedPeerIp)` — and this route simply
+ * never consulted the marker. This is not a brute-force relaxation: with no proxy the
+ * unspoofable socket peer still keys the guard, and `loginGuard`'s own docstring places
+ * volumetric defence at the proxy, which is also where a forged `X-Forwarded-For` has
+ * to be stopped, since a trusted proxy overwrites it rather than appending.
+ */
+export function resolveLoginGuardIp(
+  request: NextRequest,
+  auditIpAddress: string | null
+): string | null {
+  const stampToken = process.env.OMNIROUTE_PEER_STAMP_TOKEN;
+  const trustedPeerIp = stampToken ? request.headers.get(AUTHZ_HEADER_TRUSTED_PEER_IP) : null;
+  const viaProxy = resolveStampedViaProxy(request.headers.get(VIA_PROXY_HEADER), stampToken);
+  if (viaProxy) return auditIpAddress || null;
+  return trustedPeerIp || auditIpAddress || null;
+}
+
 export async function POST(request: NextRequest) {
   const auditContext = getAuditRequestContext(request);
 
@@ -78,26 +104,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid password payload" }, { status: 400 });
     }
     const settings = await getCachedSettings();
-    const trustedPeerIp = process.env.OMNIROUTE_PEER_STAMP_TOKEN
-      ? request.headers.get(AUTHZ_HEADER_TRUSTED_PEER_IP)
-      : null;
-    // Behind a reverse proxy the socket peer is the PROXY, not the end user — every
-    // internet client presents the same loopback address. Keying the brute-force guard
-    // on it put them all in one bucket, so five wrong passwords from anywhere locked
-    // the operator out of their own dashboard for 15 minutes, renewable indefinitely
-    // by a stranger. The authz pipeline already made this exact call for the IP filter
-    // (`checkRequestIP(request, viaProxy ? null : trustedPeerIp)`); this route simply
-    // never consulted the marker. Not a brute-force relaxation: with no proxy the
-    // unspoofable socket peer still keys the guard, and the module's own docstring
-    // places volumetric defence at the proxy, which is where a forged
-    // `X-Forwarded-For` would have to be stopped anyway.
-    const viaProxy = resolveStampedViaProxy(
-      request.headers.get(VIA_PROXY_HEADER),
-      process.env.OMNIROUTE_PEER_STAMP_TOKEN
-    );
-    const clientIp = viaProxy
-      ? auditContext.ipAddress || null
-      : trustedPeerIp || auditContext.ipAddress || null;
+    const clientIp = resolveLoginGuardIp(request, auditContext.ipAddress ?? null);
     const oidcDisabledPassword =
       settings.oidcEnabled === true &&
       (settings.oidcDisablePasswordLogin === true ||

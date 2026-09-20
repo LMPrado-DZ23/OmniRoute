@@ -5,7 +5,7 @@
  * right for a direct connection — it is unspoofable, so an attacker cannot reset their
  * own counter with a forged `X-Forwarded-For`. But behind nginx / Caddy / a cloudflared
  * sidecar the socket peer is the **proxy**, and every client on the internet presents
- * the same loopback address. A security audit demonstrated the consequence: five wrong
+ * the same loopback address. A security audit demonstrated the consequence: four wrong
  * passwords from four different forwarded IPs, then the CORRECT password from a fifth,
  * answered 429. Five wrong guesses every fifteen minutes, from anywhere, keeps the
  * operator permanently out of their own dashboard.
@@ -16,57 +16,101 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import path from "node:path";
 
-const ROUTE = path.join(process.cwd(), "src", "app", "api", "auth", "login", "route.ts");
+import { resolveLoginGuardIp } from "../../../src/app/api/auth/login/route.ts";
 
-test("the login route derives its guard key from the via-proxy marker", () => {
-  const source = fs.readFileSync(ROUTE, "utf8");
+const STAMP_TOKEN = "test-peer-stamp-token";
+const PROXY_PEER = "127.0.0.1";
+const OPERATOR = "198.51.100.9";
+const ATTACKER = "203.0.113.7";
 
-  assert.match(
-    source,
-    /resolveStampedViaProxy\(/,
-    "the route must ask whether the request arrived through a proxy before keying the guard"
+/** A request carrying the stamped headers the custom server writes. */
+function requestWith(headers: Record<string, string>) {
+  return { headers: new Headers(headers) } as unknown as Parameters<typeof resolveLoginGuardIp>[0];
+}
+
+/**
+ * The via-proxy marker is `<token>|1` — the per-process stamp token, a pipe, then the
+ * flag (src/server/authz/peerStamp.ts, resolveStampedViaProxy). A client that knows the
+ * header name but not the token cannot set it.
+ */
+function viaProxyHeaderValue(): string {
+  return `${STAMP_TOKEN}|1`;
+}
+
+const ORIGINAL_TOKEN = process.env.OMNIROUTE_PEER_STAMP_TOKEN;
+
+test.after(() => {
+  if (ORIGINAL_TOKEN === undefined) delete process.env.OMNIROUTE_PEER_STAMP_TOKEN;
+  else process.env.OMNIROUTE_PEER_STAMP_TOKEN = ORIGINAL_TOKEN;
+});
+
+test("direct connection: the unspoofable socket peer keys the guard", () => {
+  process.env.OMNIROUTE_PEER_STAMP_TOKEN = STAMP_TOKEN;
+
+  const key = resolveLoginGuardIp(
+    requestWith({ "x-omniroute-trusted-peer-ip": ATTACKER }),
+    "should-not-be-used"
   );
 
-  // Behind a proxy the end user's address is the forwarded one the audit context
-  // resolved; the socket peer is the proxy hop and must NOT be the key.
-  assert.match(
-    source,
-    /const clientIp = viaProxy\s*\?\s*auditContext\.ipAddress \|\| null\s*:\s*trustedPeerIp \|\| auditContext\.ipAddress \|\| null;/,
-    "behind a proxy the guard must key on the forwarded client address, and only " +
-      "otherwise on the unspoofable socket peer"
-  );
-
-  assert.doesNotMatch(
-    source,
-    /const clientIp = trustedPeerIp \|\| auditContext\.ipAddress \|\| null;/,
-    "the unconditional socket-peer key is the defect: it shares one bucket across the internet"
+  assert.equal(
+    key,
+    ATTACKER,
+    "without a proxy the socket peer is the end user and cannot be forged — keep using it"
   );
 });
 
-test("the guard itself still separates distinct clients", async () => {
+test("no peer stamp at all: falls back to the audit address rather than nothing", () => {
+  delete process.env.OMNIROUTE_PEER_STAMP_TOKEN;
+
+  assert.equal(resolveLoginGuardIp(requestWith({}), OPERATOR), OPERATOR);
+});
+
+test("nothing resolvable: a null key is honest, not an empty-string bucket", () => {
+  delete process.env.OMNIROUTE_PEER_STAMP_TOKEN;
+
+  assert.equal(resolveLoginGuardIp(requestWith({}), null), null);
+});
+
+test("two clients behind one proxy do not share a lockout bucket", () => {
+  process.env.OMNIROUTE_PEER_STAMP_TOKEN = STAMP_TOKEN;
+  const viaProxy = viaProxyHeaderValue();
+
+  // Both requests arrive on the same socket peer — the proxy — which is exactly the
+  // state that made every internet client collide.
+  const headers = {
+    "x-omniroute-trusted-peer-ip": PROXY_PEER,
+    "x-omniroute-via-proxy": viaProxy,
+  };
+
+  const attackerKey = resolveLoginGuardIp(requestWith(headers), ATTACKER);
+  const operatorKey = resolveLoginGuardIp(requestWith(headers), OPERATOR);
+
+  assert.equal(attackerKey, ATTACKER);
+  assert.equal(operatorKey, OPERATOR);
+  assert.notEqual(
+    attackerKey,
+    operatorKey,
+    "with the proxy hop as the key these are the same string, and one stranger's " +
+      "five wrong guesses lock the operator out of their own dashboard"
+  );
+  assert.notEqual(attackerKey, PROXY_PEER, "the proxy hop must never be the key");
+});
+
+test("the guard itself separates distinct keys", async () => {
   const guard = await import("../../../src/server/auth/loginGuard.ts");
   guard.resetLoginGuardForTests();
 
   const enabled = { enabled: true };
   const { FAILURE_THRESHOLD } = guard.LOGIN_GUARD_TUNABLES;
 
-  // One client burns through the threshold.
   for (let i = 0; i < FAILURE_THRESHOLD; i += 1) {
-    guard.recordLoginFailure("203.0.113.7", enabled);
+    guard.recordLoginFailure(ATTACKER, enabled);
   }
-  assert.equal(
-    guard.checkLoginGuard("203.0.113.7", enabled).allowed,
-    false,
-    "the offending client must be locked out"
-  );
 
-  // A different client — the operator — must be unaffected. This is the property the
-  // route's keying decides: with the proxy hop as the key, these two are the same string.
+  assert.equal(guard.checkLoginGuard(ATTACKER, enabled).allowed, false);
   assert.equal(
-    guard.checkLoginGuard("198.51.100.9", enabled).allowed,
+    guard.checkLoginGuard(OPERATOR, enabled).allowed,
     true,
     "a different client must not inherit someone else's lockout"
   );
