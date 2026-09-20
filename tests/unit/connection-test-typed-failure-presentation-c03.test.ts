@@ -132,7 +132,14 @@ test("C-03: presentConnectionTestFailure renders the translated sentence with ho
     { error: "Invalid API key", diagnosis: { type: "upstream_auth_error", code: "401" } },
     { translate, fallback: "Falha no teste" }
   );
-  assert.deepEqual(legacy, { message: "Invalid API key", code: null, detail: null });
+  // `details` carries per-field validation messages; a transport failure has none,
+  // and an empty array rather than undefined is what a caller can spread safely.
+  assert.deepEqual(legacy, {
+    message: "Invalid API key",
+    code: null,
+    detail: null,
+    details: [],
+  });
   assert.equal(
     presentConnectionTestFailure({ valid: false }, { translate, fallback: "Falha no teste" })
       .message,

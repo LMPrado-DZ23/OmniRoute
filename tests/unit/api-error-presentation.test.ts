@@ -53,7 +53,9 @@ test("every mapped code has a translation key in the common.apiErrors namespace"
 
 test("an unknown code or a string error falls through to the server text (no detail duplication)", () => {
   const str = presentApiError({ error: "Unauthorized" }, { translate, fallback: "Fallback" });
-  assert.deepEqual(str, { message: "Unauthorized", code: null, detail: null });
+  // `details` carries the per-field validation messages; neither body here has any,
+  // and an empty array rather than undefined is what a caller can spread safely.
+  assert.deepEqual(str, { message: "Unauthorized", code: null, detail: null, details: [] });
 
   const unknown = presentApiError(
     { error: { code: "SOMETHING_NEW", message: "Something new happened" } },
@@ -63,6 +65,7 @@ test("an unknown code or a string error falls through to the server text (no det
     message: "Something new happened",
     code: "SOMETHING_NEW",
     detail: null,
+    details: [],
   });
 });
 

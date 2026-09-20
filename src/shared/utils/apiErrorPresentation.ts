@@ -32,6 +32,18 @@ export interface PresentedApiError {
   code: string | null;
   /** The technical server text when it differs from `message`; for "show details". */
   detail: string | null;
+  /**
+   * The per-field validation messages of `{ error: { message, details: [...] } }`,
+   * formatted as `field: message`.
+   *
+   * These used to be dropped on the floor. A short password answered
+   * `400 { error: { message: "Invalid request", details: [{ field: "password",
+   * message: "Password must be at least 4 characters" }] } }`, the caller rendered
+   * only `message`, and the user saw "Invalid request" beside guidance telling them
+   * the message above explains the problem — while the rule the server had already
+   * sent went unread.
+   */
+  details: string[];
 }
 
 export type ApiErrorTranslate = (
@@ -139,10 +151,10 @@ export function presentConnectionTestFailure(
   const diagnosis = result?.diagnosis ?? null;
   const raw = readConnectionTestFailureText(result) ?? fallback;
   const code = isTransportFailureCode(diagnosis?.code) ? diagnosis.code : null;
-  if (!code || !translate) return { message: raw, code, detail: null };
+  if (!code || !translate) return { message: raw, code, detail: null, details: [] };
 
   const message = translateConnectionTestFailure(translate, code, diagnosis?.params ?? null) ?? raw;
-  return { message, code, detail: raw !== message ? raw : null };
+  return { message, code, detail: raw !== message ? raw : null, details: [] };
 }
 
 export function getApiErrorCode(body: unknown): string | null {
@@ -173,7 +185,7 @@ export function presentApiError(
   const message = translated && translated.trim() ? translated : headlineFromServer;
 
   const detail = technical && technical !== message ? technical : null;
-  return { message, code, detail };
+  return { message, code, detail, details: readValidationDetails(body) };
 }
 
 /**
@@ -183,8 +195,7 @@ export function presentApiError(
  * `new Error()` rendered `[object Object]` (audit C H1); this never does.
  */
 export function describeApiError(body: unknown, fallback: string, status?: number): string {
-  const { message } = presentApiError(body, { fallback, status });
-  const details = readValidationDetails(body);
+  const { message, details } = presentApiError(body, { fallback, status });
   return details.length > 0 ? `${message}: ${details.join("; ")}` : message;
 }
 

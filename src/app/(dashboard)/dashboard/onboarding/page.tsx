@@ -126,11 +126,18 @@ export default function OnboardingWizard() {
   // U4: the body may be `{ error: "text" }` or `{ error: { code, message } }` — always a string here.
   const describeFailure = async (res: Response, fallback: string): Promise<StepFailure> => {
     const body = await res.json().catch(() => null);
-    const message = presentApiError(body, {
+    const presented = presentApiError(body, {
       translate: (key) => (typeof tc.has !== "function" || tc.has(key) ? tc(key) : null),
       fallback,
       status: res.status,
-    }).message;
+    });
+    // The guidance below tells the user the message explains the problem, so the
+    // message has to. A validation failure's headline is "Invalid request"; the rule
+    // they broke is in `details`, and was being discarded.
+    const message =
+      presented.details.length > 0
+        ? `${presented.message}: ${presented.details.join("; ")}`
+        : presented.message;
     return { message, guide: guideForHttpStatus(res.status) };
   };
   const networkFailure = (): StepFailure => ({
