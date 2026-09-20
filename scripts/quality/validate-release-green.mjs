@@ -593,6 +593,49 @@ export function mergeSlowReports(reports, expected) {
   return merged;
 }
 
+/**
+ * Parse `--unmeasured=<id>:<reason>` (repeatable) into recorded HARD failures.
+ *
+ * A gate that CANNOT run in this environment is not a defect and is not drift — it is
+ * unmeasured, and the one thing it must never be is silently absent. `check:pack-artifact`
+ * is the live case: it falls back to a full `next build`, which the 16 GB hosted runner
+ * cannot fit (build.yml is manual-only since #11946 for exactly that — 19 of 30 runs died
+ * with "the runner has received a shutdown signal"). Both sweeps on 2026-09-20 died there
+ * at exit 143, six minutes in, and threw away thirteen green gates and seven green suites
+ * with them.
+ *
+ * Recorded as HARD on purpose: the sweep is genuinely NOT release-green when a required
+ * gate did not run, and saying so in one line — with the reason and the remedy — is the
+ * whole difference between a report and an opaque 143.
+ *
+ * @param {string[]} argv
+ * @returns {{id: string, label: string, kind: string, ok: boolean, detail: string}[]}
+ */
+export function parseUnmeasured(argv) {
+  const out = [];
+  for (const arg of argv) {
+    if (!arg.startsWith("--unmeasured=")) continue;
+    const raw = arg.slice("--unmeasured=".length);
+    const sep = raw.indexOf(":");
+    if (sep <= 0 || sep === raw.length - 1) {
+      throw new Error(`--unmeasured: expected <id>:<reason>, got '${raw}'`);
+    }
+    const id = raw.slice(0, sep).trim();
+    const reason = raw.slice(sep + 1).trim();
+    if (!id || !reason) {
+      throw new Error(`--unmeasured: expected <id>:<reason>, got '${raw}'`);
+    }
+    out.push({
+      id: `unmeasured:${id}`,
+      label: `${id} (not measured here)`,
+      kind: "hard",
+      ok: false,
+      detail: reason,
+    });
+  }
+  return out;
+}
+
 async function runAsync(cmd, cmdArgs, opts = {}) {
   try {
     const { stdout, stderr } = await execFileAsync(cmd, cmdArgs, {
@@ -1027,6 +1070,9 @@ async function main() {
     });
     mergeSlowReports(reports, EXPECT_SLOW).forEach(record);
   }
+
+  // Gates this environment cannot run at all. Stated, never omitted.
+  parseUnmeasured(argv).forEach(record);
 
   // A run that measured nothing is not green. Reachable through the shard flags
   // (`--no-static --slow-gates=none`, or a selection every gate filtered away), and

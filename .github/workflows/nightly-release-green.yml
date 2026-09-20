@@ -276,7 +276,21 @@ jobs:
             # static + drift + full-ci gate, builds and boots the package artifact, and
             # merges their reports. --expect-slow names the suites that MUST be present:
             # a shard that produced no report is a HARD failure here, never silence.
-            MODE="--with-build --full-ci --slow-gates=pack-artifact"
+            # check:pack-artifact falls back to a full `next build`, which the hosted
+            # runner cannot fit — build.yml has been manual-only since #11946 for exactly
+            # that reason (19 of 30 runs died with "the runner has received a shutdown
+            # signal", VM out of memory). Both sweeps on 2026-09-20 died there at exit
+            # 143 six minutes in, taking thirteen green gates and seven green suites with
+            # them. On a hosted runner the artifact gate is therefore NOT run — and is
+            # recorded as unmeasured, which is a HARD failure, because a sweep missing a
+            # required gate is not release-green and must not read as if it were.
+            if [ "${USE_VPS_RUNNER:-}" = "true" ]; then
+              MODE="--with-build --full-ci --slow-gates=pack-artifact"
+            else
+              MODE="--full-ci --slow-gates=none"
+              MODE="$MODE --unmeasured=pack-artifact:a full next build does not fit the hosted runner (build.yml is manual-only since #11946); set USE_VPS_RUNNER=true for a release-window verdict"
+              MODE="$MODE --unmeasured=pack-boot:skipped with pack-artifact — the boot smoke needs the tarball it builds"
+            fi
             # EVERY shard id from the slow-suite matrix, not just the suite names: with
             # bare "unit" a single surviving shard would satisfy the expectation and the
             # other three could vanish unnoticed. Keep this list and the matrix in step —
