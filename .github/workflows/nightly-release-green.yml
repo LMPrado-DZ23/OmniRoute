@@ -76,9 +76,24 @@ jobs:
     # says "~30-50min idle, up to ~80min under load", so it alone can exceed what was
     # left. Three earlier attempts died the same way.
     #
-    # The job declared no budget, so it inherited one. An explicit ceiling makes the
-    # budget a decision instead of an accident, and a sweep that overruns THIS says so
-    # as a timeout rather than as an opaque exit 143.
+    # An explicit ceiling makes the budget a decision instead of an accident, and a
+    # sweep that overruns THIS says so as a timeout rather than as an opaque exit 143.
+    #
+    # It is NOT what kills the sweep. That was the theory when this line was added, and
+    # run 35496465106 disproved it: dispatched on 450d6586f, which already carried
+    # `timeout-minutes: 180`, and killed at 08:17:37 — 60m11s after the job started, the
+    # same mark as the three attempts before it. Every static and drift gate had passed
+    # by 07:23:23; the four serial suites then ran for 54 minutes with no output and the
+    # process took SIGTERM. Run 35468579833 recorded the reason in words: "The runner has
+    # received a shutdown signal".
+    #
+    # So the hosted runner stops at ~60 minutes, and the suites' own ceilings
+    # (80 + 15 + 40 + 20 = 155 min worst case, serial) cannot fit inside that. Two real
+    # options, neither of which a workflow edit can reach:
+    #   - set the USE_VPS_RUNNER repository variable for a release window, which this
+    #     workflow already honours and which moves the sweep off the hosted runner;
+    #   - shard the slow suites across jobs so no single job needs more than an hour.
+    # Raising this number again will not help; measure before trying.
     timeout-minutes: 180
     env:
       JWT_SECRET: ci-nightly-secret-with-sufficient-length-for-validation
@@ -293,9 +308,24 @@ jobs:
     # says "~30-50min idle, up to ~80min under load", so it alone can exceed what was
     # left. Three earlier attempts died the same way.
     #
-    # The job declared no budget, so it inherited one. An explicit ceiling makes the
-    # budget a decision instead of an accident, and a sweep that overruns THIS says so
-    # as a timeout rather than as an opaque exit 143.
+    # An explicit ceiling makes the budget a decision instead of an accident, and a
+    # sweep that overruns THIS says so as a timeout rather than as an opaque exit 143.
+    #
+    # It is NOT what kills the sweep. That was the theory when this line was added, and
+    # run 35496465106 disproved it: dispatched on 450d6586f, which already carried
+    # `timeout-minutes: 180`, and killed at 08:17:37 — 60m11s after the job started, the
+    # same mark as the three attempts before it. Every static and drift gate had passed
+    # by 07:23:23; the four serial suites then ran for 54 minutes with no output and the
+    # process took SIGTERM. Run 35468579833 recorded the reason in words: "The runner has
+    # received a shutdown signal".
+    #
+    # So the hosted runner stops at ~60 minutes, and the suites' own ceilings
+    # (80 + 15 + 40 + 20 = 155 min worst case, serial) cannot fit inside that. Two real
+    # options, neither of which a workflow edit can reach:
+    #   - set the USE_VPS_RUNNER repository variable for a release window, which this
+    #     workflow already honours and which moves the sweep off the hosted runner;
+    #   - shard the slow suites across jobs so no single job needs more than an hour.
+    # Raising this number again will not help; measure before trying.
     timeout-minutes: 180
     env:
       JWT_SECRET: ci-nightly-secret-with-sufficient-length-for-validation
