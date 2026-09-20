@@ -412,32 +412,23 @@ jobs:
     # repository variable VALIDATE_MAIN_BRANCH=true to sweep it anyway.
     if: ${{ (github.event_name == 'push' && github.ref_name == 'main') || (github.event_name != 'push' && vars.VALIDATE_MAIN_BRANCH == 'true') }}
     runs-on: ${{ (vars.USE_VPS_RUNNER == 'true' && fromJSON('["self-hosted","omni-build"]')) || 'ubuntu-latest' }}
-    # The full sweep runs the slow suites SERIALLY on a hosted runner, and it does not
-    # fit in an hour. Measured on run 35492256478: the static and drift gates all passed
-    # by 05:46:03, the four serial suites started, and the job was killed at 06:40:38 —
-    # 60m27s after it started, with no output from any of them. The unit gate's own label
-    # says "~30-50min idle, up to ~80min under load", so it alone can exceed what was
-    # left. Three earlier attempts died the same way.
+    # THIS JOB STILL CANNOT FINISH, and it is the one place in this workflow that is
+    # knowingly left that way. It carries the slow suites in a single job: their own
+    # ceilings are 80 + 15 + 40 + 20 = 155 minutes serial, and a runner here stops at
+    # ~60 ("The runner has received a shutdown signal", run 35468579833). Run
+    # 35496465106 — which already carried `timeout-minutes: 180` — was killed at
+    # 60m11s with every static and drift gate green and the suites 54 minutes into
+    # silence. No value of this number changes that; the release-green path above was
+    # split across jobs for exactly this reason.
     #
-    # An explicit ceiling makes the budget a decision instead of an accident, and a
-    # sweep that overruns THIS says so as a timeout rather than as an opaque exit 143.
-    #
-    # It is NOT what kills the sweep. That was the theory when this line was added, and
-    # run 35496465106 disproved it: dispatched on 450d6586f, which already carried
-    # `timeout-minutes: 180`, and killed at 08:17:37 — 60m11s after the job started, the
-    # same mark as the three attempts before it. Every static and drift gate had passed
-    # by 07:23:23; the four serial suites then ran for 54 minutes with no output and the
-    # process took SIGTERM. Run 35468579833 recorded the reason in words: "The runner has
-    # received a shutdown signal".
-    #
-    # So the hosted runner stops at ~60 minutes, and the suites' own ceilings
-    # (80 + 15 + 40 + 20 = 155 min worst case, serial) cannot fit inside that. Two real
-    # options, neither of which a workflow edit can reach:
-    #   - set the USE_VPS_RUNNER repository variable for a release window, which this
-    #     workflow already honours and which moves the sweep off the hosted runner;
-    #   - shard the slow suites across jobs so no single job needs more than an hour.
-    # Raising this number again will not help; measure before trying.
-    timeout-minutes: 180
+    # It is left alone because it is OFF by default (VALIDATE_MAIN_BRANCH) and because
+    # this fork ships from release/v* and never merges into main, so main is a stale
+    # upstream snapshot nobody here releases. The budget is 55 rather than 180 so that
+    # whoever DOES enable it gets a stated timeout with the log, instead of the opaque
+    # exit 143 that four consecutive full sweeps died of. The fix, when main matters, is
+    # the `slow-suite` matrix above: resolve one SHA, shard the suites, merge the
+    # reports with --merge-slow/--expect-slow.
+    timeout-minutes: 55
     env:
       JWT_SECRET: ci-nightly-secret-with-sufficient-length-for-validation
       API_KEY_SECRET: ci-nightly-api-key-secret-long

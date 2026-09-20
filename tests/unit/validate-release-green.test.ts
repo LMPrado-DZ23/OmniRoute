@@ -785,7 +785,9 @@ test("every slow-suite shard stays under the runner's ~60-minute ceiling", async
     )
   ) as { jobs: Record<string, { "timeout-minutes"?: number }> };
 
-  for (const job of ["slow-suite", "release-green"]) {
+  // main-green is included even though it is off by default and still carries the
+  // suites in one job: if someone enables it, a stated timeout beats a silent 143.
+  for (const job of ["slow-suite", "release-green", "main-green"]) {
     const budget = wf.jobs[job]?.["timeout-minutes"];
     assert.equal(typeof budget, "number", `${job} must declare a timeout`);
     assert.ok(
