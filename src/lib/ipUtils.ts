@@ -52,6 +52,47 @@ function isLoopbackPeer(addr: string | undefined): boolean {
   return ip.startsWith("127.");
 }
 
+/**
+ * Peers an operator has declared to be their own reverse proxy, as a comma-separated list
+ * of exact IPs in `OMNIROUTE_TRUSTED_PROXY_IPS`.
+ *
+ * WHY THIS EXISTS: forwarding headers are trusted only from a LOOPBACK peer, which is
+ * right for a proxy on the same host and wrong for one on another machine. There the peer
+ * is a LAN address, the headers are ignored, and every visitor collapses onto the proxy's
+ * single IP — so the login lockout counts the whole internet as one client and five wrong
+ * passwords lock the owner out of their own panel for fifteen minutes. Anyone can do it,
+ * repeatedly, and `X-Forwarded-For` cannot fix it because trusting it from an arbitrary
+ * peer is exactly the spoofing hole the loopback rule was protecting against.
+ *
+ * The operator naming their proxy closes that without opening it: the peer must MATCH,
+ * and a forged header from anywhere else is still ignored. Unset — the default — this
+ * function returns an empty set and behaviour is byte-identical to before.
+ *
+ * Exact addresses only, no CIDR. A subnet parser here would be a place for an off-by-one
+ * to silently widen who gets believed about their own identity.
+ */
+const TRUSTED_PROXY_ENV = "OMNIROUTE_TRUSTED_PROXY_IPS";
+
+export function trustedProxyPeers(
+  raw: string | undefined = process.env[TRUSTED_PROXY_ENV]
+): Set<string> {
+  const out = new Set<string>();
+  for (const entry of (raw ?? "").split(",")) {
+    const ip = normalizePeer(entry);
+    // A malformed entry is dropped rather than tolerated: half-parsing an allowlist is
+    // how one typo quietly starts trusting a header from everywhere.
+    if (ip && isIP(ip) !== 0) out.add(ip);
+  }
+  return out;
+}
+
+/** Whether the TCP peer is an operator-declared reverse proxy. */
+export function isTrustedProxyPeer(addr: string | undefined): boolean {
+  const ip = normalizePeer(addr);
+  if (!ip) return false;
+  return trustedProxyPeers().has(ip);
+}
+
 export type IpScope = "loopback" | "private" | "public" | "unknown";
 
 /**
@@ -132,7 +173,8 @@ export function getClientIpFromRequest(req: {
 
   const remoteAddress = req.ip ?? req.socket?.remoteAddress;
   const hasPeer = Boolean(normalizePeer(remoteAddress));
-  const trustForwardingHeaders = !hasPeer || isLoopbackPeer(remoteAddress);
+  const trustForwardingHeaders =
+    !hasPeer || isLoopbackPeer(remoteAddress) || isTrustedProxyPeer(remoteAddress);
 
   if (trustForwardingHeaders) {
     const cfIp = getHeader("cf-connecting-ip");
