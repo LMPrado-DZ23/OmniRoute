@@ -2991,6 +2991,17 @@
       "custom": "Sử dụng để triển khai công cụ tùy chỉnh hoặc cấu hình chung tương thích với OpenAI."
     },
     "toolDescriptions": {
+      "aichat": "AIChat — CLI LLM tất-cả-trong-một với URL cơ sở tùy chỉnh",
+      "shell-gpt": "ShellGPT — trợ lý dòng lệnh với URL cơ sở tùy chỉnh",
+      "mods": "Mods — AI cho dòng lệnh của Charm",
+      "llm": "CLI llm của Simon Willison với URL cơ sở tùy chỉnh",
+      "fabric": "Fabric — CLI cho lời nhắc và mẫu, với URL cơ sở tùy chỉnh",
+      "openhands": "OpenHands — tác nhân kỹ thuật phần mềm tự hành",
+      "plandex": "Plandex — tác nhân lập trình cho tác vụ dài hạn (tự lưu trữ)",
+      "gptme": "gptme — tác nhân terminal với công cụ shell và tệp",
+      "trae": "Trae Agent — CLI lập trình của ByteDance",
+      "octofriend": "Octofriend — tác nhân lập trình trên terminal",
+      "raaid": "RA.Aid — tác nhân lập trình biết nghiên cứu và triển khai",
       "antigravity": "Google Antigravity IDE với MITM",
       "claude": "Anthropic Claude Code CLI",
       "codex": "OpenAI Codex CLI",

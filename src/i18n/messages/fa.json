@@ -2947,6 +2947,17 @@
       "custom": "Use for custom tool implementations or generic OpenAI-compatible configurations."
     },
     "toolDescriptions": {
+      "aichat": "‏AIChat، رابط خط فرمان جامع مدل‌های زبانی با نشانی پایه سفارشی",
+      "shell-gpt": "‏ShellGPT، دستیار خط فرمان با نشانی پایه سفارشی",
+      "mods": "‏Mods، هوش مصنوعی برای خط فرمان از Charm",
+      "llm": "‏رابط llm از Simon Willison با نشانی پایه سفارشی",
+      "fabric": "‏Fabric، رابط خط فرمان برای دستورها و الگوها با نشانی پایه سفارشی",
+      "openhands": "‏OpenHands، عامل خودمختار مهندسی نرم‌افزار",
+      "plandex": "‏Plandex، عامل کدنویسی برای کارهای طولانی (میزبانی شخصی)",
+      "gptme": "‏gptme، عامل ترمینال با ابزارهای پوسته و فایل",
+      "trae": "‏Trae Agent، رابط خط فرمان کدنویسی از ByteDance",
+      "octofriend": "‏Octofriend، عامل کدنویسی در ترمینال",
+      "raaid": "‏RA.Aid، عامل کدنویسی که پژوهش و پیاده‌سازی می‌کند",
       "antigravity": "Google Antigravity IDE with MITM",
       "claude": "Anthropic Claude Code CLI",
       "codex": "OpenAI Codex CLI",

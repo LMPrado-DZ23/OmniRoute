@@ -2947,6 +2947,17 @@
       "custom": "Bruk for tilpassede verktøyimplementeringer eller generiske OpenAI-kompatible konfigurasjoner."
     },
     "toolDescriptions": {
+      "aichat": "AIChat alt-i-ett-LLM-CLI med egendefinert basis-URL",
+      "shell-gpt": "ShellGPT kommandolinjeassistent med egendefinert basis-URL",
+      "mods": "Mods, KI for kommandolinjen, fra Charm",
+      "llm": "Simon Willisons llm-CLI med egendefinert basis-URL",
+      "fabric": "Fabric CLI for ledetekster og mønstre med egendefinert basis-URL",
+      "openhands": "OpenHands, autonom agent for programvareutvikling",
+      "plandex": "Plandex, kodeagent for lange oppgaver (selvhostet)",
+      "gptme": "gptme, terminalagent med skall- og filverktøy",
+      "trae": "Trae Agent, kode-CLI fra ByteDance",
+      "octofriend": "Octofriend, kodeagent for terminalen",
+      "raaid": "RA.Aid, kodeagent som undersøker og implementerer",
       "antigravity": "Google Antigravity IDE med MITM",
       "claude": "Antropisk Claude Code CLI",
       "codex": "OpenAI Codex CLI",

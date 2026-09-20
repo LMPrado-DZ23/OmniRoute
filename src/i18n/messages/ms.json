@@ -2947,6 +2947,17 @@
       "custom": "Gunakan untuk pelaksanaan alat tersuai atau konfigurasi serasi OpenAI generik."
     },
     "toolDescriptions": {
+      "aichat": "AIChat, CLI LLM serba boleh dengan URL asas tersuai",
+      "shell-gpt": "ShellGPT, pembantu baris perintah dengan URL asas tersuai",
+      "mods": "Mods, AI untuk baris perintah daripada Charm",
+      "llm": "CLI llm oleh Simon Willison dengan URL asas tersuai",
+      "fabric": "Fabric, CLI gesaan dan corak dengan URL asas tersuai",
+      "openhands": "OpenHands, ejen kejuruteraan perisian autonomi",
+      "plandex": "Plandex, ejen pengekodan untuk tugas panjang (hos sendiri)",
+      "gptme": "gptme, ejen terminal dengan alat shell dan fail",
+      "trae": "Trae Agent, CLI pengekodan daripada ByteDance",
+      "octofriend": "Octofriend, ejen pengekodan terminal",
+      "raaid": "RA.Aid, ejen pengekodan yang menyelidik dan melaksanakan",
       "antigravity": "IDE Antigraviti Google dengan MITM",
       "claude": "Kod Claude Anthropic CLI",
       "codex": "OpenAI Codex CLI",

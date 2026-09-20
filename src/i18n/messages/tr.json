@@ -2947,6 +2947,17 @@
       "custom": "Özel araç uygulamaları veya genel OpenAI uyumlu yapılandırmalar için kullanın."
     },
     "toolDescriptions": {
+      "aichat": "AIChat hepsi bir arada LLM CLI, özel temel URL destekli",
+      "shell-gpt": "ShellGPT komut satırı asistanı, özel temel URL destekli",
+      "mods": "Mods, Charm tarafından komut satırı için yapay zekâ",
+      "llm": "Simon Willison'ın llm CLI'si, özel temel URL destekli",
+      "fabric": "Fabric istem ve desen CLI'si, özel temel URL destekli",
+      "openhands": "OpenHands, özerk yazılım mühendisliği ajanı",
+      "plandex": "Plandex, uzun soluklu kodlama ajanı (kendi sunucunuzda)",
+      "gptme": "gptme, kabuk ve dosya araçlarına sahip terminal ajanı",
+      "trae": "Trae Agent, ByteDance'in kodlama CLI'si",
+      "octofriend": "Octofriend, terminal kodlama ajanı",
+      "raaid": "RA.Aid, araştırıp uygulayan kodlama ajanı",
       "antigravity": "MITM ile Google Antigravity IDE",
       "claude": "Anthropic Claude Code CLI",
       "codex": "OpenAI Codex CLI",

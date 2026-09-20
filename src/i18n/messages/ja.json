@@ -2947,6 +2947,17 @@
       "custom": "カスタム ツールの実装または汎用の OpenAI 互換構成に使用します。"
     },
     "toolDescriptions": {
+      "aichat": "AIChat — カスタムベース URL に対応したオールインワン LLM CLI",
+      "shell-gpt": "ShellGPT — カスタムベース URL に対応したコマンドライン アシスタント",
+      "mods": "Mods — Charm によるコマンドライン向け AI",
+      "llm": "Simon Willison の llm CLI（カスタムベース URL 対応）",
+      "fabric": "Fabric — プロンプトとパターンの CLI（カスタムベース URL 対応）",
+      "openhands": "OpenHands — 自律型ソフトウェアエンジニアリング エージェント",
+      "plandex": "Plandex — 長期タスク向けコーディング エージェント（セルフホスト）",
+      "gptme": "gptme — シェルとファイル操作を備えたターミナル エージェント",
+      "trae": "Trae Agent — ByteDance のコーディング CLI",
+      "octofriend": "Octofriend — ターミナルのコーディング エージェント",
+      "raaid": "RA.Aid — 調査して実装するコーディング エージェント",
       "antigravity": "MITM を備えた Google Antigravity IDE",
       "claude": "Anthropic Claude コード CLI",
       "codex": "OpenAI コーデックス CLI",

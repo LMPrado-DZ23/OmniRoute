@@ -2947,6 +2947,17 @@
       "custom": "Use for custom tool implementations or generic OpenAI-compatible configurations."
     },
     "toolDescriptions": {
+      "aichat": "AIChat, అనుకూల బేస్ URLతో ఆల్-ఇన్-వన్ LLM CLI",
+      "shell-gpt": "ShellGPT, అనుకూల బేస్ URLతో కమాండ్-లైన్ సహాయకుడు",
+      "mods": "Mods, Charm నుండి కమాండ్ లైన్ కోసం AI",
+      "llm": "Simon Willison యొక్క llm CLI, అనుకూల బేస్ URLతో",
+      "fabric": "Fabric, అనుకూల బేస్ URLతో ప్రాంప్ట్ మరియు నమూనా CLI",
+      "openhands": "OpenHands, స్వయంప్రతిపత్త సాఫ్ట్‌వేర్ ఇంజనీరింగ్ ఏజెంట్",
+      "plandex": "Plandex, దీర్ఘకాల పనుల కోసం కోడింగ్ ఏజెంట్ (స్వీయ-హోస్టెడ్)",
+      "gptme": "gptme, షెల్ మరియు ఫైల్ సాధనాలతో టెర్మినల్ ఏజెంట్",
+      "trae": "Trae Agent, ByteDance యొక్క కోడింగ్ CLI",
+      "octofriend": "Octofriend, టెర్మినల్ కోడింగ్ ఏజెంట్",
+      "raaid": "RA.Aid, పరిశోధించి అమలు చేసే కోడింగ్ ఏజెంట్",
       "antigravity": "Google Antigravity IDE with MITM",
       "claude": "Anthropic Claude Code CLI",
       "codex": "OpenAI Codex CLI",

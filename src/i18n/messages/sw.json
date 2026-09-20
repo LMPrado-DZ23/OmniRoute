@@ -2947,6 +2947,17 @@
       "custom": "Use for custom tool implementations or generic OpenAI-compatible configurations."
     },
     "toolDescriptions": {
+      "aichat": "AIChat, CLI ya LLM yenye kila kitu na URL msingi maalum",
+      "shell-gpt": "ShellGPT, msaidizi wa mstari wa amri na URL msingi maalum",
+      "mods": "Mods, AI ya mstari wa amri kutoka Charm",
+      "llm": "CLI ya llm ya Simon Willison yenye URL msingi maalum",
+      "fabric": "Fabric, CLI ya vidokezo na ruwaza yenye URL msingi maalum",
+      "openhands": "OpenHands, wakala huru wa uhandisi wa programu",
+      "plandex": "Plandex, wakala wa kuandika msimbo kwa kazi ndefu (mwenyeji binafsi)",
+      "gptme": "gptme, wakala wa terminal mwenye zana za shell na faili",
+      "trae": "Trae Agent, CLI ya kuandika msimbo kutoka ByteDance",
+      "octofriend": "Octofriend, wakala wa kuandika msimbo kwenye terminal",
+      "raaid": "RA.Aid, wakala wa msimbo anayechunguza na kutekeleza",
       "antigravity": "Google Antigravity IDE with MITM",
       "claude": "Anthropic Claude Code CLI",
       "codex": "OpenAI Codex CLI",

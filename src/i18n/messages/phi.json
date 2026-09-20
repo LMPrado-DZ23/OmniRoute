@@ -2947,6 +2947,17 @@
       "custom": "Gamitin para sa mga custom na pagpapatupad ng tool o generic na mga configuration na tugma sa OpenAI."
     },
     "toolDescriptions": {
+      "aichat": "AIChat, all-in-one na LLM CLI na may pasadyang base URL",
+      "shell-gpt": "ShellGPT, katulong sa command line na may pasadyang base URL",
+      "mods": "Mods, AI para sa command line mula sa Charm",
+      "llm": "llm CLI ni Simon Willison na may pasadyang base URL",
+      "fabric": "Fabric, CLI para sa prompt at pattern na may pasadyang base URL",
+      "openhands": "OpenHands, awtonomong ahente sa software engineering",
+      "plandex": "Plandex, ahente sa pagko-code para sa mahahabang gawain (self-hosted)",
+      "gptme": "gptme, ahente sa terminal na may shell at file tools",
+      "trae": "Trae Agent, CLI sa pagko-code mula sa ByteDance",
+      "octofriend": "Octofriend, ahente sa pagko-code sa terminal",
+      "raaid": "RA.Aid, ahente sa pagko-code na nagsasaliksik at nagpapatupad",
       "antigravity": "Google Antigravity IDE na may MITM",
       "claude": "Anthropic Claude Code CLI",
       "codex": "OpenAI Codex CLI",

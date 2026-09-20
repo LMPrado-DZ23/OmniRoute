@@ -2947,6 +2947,17 @@
       "custom": "Use for custom tool implementations or generic OpenAI-compatible configurations."
     },
     "toolDescriptions": {
+      "aichat": "‏AIChat، لینگوئج ماڈلز کے لیے جامع کمانڈ لائن ٹول، اپنی بیس یو آر ایل کے ساتھ",
+      "shell-gpt": "‏ShellGPT، کمانڈ لائن معاون، اپنی بیس یو آر ایل کے ساتھ",
+      "mods": "‏Mods، کمانڈ لائن کے لیے اے آئی، Charm کی طرف سے",
+      "llm": "‏Simon Willison کا llm کمانڈ لائن ٹول، اپنی بیس یو آر ایل کے ساتھ",
+      "fabric": "‏Fabric، پرامپٹ اور پیٹرن کا کمانڈ لائن ٹول، اپنی بیس یو آر ایل کے ساتھ",
+      "openhands": "‏OpenHands، سافٹ ویئر انجینئرنگ کا خودمختار ایجنٹ",
+      "plandex": "‏Plandex، طویل کاموں کے لیے کوڈنگ ایجنٹ (خود میزبان)",
+      "gptme": "‏gptme، شیل اور فائل ٹولز والا ٹرمینل ایجنٹ",
+      "trae": "‏Trae Agent، ByteDance کا کوڈنگ کمانڈ لائن ٹول",
+      "octofriend": "‏Octofriend، ٹرمینل کوڈنگ ایجنٹ",
+      "raaid": "‏RA.Aid، تحقیق کرنے اور نافذ کرنے والا کوڈنگ ایجنٹ",
       "antigravity": "Google Antigravity IDE with MITM",
       "claude": "Anthropic Claude Code CLI",
       "codex": "OpenAI Codex CLI",

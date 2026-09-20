@@ -2947,6 +2947,17 @@
       "custom": "Använd för anpassade verktygsimplementeringar eller generiska OpenAI-kompatibla konfigurationer."
     },
     "toolDescriptions": {
+      "aichat": "AIChat allt-i-ett-LLM-CLI med anpassad bas-URL",
+      "shell-gpt": "ShellGPT kommandoradsassistent med anpassad bas-URL",
+      "mods": "Mods, AI för kommandoraden, från Charm",
+      "llm": "Simon Willisons llm-CLI med anpassad bas-URL",
+      "fabric": "Fabric CLI för prompter och mönster med anpassad bas-URL",
+      "openhands": "OpenHands, autonom agent för mjukvaruutveckling",
+      "plandex": "Plandex, kodagent för långa uppgifter (självhostad)",
+      "gptme": "gptme, terminalagent med skal- och filverktyg",
+      "trae": "Trae Agent, kod-CLI från ByteDance",
+      "octofriend": "Octofriend, kodagent för terminalen",
+      "raaid": "RA.Aid, kodagent som undersöker och implementerar",
       "antigravity": "Google Antigravity IDE med MITM",
       "claude": "Antropisk Claude Code CLI",
       "codex": "OpenAI Codex CLI",

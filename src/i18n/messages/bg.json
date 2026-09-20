@@ -2947,6 +2947,17 @@
       "custom": "Използвайте за внедряване на персонализирани инструменти или общи конфигурации, съвместими с OpenAI."
     },
     "toolDescriptions": {
+      "aichat": "AIChat — универсален LLM CLI с персонализиран базов URL",
+      "shell-gpt": "ShellGPT — помощник за командния ред с персонализиран базов URL",
+      "mods": "Mods — ИИ за командния ред от Charm",
+      "llm": "llm CLI на Саймън Уилисън с персонализиран базов URL",
+      "fabric": "Fabric — CLI за промптове и шаблони с персонализиран базов URL",
+      "openhands": "OpenHands — автономен агент за софтуерно инженерство",
+      "plandex": "Plandex — агент за кодиране за дълги задачи (самостоятелен хостинг)",
+      "gptme": "gptme — терминален агент с инструменти за обвивка и файлове",
+      "trae": "Trae Agent — CLI за кодиране от ByteDance",
+      "octofriend": "Octofriend — агент за кодиране в терминала",
+      "raaid": "RA.Aid — агент за кодиране, който проучва и реализира",
       "antigravity": "Google Antigravity IDE с MITM",
       "claude": "Антропен код на Клод CLI",
       "codex": "OpenAI Codex CLI",

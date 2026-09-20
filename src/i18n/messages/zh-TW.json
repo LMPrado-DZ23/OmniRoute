@@ -2947,6 +2947,17 @@
       "custom": "用於自定義工具實現或通用 OpenAI 相容設定。"
     },
     "toolDescriptions": {
+      "aichat": "AIChat 一體化大模型命令列工具，支援自訂基礎 URL",
+      "shell-gpt": "ShellGPT 命令列助手，支援自訂基礎 URL",
+      "mods": "Mods —— Charm 推出的命令列 AI",
+      "llm": "Simon Willison 的 llm 命令列工具，支援自訂基礎 URL",
+      "fabric": "Fabric 提示詞與模式命令列工具，支援自訂基礎 URL",
+      "openhands": "OpenHands 自主軟體工程智慧代理",
+      "plandex": "Plandex 長週期編碼代理（自架）",
+      "gptme": "gptme 終端機代理，具備 shell 與檔案工具",
+      "trae": "Trae Agent —— 位元組跳動的編碼命令列工具",
+      "octofriend": "Octofriend 終端機編碼代理",
+      "raaid": "RA.Aid 邊研究邊實作的編碼代理",
       "antigravity": "帶 MITM 的 Google Antigravity IDE",
       "claude": "Claude Code CLI",
       "codex": "OpenAI Codex CLI",

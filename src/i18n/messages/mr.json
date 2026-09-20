@@ -2947,6 +2947,17 @@
       "custom": "Use for custom tool implementations or generic OpenAI-compatible configurations."
     },
     "toolDescriptions": {
+      "aichat": "AIChat, सानुकूल बेस URL सह ऑल-इन-वन LLM CLI",
+      "shell-gpt": "ShellGPT, सानुकूल बेस URL सह कमांड-लाइन सहाय्यक",
+      "mods": "Mods, Charm कडून कमांड लाइनसाठी AI",
+      "llm": "Simon Willison यांचे llm CLI, सानुकूल बेस URL सह",
+      "fabric": "Fabric, सानुकूल बेस URL सह प्रॉम्प्ट आणि पॅटर्न CLI",
+      "openhands": "OpenHands, स्वायत्त सॉफ्टवेअर अभियांत्रिकी एजंट",
+      "plandex": "Plandex, दीर्घ कामांसाठी कोडिंग एजंट (स्व-होस्टेड)",
+      "gptme": "gptme, शेल आणि फाइल साधनांसह टर्मिनल एजंट",
+      "trae": "Trae Agent, ByteDance चे कोडिंग CLI",
+      "octofriend": "Octofriend, टर्मिनल कोडिंग एजंट",
+      "raaid": "RA.Aid, संशोधन करून अंमलबजावणी करणारा कोडिंग एजंट",
       "antigravity": "Google Antigravity IDE with MITM",
       "claude": "Anthropic Claude Code CLI",
       "codex": "OpenAI Codex CLI",

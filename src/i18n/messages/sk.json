@@ -2947,6 +2947,17 @@
       "custom": "Používa sa na implementácie vlastných nástrojov alebo všeobecné konfigurácie kompatibilné s OpenAI."
     },
     "toolDescriptions": {
+      "aichat": "AIChat, univerzálne LLM CLI s vlastnou základnou URL",
+      "shell-gpt": "ShellGPT, asistent príkazového riadka s vlastnou základnou URL",
+      "mods": "Mods, AI pre príkazový riadok od Charm",
+      "llm": "llm CLI od Simona Willisona s vlastnou základnou URL",
+      "fabric": "Fabric, CLI pre prompty a vzory s vlastnou základnou URL",
+      "openhands": "OpenHands, autonómny agent softvérového inžinierstva",
+      "plandex": "Plandex, kódovací agent pre dlhé úlohy (vlastný hosting)",
+      "gptme": "gptme, terminálový agent s nástrojmi pre shell a súbory",
+      "trae": "Trae Agent, kódovacie CLI od ByteDance",
+      "octofriend": "Octofriend, kódovací agent pre terminál",
+      "raaid": "RA.Aid, kódovací agent, ktorý skúma a implementuje",
       "antigravity": "Google Antigravity IDE s MITM",
       "claude": "Antropický Claude Code CLI",
       "codex": "OpenAI Codex CLI",

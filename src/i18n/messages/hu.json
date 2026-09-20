@@ -2947,6 +2947,17 @@
       "custom": "Egyéni eszközmegvalósításokhoz vagy általános OpenAI-kompatibilis konfigurációkhoz használható."
     },
     "toolDescriptions": {
+      "aichat": "AIChat mindent egyben LLM CLI egyéni alap-URL-lel",
+      "shell-gpt": "ShellGPT parancssori asszisztens egyéni alap-URL-lel",
+      "mods": "Mods, MI a parancssorhoz a Charmtól",
+      "llm": "Simon Willison llm CLI-je egyéni alap-URL-lel",
+      "fabric": "Fabric CLI promptokhoz és mintákhoz, egyéni alap-URL-lel",
+      "openhands": "OpenHands, autonóm szoftverfejlesztő ügynök",
+      "plandex": "Plandex, hosszú feladatokhoz való kódoló ügynök (saját üzemeltetésű)",
+      "gptme": "gptme, terminálügynök shell- és fájleszközökkel",
+      "trae": "Trae Agent, a ByteDance kódoló CLI-je",
+      "octofriend": "Octofriend, terminálos kódoló ügynök",
+      "raaid": "RA.Aid, kutató és megvalósító kódoló ügynök",
       "antigravity": "Google Antigravity IDE MITM-mel",
       "claude": "Antropikus Claude Code CLI",
       "codex": "OpenAI Codex CLI",

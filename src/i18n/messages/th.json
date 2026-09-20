@@ -2947,6 +2947,17 @@
       "custom": "ใช้สำหรับการใช้เครื่องมือแบบกำหนดเองหรือการกำหนดค่าทั่วไปที่เข้ากันได้กับ OpenAI"
     },
     "toolDescriptions": {
+      "aichat": "AIChat เครื่องมือบรรทัดคำสั่ง LLM ครบวงจร รองรับ base URL ที่กำหนดเอง",
+      "shell-gpt": "ShellGPT ผู้ช่วยบรรทัดคำสั่ง รองรับ base URL ที่กำหนดเอง",
+      "mods": "Mods เอไอสำหรับบรรทัดคำสั่งจาก Charm",
+      "llm": "llm CLI ของ Simon Willison รองรับ base URL ที่กำหนดเอง",
+      "fabric": "Fabric เครื่องมือบรรทัดคำสั่งสำหรับพรอมต์และแพตเทิร์น รองรับ base URL ที่กำหนดเอง",
+      "openhands": "OpenHands เอเจนต์วิศวกรรมซอฟต์แวร์อัตโนมัติ",
+      "plandex": "Plandex เอเจนต์เขียนโค้ดสำหรับงานระยะยาว (โฮสต์เอง)",
+      "gptme": "gptme เอเจนต์เทอร์มินัลพร้อมเครื่องมือเชลล์และไฟล์",
+      "trae": "Trae Agent เครื่องมือบรรทัดคำสั่งสำหรับเขียนโค้ดจาก ByteDance",
+      "octofriend": "Octofriend เอเจนต์เขียนโค้ดบนเทอร์มินัล",
+      "raaid": "RA.Aid เอเจนต์เขียนโค้ดที่ค้นคว้าและลงมือทำ",
       "antigravity": "Google ต้านแรงโน้มถ่วง IDE พร้อม MITM",
       "claude": "รหัสมานุษยวิทยา Claude CLI",
       "codex": "OpenAI Codex CLI",
