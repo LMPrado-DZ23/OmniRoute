@@ -94,8 +94,18 @@
 
 _Follow-up to the 3.8.54 evolution release: the gaps that release documented as known limits, and the release-automation defects its own publication exposed._
 
+### ✨ New Features
+
+- **feat(workspaces):** the workspace → project → API key hierarchy that v3.8.54 designed in `docs/architecture/WORKSPACES_RBAC.md` §3.4 and deferred. Migration 178, membership-authorized CRUD under `/api/workspaces/**` with IDOR tests, budgets that roll up from key to project to workspace, and a `/dashboard/costs/workspaces` page in en / pt-BR / vi ([#52](https://github.com/LMPrado-DZ23/OmniRoute/pull/52))
+- **feat(providers):** the Add API Key dialog now links to the page that issues the key. It asked for a credential without saying where to get one — for API-key providers it offered no link at all, so the user left for a search engine ([#50](https://github.com/LMPrado-DZ23/OmniRoute/pull/50))
+- **feat(cli-tools):** 11 more AI CLIs can be pointed at the gateway, taking the catalog from 36 to 47 entries. Each entry's mechanism was read from that tool's official documentation or source before being written, and the verification source is recorded above it in `src/shared/constants/cliToolsExtra.ts` so a reviewer can re-check a claim without redoing the research ([#57](https://github.com/LMPrado-DZ23/OmniRoute/pull/57))
+
 ### 🐛 Bug Fixes
 
+- **fix(api):** phantom operations are at zero — verbs documented in `docs/openapi.yaml` that the route never exported, so a client could follow the spec into a 404. The policy CLI no longer claims capabilities the server does not have ([#51](https://github.com/LMPrado-DZ23/OmniRoute/pull/51))
+- **fix(a11y):** the dark theme painted white on the brand coral at 3.78:1, under WCAG AA, and the gate never saw it because the axe suite only ever measured the light theme. AA is met on brand-primary surfaces **without repainting the brand** — `--color-primary` is still `#e54d5e` ([#55](https://github.com/LMPrado-DZ23/OmniRoute/pull/55))
+- **fix(providers):** a curated key URL sat in a field nothing reads. `dahl` carried `apiKeyUrl` as a sibling of `website` instead of inside `notice`, which is the one field the product resolves, so it never rendered and the dialog offered the generic site link instead of the page that mints the token ([#58](https://github.com/LMPrado-DZ23/OmniRoute/pull/58))
+- **fix(gates):** the new-code gates were unrunnable on Windows. `newCodeMode` linked `node_modules` into the base worktree with a `"dir"` symlink, which throws `EPERM` without Developer Mode — so `check:complexity-ratchets`, `check:dead-code` and `check:file-size` died before comparing anything, and three separate contributors shipped regressions believing their local run had passed. It uses a junction on `win32`, which needs no privilege ([#59](https://github.com/LMPrado-DZ23/OmniRoute/pull/59))
 - **fix(ci):** a GitHub Release can no longer publish to npm on its own. Publishing the v3.8.54 Release started `npm-publish.yml` through its `release:` trigger and it went for `npm publish` of `omniroute`, a package upstream owns; it was cancelled by hand. The only brake skipped when the version was *already* on npm, which never holds for a fork running ahead of upstream. A `gate` job now makes every publishing job depend on the `ENABLE_NPM_PUBLISH` repository variable, and a test rejects a bare `needs:` as a guard ([#44](https://github.com/LMPrado-DZ23/OmniRoute/pull/44))
 - **fix(deps):** `js-yaml` 4.3.1 → 4.3.2 in the Electron chain (via `electron-updater`), clearing advisory R-10 — the Electron production audit is now zero advisories of any severity ([#47](https://github.com/LMPrado-DZ23/OmniRoute/pull/47))
 - **fix(docs):** the README and the Docker guide still said no versioned release existed and sent users to the mutable `:next` tag; they now point at `:latest` and the immutable `:X.Y.Z`, every channel was pulled anonymously before the text was written, and `:main` / `:main-web` are stated plainly as not published ([#45](https://github.com/LMPrado-DZ23/OmniRoute/pull/45))
@@ -103,6 +113,7 @@ _Follow-up to the 3.8.54 evolution release: the gaps that release documented as 
 ### 📝 Maintenance
 
 - **feat(release):** `npm run release:lock -- <version>` locks a released branch and **re-reads the protection from GitHub**, exiting non-zero unless it is genuinely locked. `lock-released-branch.yml` cannot run until the `BRANCH_LOCK_TOKEN` secret exists, and the quality playbook, which claimed release branches were being locked, is corrected ([#44](https://github.com/LMPrado-DZ23/OmniRoute/pull/44), [#46](https://github.com/LMPrado-DZ23/OmniRoute/pull/46))
+- **test(api):** the largest documented governance gap is mostly closed — routes carried in OpenAPI that no test referenced went from **150 to 53**, each of the 97 removed from the baseline with a real contract test in the same commit. 388 tests across 19 files, and each batch was verified failable by breaking the handler first ([#48](https://github.com/LMPrado-DZ23/OmniRoute/pull/48))
 
 ---
 ## [3.8.54] — 2026-09-19
