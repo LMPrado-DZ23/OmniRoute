@@ -175,7 +175,7 @@ export function FreeProviderOnboardingCard({
           type="button"
           disabled={!confirmed || selectedIds.length === 0 || submitting}
           onClick={() => void submit()}
-          className="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-on-primary disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? t("settingUp") : t("setupSelected")}
         </button>

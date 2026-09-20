@@ -143,7 +143,7 @@ export default function ApiKeyFilterDropdown({
               <span
                 className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] ${
                   isAllSelected
-                    ? "border-primary bg-primary text-white"
+                    ? "border-primary bg-primary text-on-primary"
                     : "border-border/60 bg-transparent"
                 }`}
               >
@@ -179,7 +179,7 @@ export default function ApiKeyFilterDropdown({
                   <span
                     className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] ${
                       isChecked
-                        ? "border-primary bg-primary text-white"
+                        ? "border-primary bg-primary text-on-primary"
                         : "border-border/60 bg-transparent"
                     }`}
                   >

@@ -202,7 +202,7 @@ export default function PresetPicker({ configState, setConfigState }: PresetPick
                 <button
                   onClick={() => void handleSave()}
                   disabled={saving}
-                  className="text-xs px-3 py-1.5 rounded bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  className="text-xs px-3 py-1.5 rounded bg-primary text-on-primary hover:bg-primary/90 transition-colors disabled:opacity-50"
                 >
                   {saving ? t("savingPreset") : t("save")}
                 </button>

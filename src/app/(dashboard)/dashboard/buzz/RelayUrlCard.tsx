@@ -54,7 +54,7 @@ export function RelayUrlCard({ relayUrl, saving, onSave }: RelayUrlCardProps) {
           data-testid="buzz-save-relay"
           onClick={() => setConfirming(true)}
           disabled={saving || !dirty}
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:opacity-90 disabled:opacity-50"
         >
           {saving ? t("savingRelay") : t("saveRelay")}
         </button>

@@ -24,7 +24,7 @@ export function FlushControls({ enabled, flushing, message, onFlush }: FlushCont
         onClick={onFlush}
         disabled={flushing || !enabled}
         title={enabled ? undefined : t("flushDisabledHint")}
-        className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+        className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:opacity-90 disabled:opacity-50"
       >
         {flushing ? t("flushing") : t("flush")}
       </button>

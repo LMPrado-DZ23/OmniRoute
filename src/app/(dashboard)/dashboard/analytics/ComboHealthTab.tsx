@@ -895,7 +895,7 @@ export default function ComboHealthTab() {
                 className={cn(
                   "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                   horizon === value
-                    ? "bg-primary text-white"
+                    ? "bg-primary text-on-primary"
                     : "text-text-muted hover:bg-black/5 hover:text-text-main dark:hover:bg-white/5"
                 )}
               >
@@ -947,7 +947,7 @@ export default function ComboHealthTab() {
               type="button"
               onClick={handleRetry}
               disabled={retrying}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {retrying ? (
                 <>

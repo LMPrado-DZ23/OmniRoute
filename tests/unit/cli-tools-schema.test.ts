@@ -15,6 +15,9 @@ test("CLI_TOOLS registry contains all expected tools including rebuilt Qwen Code
   // 5dive added by #11578 (5dive-ai/5dive agent fleets, agent category).
   // gemini added: Gemini CLI, via the origin-form {{baseOrigin}} placeholder
   //   (its @google/genai client appends /v1beta/... to the base it is given).
+  // cliToolsExtra.ts added 11 entries whose custom-base-URL mechanism was verified
+  //   against each tool's official docs or source: aichat, shell-gpt, mods, llm and
+  //   fabric (code); openhands, plandex, gptme, trae, octofriend and raaid (agent).
   const expected = [
     "claude",
     "codex",
@@ -53,6 +56,17 @@ test("CLI_TOOLS registry contains all expected tools including rebuilt Qwen Code
     "prime-agent",
     "5dive",
     "gemini",
+    "aichat",
+    "shell-gpt",
+    "mods",
+    "llm",
+    "fabric",
+    "openhands",
+    "plandex",
+    "gptme",
+    "trae",
+    "octofriend",
+    "raaid",
   ];
   for (const id of expected) {
     assert.ok(id in CLI_TOOLS, `Missing tool: ${id}`);

@@ -3,10 +3,12 @@ export type BudgetDecision = "allow" | "warn" | "deny";
 
 export interface InternalBudgetLimit {
   id: string;
-  scope: "global" | "provider" | "model" | "pool";
+  scope: "global" | "provider" | "model" | "pool" | "workspace" | "project";
   providerId?: string;
   modelId?: string;
   poolId?: string;
+  workspaceId?: string;
+  projectId?: string;
   period: BudgetPeriod;
   limitType: "currency" | "tokens" | "requests";
   limitValue: number;

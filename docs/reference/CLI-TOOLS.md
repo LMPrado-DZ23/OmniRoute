@@ -12,8 +12,8 @@ OmniRoute integrates with three categories of CLI tools spread across three dedi
 
 | Page           | Route                   | Concept                                                                   | Count        |
 | -------------- | ----------------------- | ------------------------------------------------------------------------- | ------------ |
-| **CLI Code's** | `/dashboard/cli-code`   | Coding tools you point at OmniRoute (Client → CLI → OmniRoute → Provider) | 27           |
-| **CLI Agents** | `/dashboard/cli-agents` | Autonomous agents you point at OmniRoute (same flow, broader scope)       | 10           |
+| **CLI Code's** | `/dashboard/cli-code`   | Coding tools you point at OmniRoute (Client → CLI → OmniRoute → Provider) | 32           |
+| **CLI Agents** | `/dashboard/cli-agents` | Autonomous agents you point at OmniRoute (same flow, broader scope)       | 16           |
 | **ACP Agents** | `/dashboard/acp-agents` | CLIs that OmniRoute spawns as backend via stdio/ACP (reverse flow)        | see registry |
 
 Legacy routes redirect via 308: `/dashboard/cli-tools` → `/dashboard/cli-code`, `/dashboard/agents` → `/dashboard/acp-agents`.
@@ -144,7 +144,7 @@ one surface without the others fails the suite instead of drifting silently.
 
 ---
 
-## 1. CLI Code's Catalog (27 tools)
+## 1. CLI Code's Catalog (32 tools)
 
 All tools that appear in `/dashboard/cli-code`. Those with `baseUrlSupport: none` are wired through MITM or a manual guide instead of a custom base URL:
 
@@ -177,11 +177,16 @@ All tools that appear in `/dashboard/cli-code`. Those with `baseUrlSupport: none
 | kiro         | Kiro AI                 | Amazon              | none           | mitm           | false        |
 | custom       | Custom CLI              | —                   | full           | custom-builder | false        |
 | gemini       | Gemini CLI              | Google              | full           | guide          | true         |
+| aichat       | AIChat                  | OSS (sigoden)       | full           | guide          | false        |
+| shell-gpt    | ShellGPT                | OSS (TheR1D)        | full           | guide          | false        |
+| mods         | Mods                    | OSS (Charm)         | full           | guide          | false        |
+| llm          | LLM (Datasette)         | OSS (S. Willison)   | full           | guide          | false        |
+| fabric       | Fabric                  | OSS (D. Miessler)   | full           | guide          | false        |
 
 Tools with `baseUrlSupport: "partial"` show a badge "⚠ Base URL parcial" in the dashboard card.
 ---
 
-## 2. CLI Agents Catalog (10 tools)
+## 2. CLI Agents Catalog (16 tools)
 
 Autonomous agents that appear in `/dashboard/cli-agents`:
 
@@ -197,6 +202,12 @@ Autonomous agents that appear in `/dashboard/cli-agents`:
 | letta        | Letta CLI        | Letta                    | full           | false        |
 | prime-agent  | Prime Agent      | Prime Intellect (OSS)    | full           | false        |
 | 5dive        | 5dive            | OSS (5dive-ai)           | full           | false        |
+| openhands    | OpenHands        | OpenHands (OSS)          | full           | false        |
+| plandex      | Plandex          | Plandex (OSS)            | partial        | false        |
+| gptme        | gptme            | OSS (E. Bjäreholt)       | full           | false        |
+| trae         | Trae Agent       | ByteDance (OSS)          | full           | false        |
+| octofriend   | Octofriend       | OSS (Synthetic Lab)      | full           | false        |
+| raaid        | RA.Aid           | OSS (ai-christianson)    | full           | false        |
 
 ---
 

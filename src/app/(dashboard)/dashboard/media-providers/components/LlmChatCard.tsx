@@ -407,7 +407,9 @@ export function LlmChatCard({
               disabled={loading}
               className="min-w-0 flex-1 rounded-md border border-border bg-bg-subtle text-xs px-2 py-1 text-text-main focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
             >
-              {modelOptions.length === 0 && !loading && <option value="">{initialModel || "—"}</option>}
+              {modelOptions.length === 0 && !loading && (
+                <option value="">{initialModel || "—"}</option>
+              )}
               {loading && <option value="">{t("loading") ?? "Loading…"}</option>}
               {modelOptions.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -575,7 +577,7 @@ export function LlmChatCard({
             onClick={() => void handleSend()}
             disabled={!input.trim()}
             title={t("send")}
-            className="size-8 flex items-center justify-center rounded-md bg-primary text-white hover:opacity-90 disabled:opacity-40 transition-opacity shrink-0"
+            className="size-8 flex items-center justify-center rounded-md bg-primary text-on-primary hover:opacity-90 disabled:opacity-40 transition-opacity shrink-0"
           >
             <span className="material-symbols-outlined text-[18px]">arrow_upward</span>
           </button>

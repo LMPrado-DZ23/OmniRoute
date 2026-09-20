@@ -258,6 +258,9 @@ export const APIKEY_PROVIDERS_REGIONAL = {
     color: "#EA580C",
     textIcon: "MM",
     website: "https://mimo.mi.com",
+    notice: {
+      apiKeyUrl: "https://aistudio.xiaomimimo.com",
+    },
   },
   "xiaomi-mimo-token-plan": {
     id: "xiaomi-mimo-token-plan",
@@ -268,6 +271,9 @@ export const APIKEY_PROVIDERS_REGIONAL = {
     color: "#EA580C",
     textIcon: "MT",
     website: "https://mimo.mi.com",
+    notice: {
+      apiKeyUrl: "https://aistudio.xiaomimimo.com",
+    },
   },
   baidu: {
     id: "baidu",

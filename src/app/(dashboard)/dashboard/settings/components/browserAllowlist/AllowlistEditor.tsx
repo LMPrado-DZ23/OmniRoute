@@ -38,7 +38,7 @@ function normalizeDraft(raw: string): string {
 }
 
 const BUTTON_PRIMARY =
-  "rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50";
+  "rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:opacity-90 disabled:opacity-50";
 const BUTTON_SECONDARY =
   "rounded-lg border border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-subtle disabled:opacity-50";
 
