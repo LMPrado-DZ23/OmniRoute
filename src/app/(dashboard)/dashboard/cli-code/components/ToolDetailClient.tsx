@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useDisplayBaseUrl } from "@/shared/hooks/useDisplayBaseUrl";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { CLI_TOOLS } from "@/shared/constants/cliTools";
@@ -215,11 +216,17 @@ export default function ToolDetailClient({ toolId, category }: ToolDetailClientP
     });
   }, []);
 
+  // `window.location.origin` drops OMNIROUTE_BASE_PATH, so on a reverse-proxy subpath
+  // deploy every one of these cards printed `https://host/v1` instead of
+  // `https://host/omniroute/v1` — the wrong-base-URL failure #57 and #60 exist to
+  // prevent, on the page that teaches people what to paste. Every other surface that
+  // shows a base URL (the endpoint page, the VS Code token card, onboarding, the landing
+  // Get Started block) already uses this hook; this one was the exception.
+  const displayBaseUrl = useDisplayBaseUrl();
   const getBaseUrl = useCallback(() => {
     if (cloudEnabled && CLOUD_URL) return CLOUD_URL;
-    if (typeof window !== "undefined") return window.location.origin;
-    return "";
-  }, [cloudEnabled]);
+    return displayBaseUrl;
+  }, [cloudEnabled, displayBaseUrl]);
 
   if (!tool) return null;
 
