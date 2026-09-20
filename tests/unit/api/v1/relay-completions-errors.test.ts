@@ -8,6 +8,13 @@ import {
 } from "../../../../src/app/api/v1/relay/chat/completions/relaySecurity.ts";
 import { getDbInstance } from "../../../../src/lib/db/core.ts";
 import { getRelayLogs } from "../../../../src/lib/db/relayProxies.ts";
+import { reserveDeadLoopbackPort } from "../../_helpers/deadLoopback.ts";
+
+// Every test below stubs globalThis.fetch, but the relay path also dispatches through
+// proxyFetch's own undici agent, which never sees that stub. Pointing BIFROST_BASE_URL at
+// a closed loopback port keeps that escape on this machine (immediate ECONNREFUSED)
+// instead of resolving the made-up host `bifrost.test.local` on the network.
+const DEAD_BIFROST_PORT = await reserveDeadLoopbackPort();
 
 // ─── Relay completions route: Bifrost upstream error normalization ──────────
 //
@@ -74,7 +81,7 @@ function restoreEnv() {
 
 function setupBifrostEnv() {
   process.env.OMNIROUTE_RELAY_BACKEND = "bifrost";
-  process.env.BIFROST_BASE_URL = "http://bifrost.test.local:8080";
+  process.env.BIFROST_BASE_URL = `http://127.0.0.1:${DEAD_BIFROST_PORT}`;
   process.env.BIFROST_TIMEOUT_MS = "5000";
   delete process.env.BIFROST_API_KEY;
   delete process.env.OMNIROUTE_BIFROST_KEY;
@@ -200,8 +207,16 @@ test("relay route: strips stale upstream content-length before serializing JSON 
 
   const res = await POST(req);
   assert.equal(res.status, 404);
-  assert.equal(res.headers.get("content-encoding"), null, "stale content-encoding must be stripped");
-  assert.equal(res.headers.get("transfer-encoding"), null, "stale transfer-encoding must be stripped");
+  assert.equal(
+    res.headers.get("content-encoding"),
+    null,
+    "stale content-encoding must be stripped"
+  );
+  assert.equal(
+    res.headers.get("transfer-encoding"),
+    null,
+    "stale transfer-encoding must be stripped"
+  );
 
   const raw = await res.text();
   const declaredLength = res.headers.get("content-length");

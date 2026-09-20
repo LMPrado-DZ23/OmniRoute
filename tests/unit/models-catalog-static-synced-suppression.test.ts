@@ -18,6 +18,13 @@ const modelsDb = await import("../../src/lib/db/models.ts");
 const catalog = await import("../../src/app/api/v1/models/catalog.ts");
 const { REGISTRY } = await import("@omniroute/open-sse/config/providerRegistry");
 
+// Hermetic outbound layer — installed AFTER every import, because
+// open-sse/utils/proxyFetch.ts replaces globalThis.fetch at import time and would
+// discard a stub installed before it. Production code under test makes best-effort
+// calls (catalog polls, egress probes) that must never leave the machine.
+const { installOfflineOutbound } = await import("./_helpers/offlineOutbound.ts");
+await installOfflineOutbound();
+
 const LIVE_MODEL = "google/gemma-4-31b-it";
 
 function getStaticModel(provider: string) {

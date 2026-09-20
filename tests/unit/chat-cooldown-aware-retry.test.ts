@@ -11,6 +11,13 @@ const auth = await import("../../src/sse/services/auth.ts");
 const { getProviderConnectionById } = await import("../../src/lib/db/providers.ts");
 const { __setTlsFetchOverrideForTesting } =
   await import("../../open-sse/services/claudeTlsClient.ts");
+
+// Hermetic outbound layer — installed AFTER every import, because
+// open-sse/utils/proxyFetch.ts replaces globalThis.fetch at import time and would
+// discard a stub installed before it. Production code under test makes best-effort
+// calls (catalog polls, egress probes) that must never leave the machine.
+const { installOfflineOutbound } = await import("./_helpers/offlineOutbound.ts");
+await installOfflineOutbound();
 const {
   BaseExecutor,
   buildOpenAIResponse,

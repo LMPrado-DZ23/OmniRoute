@@ -17,6 +17,13 @@ const v1ModelsCatalog = await import("../../src/app/api/v1/models/catalog.ts");
 const localCliAvailability =
   await import("../../src/app/api/v1/models/catalogLocalCliAvailability.ts");
 
+// Hermetic outbound layer — installed AFTER every import, because
+// open-sse/utils/proxyFetch.ts replaces globalThis.fetch at import time and would
+// discard a stub installed before it. Production code under test makes best-effort
+// calls (catalog polls, egress probes) that must never leave the machine.
+const { installOfflineOutbound } = await import("./_helpers/offlineOutbound.ts");
+await installOfflineOutbound();
+
 // C-05: the `cxa/` rows asserted below belong to `codex-app-server`, a local-CLI
 // no-auth provider that is now listed only while its app-server is reachable.
 // This file tests prefix gating, not runtime detection, so declare the transport

@@ -66,11 +66,13 @@ test("probeHealth falls through to a later host when 127.0.0.1 is unreachable", 
   const { server, port } = await startServer("127.0.0.1");
   servers.push(server);
 
-  // First host resolves to nothing listening (use a host alias that will fail),
-  // second host is the working loopback.
+  // First host is a loopback address with nothing listening on `port` (the server is
+  // bound to 127.0.0.1 only), so the probe gets an immediate ECONNREFUSED and falls
+  // through to the second host. It used to be 192.0.2.1 (TEST-NET-1), which is a real
+  // outbound packet: slow, resolver-dependent, and refused by the network guard.
   const ok = await probeHealth({
     port,
-    hosts: ["192.0.2.1", "127.0.0.1"], // 192.0.2.1 = TEST-NET-1, unroutable
+    hosts: ["127.0.0.2", "127.0.0.1"],
     timeoutMs: 300,
   });
   assert.equal(ok, "127.0.0.1");

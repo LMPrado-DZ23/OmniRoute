@@ -23,6 +23,13 @@ process.env.API_KEY_SECRET = process.env.API_KEY_SECRET || "catalog-11947-secret
 const core = await import("../../src/lib/db/core.ts");
 const catalog = await import("../../src/app/api/v1/models/catalog.ts");
 
+// Hermetic outbound layer — installed AFTER every import, because
+// open-sse/utils/proxyFetch.ts replaces globalThis.fetch at import time and would
+// discard a stub installed before it. Production code under test makes best-effort
+// calls (catalog polls, egress probes) that must never leave the machine.
+const { installOfflineOutbound } = await import("./_helpers/offlineOutbound.ts");
+await installOfflineOutbound();
+
 type CatalogEntry = {
   id: string;
   owned_by?: string;

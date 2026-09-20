@@ -29,6 +29,45 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { getExecutor } from "../../open-sse/executors/index.ts";
 import { WEB_COOKIE_PROVIDERS, NOAUTH_PROVIDERS } from "../../src/shared/constants/providers.ts";
+import { installOfflineOutbound } from "./_helpers/offlineOutbound.ts";
+
+// The header above says "no real upstream call is needed". It was not true: with fake
+// credentials each executor still dialled its real provider (61 requests to grok.com,
+// claude.ai, chat.deepseek.com, huggingface.co, … on every run) and depended on the
+// provider answering 4xx. Both transports the executors use — globalThis.fetch and the
+// wreq-js TLS client — now answer with the synthetic 401 the sweep always described,
+// which is what makes the wrapper-shape assertions deterministic.
+const OFFLINE_401_BODY = JSON.stringify({
+  error: { message: "invalid credentials (offline test)" },
+});
+await installOfflineOutbound({
+  interceptTlsClient: true,
+  respond: () =>
+    new Response(OFFLINE_401_BODY, {
+      status: 401,
+      headers: { "content-type": "application/json" },
+    }),
+});
+
+// Five executors reach their provider through a per-provider wreq-js client of their own
+// (open-sse/services/*TlsClient.ts), which is neither globalThis.fetch nor the proxyFetch
+// seam above. Each exposes the same test override; without them grok.com, perplexity.ai,
+// claude.ai and arena.ai were still contacted for real.
+const tlsClientModules = await Promise.all([
+  import("../../open-sse/services/claudeTlsClient.ts"),
+  import("../../open-sse/services/grokTlsClient.ts"),
+  import("../../open-sse/services/lmarenaTlsClient.ts"),
+  import("../../open-sse/services/notionTlsClient.ts"),
+  import("../../open-sse/services/perplexityTlsClient.ts"),
+]);
+for (const tlsClient of tlsClientModules) {
+  tlsClient.__setTlsFetchOverrideForTesting(async () => ({
+    status: 401,
+    headers: new Headers({ "content-type": "application/json" }),
+    text: OFFLINE_401_BODY,
+    body: null,
+  }));
+}
 
 type WebCookieId = keyof typeof WEB_COOKIE_PROVIDERS;
 type NoauthId = keyof typeof NOAUTH_PROVIDERS;

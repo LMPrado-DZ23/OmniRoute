@@ -15,6 +15,13 @@ const providers = await import("../../src/lib/db/providers.ts");
 const catalog = await import("../../src/app/api/v1/models/catalog.ts");
 const overrideRoute = await import("../../src/app/api/model-capability-overrides/route.ts");
 
+// Hermetic outbound layer — installed AFTER every import, because
+// open-sse/utils/proxyFetch.ts replaces globalThis.fetch at import time and would
+// discard a stub installed before it. Production code under test makes best-effort
+// calls (catalog polls, egress probes) that must never leave the machine.
+const { installOfflineOutbound } = await import("./_helpers/offlineOutbound.ts");
+await installOfflineOutbound();
+
 const TARGET = "openai/gpt-5.6";
 const LIMITS = { context: 372000, input: 353400, output: 128000 };
 

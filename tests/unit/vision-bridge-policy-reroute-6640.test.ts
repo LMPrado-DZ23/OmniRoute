@@ -34,6 +34,13 @@ import assert from "node:assert/strict";
 
 import { createChatPipelineHarness } from "../integration/_chatPipelineHarness.ts";
 
+// Hermetic outbound layer — installed AFTER every import, because
+// open-sse/utils/proxyFetch.ts replaces globalThis.fetch at import time and would
+// discard a stub installed before it. Production code under test makes best-effort
+// calls (catalog polls, egress probes) that must never leave the machine.
+const { installOfflineOutbound } = await import("./_helpers/offlineOutbound.ts");
+await installOfflineOutbound();
+
 const harness = await createChatPipelineHarness("vision-bridge-policy-reroute-6640");
 const { handleChat, buildRequest, buildOpenAIResponse, resetStorage, seedConnection, seedApiKey, settingsDb } =
   harness;

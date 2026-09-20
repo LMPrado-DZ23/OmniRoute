@@ -193,6 +193,17 @@ test("a live-test flag makes the guard stand aside", () => {
   assert.doesNotMatch(live.stderr, /\[network-guard\]/);
 });
 
+test("a pinned resolver is judged by the address it returns, not the hostname", () => {
+  const run = runProbe("pinned-lookup");
+  assert.deepEqual(run.result.pinnedToLoopback, ["OK"], run.stderr);
+  assert.ok(blocked(run.result.pinnedToPublic), JSON.stringify(run.result));
+  assert.match(
+    run.stderr,
+    /host=pinned\.example\.test->192\.0\.2\.1 .*via=socket\(pinned-lookup\)/
+  );
+  assert.equal(run.status, 1);
+});
+
 test("report mode still refuses the connection but leaves the exit code alone", () => {
   const run = runProbe("non-loopback", { [GUARD_MODE_ENV]: "report" });
   assert.ok(blocked(run.result.fetch), JSON.stringify(run.result));
@@ -212,6 +223,19 @@ test("the guard survives proxyFetch replacing globalThis.fetch at route import",
   assert.ok(blocked(run.result.outbound), JSON.stringify(run.result));
   assert.equal(run.status, 1);
   assert.match(run.stderr, /\[network-guard\] BLOCKED host=192\.0\.2\.1 port=443 via=socket/);
+});
+
+test("the guardedFetch bypass (its own pinned undici Agent) is blocked too", () => {
+  // Second known way around a fetch stub: src/shared/network/guardedFetch.ts runs vendor
+  // token validation on its own dispatcher, so globalThis.fetch never sees it.
+  const run = runProbe("guarded-fetch");
+  assert.deepEqual(run.result.loopback, ["OK"], run.stderr);
+  assert.ok(blocked(run.result.outbound), JSON.stringify(run.result));
+  assert.match(
+    run.stderr,
+    /host=guarded\.example\.test->192\.0\.2\.1 .*via=socket\(pinned-lookup\)/
+  );
+  assert.equal(run.status, 1);
 });
 
 test("the wreq-js native transport (outside net.Socket) is blocked too", () => {

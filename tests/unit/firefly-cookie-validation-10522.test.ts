@@ -6,6 +6,13 @@ import { validateAdobeFireflyProvider } from "../../src/lib/providers/validation
 import { resolveProviderId } from "../../src/shared/constants/providers.ts";
 import { ADOBE_FIREFLY_CREDITS_BALANCE_URL } from "../../open-sse/services/adobeFireflyClient.ts";
 
+// Hermetic outbound layer — installed AFTER every import, because
+// open-sse/utils/proxyFetch.ts replaces globalThis.fetch at import time and would
+// discard a stub installed before it. Production code under test makes best-effort
+// calls (catalog polls, egress probes) that must never leave the machine.
+const { installOfflineOutbound } = await import("./_helpers/offlineOutbound.ts");
+await installOfflineOutbound();
+
 // A well-formed Adobe IMS *user* access token (3-segment JWT, non-guest payload, long
 // enough to satisfy looksLikeAdobeJwt). Only used as a routing/shape fixture — never a
 // real credential.

@@ -59,8 +59,12 @@ export const LIVE_TEST_FLAGS = [
 
 export type GuardMode = "enforce" | "report" | "off";
 
-/** Mode used when OMNIROUTE_TEST_NETWORK_GUARD is unset. */
-export const DEFAULT_GUARD_MODE: "enforce" | "report" = "report";
+/**
+ * Mode used when OMNIROUTE_TEST_NETWORK_GUARD is unset: a non-loopback attempt fails the
+ * test process. Report mode stays available for a future rollout (run the suite with
+ * OMNIROUTE_TEST_NETWORK_GUARD=report to inventory attempts without failing on them).
+ */
+export const DEFAULT_GUARD_MODE: "enforce" | "report" = "enforce";
 
 export interface GuardDecision {
   mode: GuardMode;
@@ -125,6 +129,37 @@ export function targetFromConnectArgs(args: readonly unknown[]): ConnectTarget {
   }
   const host = typeof args[1] === "string" ? args[1] : "localhost";
   return { kind: "tcp", host, port: String(first) };
+}
+
+/**
+ * The `lookup` of a connect() call, when the caller pinned its own resolver
+ * (`new Agent({ connect: { lookup } })` in src/shared/network/guardedFetch.ts, and the
+ * webhook/obsidian dispatchers). The hostname then says nothing about where the socket
+ * goes — the resolved address does — so the guard defers to what that lookup returns.
+ */
+export function pinnedLookupOf(args: readonly unknown[]): unknown {
+  const first: unknown = Array.isArray(args[0]) ? args[0][0] : args[0];
+  if (typeof first !== "object" || first === null || !("lookup" in first)) return undefined;
+  const lookup: unknown = Reflect.get(first, "lookup");
+  return typeof lookup === "function" ? lookup : undefined;
+}
+
+function setLookup(args: readonly unknown[], lookup: unknown): void {
+  const first: unknown = Array.isArray(args[0]) ? args[0][0] : args[0];
+  if (typeof first === "object" && first !== null) Reflect.set(first, "lookup", lookup);
+}
+
+/** Addresses a dns.lookup callback reported, in either of its two shapes. */
+export function lookupResultAddresses(address: unknown): string[] {
+  if (typeof address === "string") return [address];
+  if (!Array.isArray(address)) return [];
+  return address
+    .map((entry: unknown) =>
+      typeof entry === "object" && entry !== null && "address" in entry
+        ? Reflect.get(entry, "address")
+        : entry
+    )
+    .filter((entry): entry is string => typeof entry === "string");
 }
 
 export class NetworkAccessBlockedError extends Error {
@@ -223,6 +258,31 @@ function installNetworkGuard(decision: GuardDecision): NetworkGuard {
   function guardedConnect(this: net.Socket, ...args: unknown[]): net.Socket {
     const target = targetFromConnectArgs(args);
     if (target.kind === "local-socket" || isLoopbackHost(target.host)) {
+      return Reflect.apply(originalConnect, this, args);
+    }
+    const pinned = pinnedLookupOf(args);
+    if (typeof pinned === "function") {
+      // Caller pinned its own resolver: the hostname is not where the socket goes, so
+      // decide on the address that lookup actually returns.
+      setLookup(args, function guardedLookup(this: unknown, ...lookupArgs: unknown[]): unknown {
+        const callbackIndex = lookupArgs.findIndex((arg) => typeof arg === "function");
+        const callback = lookupArgs[callbackIndex];
+        if (typeof callback !== "function") return Reflect.apply(pinned, this, lookupArgs);
+        const guardedCallback = (...results: unknown[]): unknown => {
+          const [lookupError, address] = results;
+          if (lookupError) return Reflect.apply(callback, this, results);
+          const offending = lookupResultAddresses(address).find(
+            (candidate) => !isLoopbackHost(candidate)
+          );
+          if (offending === undefined) return Reflect.apply(callback, this, results);
+          return Reflect.apply(callback, this, [
+            block(`${target.host}->${offending}`, target.port, "socket(pinned-lookup)"),
+          ]);
+        };
+        const patched = [...lookupArgs];
+        patched[callbackIndex] = guardedCallback;
+        return Reflect.apply(pinned, this, patched);
+      });
       return Reflect.apply(originalConnect, this, args);
     }
     const error = block(target.host, target.port, "socket");

@@ -28,6 +28,13 @@ const vnc = await import("../../src/lib/vncSession/service.ts");
 const usageRoute = await import("../../src/app/api/usage/[connectionId]/route.ts");
 const providerLimits = await import("../../src/lib/usage/providerLimits.ts");
 
+// Hermetic outbound layer — installed AFTER every import, because
+// open-sse/utils/proxyFetch.ts replaces globalThis.fetch at import time and would
+// discard a stub installed before it. Production code under test makes best-effort
+// calls (catalog polls, egress probes) that must never leave the machine.
+const { installOfflineOutbound } = await import("./_helpers/offlineOutbound.ts");
+await installOfflineOutbound();
+
 const OWNER = "vlo_UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU";
 
 async function seedConnection(name: string, provider = "openai"): Promise<{ id: string }> {

@@ -3,6 +3,13 @@ import assert from "node:assert/strict";
 
 import { createChatPipelineHarness } from "../integration/_chatPipelineHarness.ts";
 
+// Hermetic outbound layer — installed AFTER every import, because
+// open-sse/utils/proxyFetch.ts replaces globalThis.fetch at import time and would
+// discard a stub installed before it. Production code under test makes best-effort
+// calls (catalog polls, egress probes) that must never leave the machine.
+const { installOfflineOutbound } = await import("./_helpers/offlineOutbound.ts");
+await installOfflineOutbound();
+
 // Regression test for #6407 — a `model` field of a non-string type
 // (`number`/`boolean`/`array`/`object`) crashed downstream string ops
 // (`.toLowerCase()`/`.split()`/`.startsWith()`) and returned HTTP 500 with an

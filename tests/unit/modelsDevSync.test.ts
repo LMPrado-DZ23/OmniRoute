@@ -13,6 +13,17 @@ import {
   mapProviderId,
   fetchModelsDev,
 } from "../../src/lib/modelsDevSync.ts";
+import { liveSkipReason } from "../helpers/liveOptIn.ts";
+import { installOfflineOutbound } from "./_helpers/offlineOutbound.ts";
+
+// The four assertions at the bottom of this file describe models.dev's CONTENT (100+
+// providers, 4000+ models): they can only hold against the real service, and they used
+// to download its whole catalog on every unit run. They are now what they always were —
+// live tests — behind the existing RUN_LIVE_TESTS flag, and the fetch/cache contract of
+// fetchModelsDev() is covered offline just below (plus the error paths in
+// tests/unit/modelsDevSync-extended.test.ts).
+const LIVE_SKIP = liveSkipReason({ requiredEnv: [] });
+const MODELS_DEV_API_URL = "https://models.dev/api.json";
 
 // ─── Mock data ───────────────────────────────────────────
 
@@ -427,7 +438,37 @@ describe("modelsDevSync — mapProviderId", () => {
   });
 });
 
-describe("modelsDevSync — fetchModelsDev (live API)", () => {
+describe(
+  "modelsDevSync — fetchModelsDev (offline contract)",
+  { skip: LIVE_SKIP ? false : "live mode: the live-API suite below owns fetchModelsDev" },
+  () => {
+    it("requests models.dev once and caches the parsed catalog", async () => {
+      // Installed here, not at import time: the stub must be the live globalThis.fetch.
+      const offline = await installOfflineOutbound({
+        respond: (url) =>
+          url.href === MODELS_DEV_API_URL
+            ? new Response(JSON.stringify(MOCK_MODELS_DEV_DATA), {
+                status: 200,
+                headers: { "content-type": "application/json" },
+              })
+            : undefined,
+      });
+      try {
+        const first = await fetchModelsDev();
+        const second = await fetchModelsDev();
+
+        assert.deepEqual(Object.keys(first).sort(), Object.keys(MOCK_MODELS_DEV_DATA).sort());
+        assert.ok(first.openai?.models["gpt-4o"], "the parsed catalog keeps provider/model shape");
+        assert.strictEqual(first, second, "the second call must come from the cache");
+        assert.deepEqual(offline.attempts, [MODELS_DEV_API_URL], "exactly one upstream request");
+      } finally {
+        offline.restore();
+      }
+    });
+  }
+);
+
+describe("modelsDevSync — fetchModelsDev (live API)", { skip: LIVE_SKIP }, () => {
   it("fetches data from models.dev API", async () => {
     const data = await fetchModelsDev();
     assert.ok(typeof data === "object", "data should be an object");

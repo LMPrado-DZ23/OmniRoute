@@ -139,6 +139,70 @@ async function ownInterface(): Promise<Record<string, string[]>> {
   }));
 }
 
+/**
+ * A dispatcher that pins its own resolver (src/shared/network/guardedFetch.ts does this):
+ * the hostname says nothing about where the socket goes, the resolved address does.
+ */
+async function pinnedLookup(): Promise<Record<string, string[]>> {
+  const { Agent, request } = await import("undici");
+  const pinTo = (address: string) =>
+    new Agent({
+      connect: {
+        // Same shape as src/shared/network/hardenedWebhookFetch.ts::pinnedLookup.
+        lookup: (_hostname: string, options: unknown, callback: unknown) => {
+          if (typeof callback !== "function") return;
+          const wantsAll =
+            typeof options === "object" && options !== null && Reflect.get(options, "all") === true;
+          if (wantsAll) callback(null, [{ address, family: 4 }]);
+          else callback(null, address, 4);
+        },
+      },
+    });
+  const result: Record<string, string[]> = {};
+  await withServer(listenOn("127.0.0.1"), async (server) => {
+    const port = portOf(server);
+    result.pinnedToLoopback = await settle(async () => {
+      const response = await request(`http://pinned.example.test:${port}/`, {
+        dispatcher: pinTo("127.0.0.1"),
+      });
+      await response.body.text();
+    });
+    result.pinnedToPublic = await settle(async () => {
+      const response = await request(`http://pinned.example.test:${port}/`, {
+        dispatcher: pinTo(BLACKHOLE),
+      });
+      await response.body.text();
+    });
+  });
+  return result;
+}
+
+/**
+ * The second known fetch-stub bypass (after proxyFetch): src/shared/network/guardedFetch.ts
+ * validates the target, then runs the request on its OWN undici Agent with a pinned
+ * resolver — a stub on globalThis.fetch never sees it. Its resolver is injected here so
+ * the probe performs no DNS of its own.
+ */
+async function guardedFetchBypass(): Promise<Record<string, string[]>> {
+  const { guardedFetch } = await import("../../../src/shared/network/guardedFetch.ts");
+  const resolvesTo = (address: string) => async () => [{ address, family: 4 as const }];
+  const result: Record<string, string[]> = {};
+  await withServer(listenOn("127.0.0.1"), async (server) => {
+    result.loopback = await settle(() =>
+      guardedFetch(`http://guarded.example.test:${portOf(server)}/`, {
+        lookup: resolvesTo("127.0.0.1"),
+        allowPrivate: true,
+      }).then((response) => response.text())
+    );
+  });
+  result.outbound = await settle(() =>
+    guardedFetch("https://guarded.example.test/v1/models", {
+      lookup: resolvesTo(BLACKHOLE),
+    })
+  );
+  return result;
+}
+
 async function proxyFetchPatched(): Promise<Record<string, string[]>> {
   const fetchBefore = globalThis.fetch;
   // The incident path: a route import pulls open-sse/utils/proxyFetch.ts, which
@@ -174,7 +238,9 @@ const scenarios: Record<string, () => Promise<Record<string, string[]>>> = {
   "non-loopback": nonLoopback,
   loopback,
   "own-interface": ownInterface,
+  "pinned-lookup": pinnedLookup,
   "proxy-fetch": proxyFetchPatched,
+  "guarded-fetch": guardedFetchBypass,
   wreq,
 };
 

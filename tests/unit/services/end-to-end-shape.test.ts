@@ -31,6 +31,13 @@ process.env.NINEROUTER_PORT = "20130";
 const core = await import("../../../src/lib/db/core.ts");
 const { upsertVersionManagerTool } = await import("../../../src/lib/db/versionManager.ts");
 
+// Hermetic outbound layer — installed AFTER every import, because
+// open-sse/utils/proxyFetch.ts replaces globalThis.fetch at import time and would
+// discard a stub installed before it. Production code under test makes best-effort
+// calls (catalog polls, egress probes) that must never leave the machine.
+const { installOfflineOutbound } = await import("../_helpers/offlineOutbound.ts");
+await installOfflineOutbound();
+
 // Seed both services as "stopped" (installed) so lifecycle routes proceed.
 await upsertVersionManagerTool({ tool: "9router", status: "stopped" });
 await upsertVersionManagerTool({ tool: "cliproxy", status: "stopped" });

@@ -15,6 +15,13 @@ const { invalidateDbCache } = await import("../../src/lib/db/readCache.ts");
 const { refreshConnectionRateLimits, enableRateLimitProtection } =
   await import("@omniroute/open-sse/services/rateLimitManager.ts");
 
+// Hermetic outbound layer — installed AFTER every import, because
+// open-sse/utils/proxyFetch.ts replaces globalThis.fetch at import time and would
+// discard a stub installed before it. Production code under test makes best-effort
+// calls (catalog polls, egress probes) that must never leave the machine.
+const { installOfflineOutbound } = await import("./_helpers/offlineOutbound.ts");
+await installOfflineOutbound();
+
 const originalFetch = globalThis.fetch;
 
 // A test-all 403 can also open the provider circuit breaker and stale the

@@ -25,6 +25,15 @@ const { getCircuitBreaker, resetAllCircuitBreakers, STATE } =
 // DATA_DIR must be fixed before these modules load; keep this test seam dynamic.
 const { setTlsClientForTest } = await import("../../open-sse/utils/proxyFetch.ts");
 
+// Hermetic outbound layer — installed AFTER every import, because
+// open-sse/utils/proxyFetch.ts replaces globalThis.fetch at import time and would
+// discard a stub installed before it. Production code under test makes best-effort
+// calls (catalog polls, egress probes) that must never leave the machine.
+const { installOfflineOutbound } = await import("./_helpers/offlineOutbound.ts");
+// The chat path's only outbound call here is the egress-IP probe; globalThis.fetch is
+// left alone because this file asserts proxyFetch's own proxy/TLS routing.
+await installOfflineOutbound({ interceptFetch: false });
+
 type ApiErrorJson = {
   error?: {
     message?: string;

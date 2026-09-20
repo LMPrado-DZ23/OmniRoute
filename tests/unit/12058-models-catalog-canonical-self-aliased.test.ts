@@ -31,6 +31,23 @@ const modelsDb = await import("../../src/lib/db/models.ts");
 const aliasesDb = await import("../../src/lib/db/models/aliases.ts");
 const v1ModelsCatalog = await import("../../src/app/api/v1/models/catalog.ts");
 
+// Hermetic outbound layer — installed AFTER every import, because
+// open-sse/utils/proxyFetch.ts replaces globalThis.fetch at import time and would
+// discard a stub installed before it. Production code under test makes best-effort
+// calls (catalog polls, egress probes) that must never leave the machine.
+const { installOfflineOutbound } = await import("./_helpers/offlineOutbound.ts");
+// The providers seeded below (antigravity, agy, claude, groq) make the catalog builder
+// run their live model discovery. Left unanswered it retries until the builder's own
+// deadline and the route 500s with `catalog_build_timeout`, so every discovery URL gets
+// an immediate empty catalog here — this suite asserts the CURATED rows, not discovery.
+await installOfflineOutbound({
+  respond: () =>
+    new Response(JSON.stringify({ data: [], models: [] }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }),
+});
+
 type CatalogRow = { id: string; parent: string | null; root: string | null };
 type PrefixMode = "alias" | "canonical" | "dual";
 
