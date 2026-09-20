@@ -279,16 +279,30 @@ have been irreversible or contract-breaking in a patch release.
 
 ## Known limits of this release
 
-- The **workspace and budget hierarchy** is designed but not implemented (Phase 8 ADR).
-- **151 routes** are covered by OpenAPI but have no contract test referencing them yet; the
-  governance baseline tracks them.
+- ~~The **workspace and budget hierarchy** is designed but not implemented (Phase 8 ADR).~~
+  Implemented in `release/v3.8.55` — migration 178, membership-authorized CRUD under
+  `/api/workspaces/**` with IDOR tests, budgets that roll up from key to project to workspace,
+  and a dashboard page ([#52](https://github.com/LMPrado-DZ23/OmniRoute/pull/52)).
+- ~~**151 routes** are covered by OpenAPI but have no contract test referencing them yet; the
+  governance baseline tracks them.~~ Down to **53** in `release/v3.8.55` — 97 removed from the
+  baseline, each with a contract test in the same commit, 388 tests over 19 files
+  ([#48](https://github.com/LMPrado-DZ23/OmniRoute/pull/48)). The remaining 53 are still frozen
+  debt.
 - ~~The **`js-yaml` R-10** advisory in the Electron chain is accepted as residual.~~ Fixed
   2026-09-19 — `js-yaml` 4.3.2, lockfile only. No advisory is accepted as residual in either
   shipped production tree.
-- A live **latency budget** is not enforced per candidate; the contract documents exactly what live
-  traffic does enforce, and the remaining work depends on decomposing `open-sse/services/combo.ts`.
+- ~~A live **latency budget** is not enforced per candidate; the contract documents exactly what
+  live traffic does enforce, and the remaining work depends on decomposing
+  `open-sse/services/combo.ts`.~~ Both landed in `release/v3.8.55`: `combo.ts` went 4080 → 3779
+  lines with the candidate builder extracted, proven behaviour-identical over 700/700 selection
+  cases, and `X-OmniRoute-Latency-Budget` now binds every router strategy — over-budget candidates
+  are dropped from the failover chain, not merely reordered
+  ([#53](https://github.com/LMPrado-DZ23/OmniRoute/pull/53)).
 - Accessibility was gated on login, dashboard, providers and settings; combos, logs and onboarding
-  pages are next.
+  pages are next. `release/v3.8.55` closed the one residual violation — the dark theme painted
+  white on the brand coral at 3.78:1, under AA — and the gate had never seen it because the axe
+  suite only ever measured the light theme
+  ([#55](https://github.com/LMPrado-DZ23/OmniRoute/pull/55)). The page coverage gap is unchanged.
 
 ## Verification commands
 
