@@ -134,7 +134,12 @@ test("reset-aware fetch scope is family-wide for Antigravity and * otherwise", (
 });
 
 test("buildAutoCandidates uses the shared Antigravity fetch-scope helper", () => {
-  const combo = fs.readFileSync(new URL("../../open-sse/services/combo.ts", import.meta.url), "utf8");
+  // buildAutoCandidates moved out of combo.ts into combo/autoCandidates.ts (#3501); the scope
+  // helper must still be the shared one, wherever the builder lives.
+  const combo = fs.readFileSync(
+    new URL("../../open-sse/services/combo/autoCandidates.ts", import.meta.url),
+    "utf8"
+  );
   const strategies = fs.readFileSync(
     new URL("../../open-sse/services/combo/quotaStrategies.ts", import.meta.url),
     "utf8"

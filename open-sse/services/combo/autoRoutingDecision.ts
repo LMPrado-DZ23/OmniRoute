@@ -5,9 +5,11 @@
  * reasons, policy version) under the request id, so a live request can be explained after it ran.
  * On the scoring-engine ("rules") path the failover chain is kept inside the request cost budget:
  * the budget cap applied to the first pick also applies to every later attempt. Explicit router
- * strategies ignore the budget cap, as they did before decisions were recorded.
+ * strategies ignore the budget cap, as they did before decisions were recorded. A request that
+ * sets `RoutingBudget.maxLatencyMs` is bounded on every path (see `./latencyBudget.ts`), and its
+ * budget travels on the context so the decision reports the candidates it excluded.
  */
-import type { RoutingDecision } from "@/shared/contracts/routing";
+import type { RoutingBudget, RoutingDecision } from "@/shared/contracts/routing";
 import { getRequestId } from "@/shared/utils/requestId";
 import {
   BudgetExceededError,
@@ -39,6 +41,13 @@ export interface AutoDecisionContext {
   routableCandidates: DecisionCandidateInput[];
   taskType: string;
   body: Record<string, unknown>;
+  /**
+   * Per-request limits this request asked for. Absent (the default) records the decision with no
+   * budget, exactly as before per-request budgets reached live traffic. Present, it is what
+   * `hardExclusionReasons()` reads, so a candidate live selection refused for being too slow is
+   * reported with `latency_over_budget` instead of looking merely unselected.
+   */
+  budget?: RoutingBudget;
 }
 
 /**
@@ -83,6 +92,7 @@ function recordDecision(
       model: context.config.name,
       protocol: requestProtocol(context.body),
       stream: context.body.stream === true,
+      ...(context.budget ? { budget: context.budget } : {}),
     },
     config: context.config,
     candidates: context.candidates,

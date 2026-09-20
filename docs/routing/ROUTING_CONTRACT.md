@@ -1,7 +1,7 @@
 ---
 title: "Routing Contract and Route Explanation"
 version: 3.8.54
-lastUpdated: 2026-09-18
+lastUpdated: 2026-09-19
 ---
 
 # Routing Contract and Route Explanation
@@ -17,7 +17,7 @@ The types live in `src/shared/contracts/routing.ts` and are shared by `src/` and
 | Type                     | Purpose                                                                                                                                                                 |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `RoutingRequest`         | What is routed: `requestId`, `model`, `protocol`, optional `capabilities`, `workspaceId`, `policyId`, `stream`, `budget`                                                |
-| `RoutingBudget`          | Optional `maxCost` (USD) and `maxLatencyMs`; read by previews and by the `attemptPolicy.ts` library, not by live traffic (see Guarantees)                               |
+| `RoutingBudget`          | Optional `maxCost` (USD) and `maxLatencyMs`; previews apply both. Live traffic applies `maxLatencyMs` only, from `X-OmniRoute-Latency-Budget` (see Guarantees)          |
 | `RoutingCandidate`       | One provider/model: `score`, weighted `factors`, `eligible`, `exclusionReasons`, `quota`, `circuit`, estimated cost and latency                                         |
 | `RoutingDecision`        | `decisionId`, `requestId`, `selected`, `candidates`, `policyVersion`, `generatedAt`, `liveRequestExecuted`, `selectionMode`, `strategy`, optional `omittedCandidates`   |
 | `ProviderAttempt`        | One upstream call: provider, model, attempt number, start time, duration, status, `outcome`                                                                             |
@@ -27,17 +27,18 @@ Candidates never carry connection or account identifiers, prompts or credentials
 
 ## Guarantees
 
-| Guarantee                                   | How it holds                                                                                                                                                                                                                                                   |
-| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Preview uses the live selection algorithm   | Live selection and preview both run `selectProviderWithTrace()` in `open-sse/services/autoCombo/engine.ts`                                                                                                                                                     |
-| Preview calls no provider, changes no state | The preview passes `previewSelectionDeps()`: clones of the self-healing and rotation state, exploration off                                                                                                                                                    |
-| Policy version on every decision            | `computeRoutingPolicyVersion()` hashes combo name, candidate pool, weights, mode pack, budget, exploration rate and router strategy (`rp_` + 16 hex characters)                                                                                                |
-| Every exclusion has a reason                | `hardExclusionReasons()` and the engine trace in `open-sse/services/autoCombo/routingDecision.ts`                                                                                                                                                              |
-| Unknown quota is not exhausted              | `quota: "unknown"` stays eligible and is scored neutral; only a quota cutoff produces `quota_exhausted`                                                                                                                                                        |
-| No blind retry of permanent errors          | Live: the combo loops retry the same target only on 408, 429, 500, 502, 503 and 504 (`isRetryableAttemptStatus()` in `open-sse/services/routing/attemptPolicy.ts`)                                                                                             |
-| Auto combo failover stays in the cost cap   | Live, `rules` router strategy only: `orderTargetsByCostBudget()` drops (`strict`) or moves last (`cheapest`) targets whose estimated 1K-token request cost exceeds `budgetCap`. Explicit router strategies (`cost`, `latency`, `lkgp`, ...) ignore `budgetCap` |
-| Deterministic circuit breaker               | `src/shared/utils/circuitBreaker.ts` accepts an injected clock; `peekState()` reads the effective state without changing it                                                                                                                                    |
-| End-to-end correlation                      | Live decisions are recorded under the request id the client receives (`x-request-id`) and under their decision id                                                                                                                                              |
+| Guarantee                                   | How it holds                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Preview uses the live selection algorithm   | Live selection and preview both run `selectProviderWithTrace()` in `open-sse/services/autoCombo/engine.ts`                                                                                                                                                                                                                                                                                              |
+| Preview calls no provider, changes no state | The preview passes `previewSelectionDeps()`: clones of the self-healing and rotation state, exploration off                                                                                                                                                                                                                                                                                             |
+| Policy version on every decision            | `computeRoutingPolicyVersion()` hashes combo name, candidate pool, weights, mode pack, budget, exploration rate and router strategy (`rp_` + 16 hex characters)                                                                                                                                                                                                                                         |
+| Every exclusion has a reason                | `hardExclusionReasons()` and the engine trace in `open-sse/services/autoCombo/routingDecision.ts`                                                                                                                                                                                                                                                                                                       |
+| Unknown quota is not exhausted              | `quota: "unknown"` stays eligible and is scored neutral; only a quota cutoff produces `quota_exhausted`                                                                                                                                                                                                                                                                                                 |
+| No blind retry of permanent errors          | Live: the combo loops retry the same target only on 408, 429, 500, 502, 503 and 504 (`isRetryableAttemptStatus()` in `open-sse/services/routing/attemptPolicy.ts`)                                                                                                                                                                                                                                      |
+| Auto combo failover stays in the cost cap   | Live, `rules` router strategy only: `orderTargetsByCostBudget()` drops (`strict`) or moves last (`cheapest`) targets whose estimated 1K-token request cost exceeds `budgetCap`. Explicit router strategies (`cost`, `latency`, `lkgp`, ...) ignore `budgetCap`                                                                                                                                          |
+| Opt-in live latency budget                  | Live, every router strategy, only when the request sends `X-OmniRoute-Latency-Budget: <ms>`: a candidate whose `estimatedLatencyMs` (its p95 estimate) exceeds the budget is excluded from selection and dropped from the failover chain, and is reported with `latency_over_budget`. If nothing fits, the request gets a 503 instead of an over-budget answer. Without the header routing is unchanged |
+| Deterministic circuit breaker               | `src/shared/utils/circuitBreaker.ts` accepts an injected clock; `peekState()` reads the effective state without changing it                                                                                                                                                                                                                                                                             |
+| End-to-end correlation                      | Live decisions are recorded under the request id the client receives (`x-request-id`) and under their decision id                                                                                                                                                                                                                                                                                       |
 
 ## Previewing a decision
 
@@ -101,13 +102,19 @@ contains prompts, credentials or connection identifiers.
 
 - Decisions are recorded for the `auto` combo strategy; other combo strategies keep the combo
   decision trace (`/api/usage/combo-trace/{id}`).
-- Live candidates do not yet distinguish unknown quota from a known value, because the candidate
-  builder lives in a file at its size cap; preview candidates do.
-- Live traffic has no per-request `RoutingBudget` input. The only live cost limit is the auto
-  combo's `budgetCap` on the `rules` path, checked per attempt against a 1K-token estimate; there
-  is no cumulative spend check and no live latency budget.
+- Live candidates do not yet distinguish unknown quota from a known value: the live candidate
+  builder (`open-sse/services/combo/autoCandidates.ts`) does not set `quotaKnown` yet; preview
+  candidates do.
+- Live traffic has no per-request `maxCost` input. The only live cost limit is the auto combo's
+  `budgetCap` on the `rules` path, checked per attempt against a 1K-token estimate; there is no
+  cumulative spend check.
+- The live latency budget is checked per attempt against each candidate's p95 latency estimate
+  (`exceedsLatencyBudget()` in `attemptPolicy.ts`), not against the time the request has already
+  spent: a failover attempt that fits the budget on its own is still tried even if earlier attempts
+  used part of it. A candidate with no latency estimate is not excluded. Only `auto` combos read it.
 - `classifyAttemptOutcome()`, `isPermanentAttemptOutcome()`, `canRetrySameCandidate()`,
-  `checkFailoverBudget()` and `planNextAttempt()` are a tested library with no live caller yet.
+  `checkFailoverBudget()` and `planNextAttempt()` are a tested library with no live caller yet;
+  of that module, live traffic calls only `isRetryableAttemptStatus()` and `exceedsLatencyBudget()`.
   Previews apply `maxCost` and `maxLatencyMs` as exclusions.
 - Decisions are held in memory and are lost on restart. A stored live decision keeps at most 40
   candidates (the selected one always), full factors only for the selected candidate and the 10
