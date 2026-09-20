@@ -153,11 +153,15 @@ jobs:
           echo "[release-green] mode: $MODE (event: $EVENT_NAME)"
           # MODE is an intentional flag list, so word-splitting is wanted here
           # shellcheck disable=SC2086
+          # Stream the progress log instead of only printing it afterwards. When the
+          # sweep is killed mid-run — exit 143, which has happened on every full
+          # attempt against this fork — the trailing `cat` never runs and the job
+          # reports a bare 143 with no indication of which gate was in flight. `tee`
+          # keeps the file for the artifact AND puts every line in the job log as it
+          # happens, so a killed sweep is still diagnosable.
           node scripts/quality/validate-release-green.mjs --json --hermetic $MODE \
-            1> release-green.json 2> release-green.log
+            1> release-green.json 2> >(tee release-green.log >&2)
           echo "exit=$?" >> "$GITHUB_OUTPUT"
-          echo "------- report -------"
-          cat release-green.log
 
       - name: Open / update tracking issue on HARD failure
         if: steps.validate.outputs.exit != '0'
