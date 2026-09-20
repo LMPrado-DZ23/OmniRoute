@@ -172,7 +172,7 @@ test("every CLI_TOOLS entry carries the fields the cards render", () => {
 });
 
 test("guide entries give the user a real guide, and templates use known placeholders", () => {
-  const KNOWN_PLACEHOLDERS = new Set(["baseUrl", "apiKey", "model"]);
+  const KNOWN_PLACEHOLDERS = new Set(["baseUrl", "baseOrigin", "apiKey", "model"]);
 
   for (const [key, entry] of Object.entries(CLI_TOOLS)) {
     if (entry.configType === "guide") {
@@ -189,8 +189,8 @@ test("guide entries give the user a real guide, and templates use known placehol
       }
     }
 
-    // DefaultToolCard.replaceVars only substitutes {{baseUrl}}, {{apiKey}} and
-    // {{model}}. Anything else would be copied to the user's shell verbatim.
+    // DefaultToolCard.replaceVars only substitutes {{baseUrl}}, {{baseOrigin}},
+    // {{apiKey}} and {{model}}. Anything else is copied to the shell verbatim.
     const templated = [
       entry.codeBlock?.code ?? "",
       ...(entry.guideSteps ?? []).flatMap((s) => [s.value ?? "", s.desc ?? ""]),
