@@ -20,9 +20,16 @@ const ANALYTICS_DATA = {
   ],
 };
 const BUDGET_DATA = {
-  budgets: [
-    { scope: "global", period: "monthly", limit: 100, used: 42.5, remaining: 57.5, pct: 0.425 },
-  ],
+  budgets: {
+    key_1: {
+      dailyLimitUsd: 5,
+      weeklyLimitUsd: 0,
+      monthlyLimitUsd: 100,
+      totalCostToday: 1.25,
+      totalCostMonth: 42.5,
+      budgetCheck: { exceeded: false },
+    },
+  },
 };
 const QUOTA_DATA = {
   providers: [
@@ -127,7 +134,7 @@ test("runUsageAnalytics exibe providers em json", async () => {
   assert.ok(parsed[0].costUsd > 0);
 });
 
-test("runBudgetList exibe budgets", async () => {
+test("runBudgetList exibe o resumo por chave de API", async () => {
   const origFetch = globalThis.fetch;
   globalThis.fetch = mockFetch() as any;
 
@@ -138,8 +145,9 @@ test("runBudgetList exibe budgets", async () => {
   globalThis.fetch = origFetch;
   const parsed = JSON.parse(out);
   assert.ok(Array.isArray(parsed));
-  assert.equal(parsed[0].scope, "global");
-  assert.ok(parsed[0].limit > 0);
+  assert.equal(parsed[0].apiKeyId, "key_1");
+  assert.equal(parsed[0].monthlyLimitUsd, 100);
+  assert.equal(parsed[0].totalCostMonth, 42.5);
 });
 
 test("runUsageQuota exibe providers de quota", async () => {
@@ -198,7 +206,7 @@ test("runUsageHistory exibe histórico", async () => {
   assert.ok(parsed.length >= 1);
 });
 
-test("runBudgetSet envia POST com amount, scope e period", async () => {
+test("runBudgetSet envia POST no formato de setBudgetSchema", async () => {
   let capturedBody: unknown = null;
   const origFetch = globalThis.fetch;
   globalThis.fetch = ((url: string, init: any) => {
@@ -210,10 +218,10 @@ test("runBudgetSet envia POST com amount, scope e period", async () => {
 
   const { runBudgetSet } = await import("../../bin/cli/commands/usage.mjs");
   const cmd = { optsWithGlobals: () => ({ output: "table", quiet: false }) };
-  await captureStdout(() => runBudgetSet("50", { scope: "global", period: "monthly" }, cmd as any));
+  await captureStdout(() => runBudgetSet("key_1", { monthly: 50 }, cmd as any));
 
   globalThis.fetch = origFetch;
   assert.ok(capturedBody !== null);
-  assert.equal((capturedBody as any).amount, 50);
-  assert.equal((capturedBody as any).scope, "global");
+  // the route requires apiKeyId and per-period limits; there is no scope/amount
+  assert.deepEqual(capturedBody, { apiKeyId: "key_1", monthlyLimitUsd: 50 });
 });
