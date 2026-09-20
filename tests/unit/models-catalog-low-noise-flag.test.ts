@@ -19,7 +19,68 @@ const localCliAvailability =
 
 // Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
 // globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
-await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+//
+// The `rows.length > 100` non-vacuity guards below used to be satisfied with help from
+// the NETWORK: building /v1/models polls the live AI Horde image catalog
+// (open-sse/services/aihordeImageCatalog.ts, reached from catalog.ts), and this file
+// alone sent 54 requests to aihorde.net per run. With the poll blocked the catalog drops
+// to 71 rows and those guards fail — the fixture below restores the image half of the
+// catalog deterministically, with the exact shape `/v2/status/models?type=image` returns
+// (only workers with `count > 0` are listed).
+const HORDE_IMAGE_MODELS = [
+  "stable_diffusion",
+  "SDXL 1.0",
+  "AlbedoBase XL (SDXL)",
+  "Anything Diffusion",
+  "Deliberate",
+  "Dreamshaper",
+  "Realistic Vision",
+  "ICBINP - I Can't Believe It's Not Photography",
+  "Analog Madness",
+  "Epic Diffusion",
+  "majicMIX realistic",
+  "Counterfeit",
+  "MeinaMix",
+  "Nova Anime XL",
+  "Pony Diffusion XL",
+  "FLUX.1-schnell fp8 (Compact)",
+  "Juggernaut XL",
+  "AbsoluteReality",
+  "CyberRealistic",
+  "Photon",
+  "Rev Animated",
+  "Hassaku",
+  "AOM3",
+  "Pastel Mix",
+  "Cetus-Mix",
+  "GhostMix",
+  "DucHaiten",
+  "Yiffy",
+  "Zack3D",
+  "Midjourney Diffusion",
+  "Openjourney Diffusion",
+  "Vintedois Diffusion",
+  "Seek.art MEGA",
+  "Papercut Diffusion",
+  "Arcane Diffusion",
+  "Redshift Diffusion",
+  "Trinart Characters",
+  "Waifu Diffusion",
+  "Dark Sushi Mix",
+  "Hentai Diffusion",
+].map((name) => ({ name, count: 4, queued: 0, eta: 0, performance: 1, jobs: 0 }));
+
+await (
+  await import("./_helpers/offlineOutbound.ts")
+).installOfflineOutbound({
+  respond: (url) =>
+    url.href.startsWith("https://aihorde.net/api/v2/status/models")
+      ? new Response(JSON.stringify(HORDE_IMAGE_MODELS), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        })
+      : undefined,
+});
 
 // C-05: the `cxa/` rows asserted below belong to `codex-app-server`, a local-CLI
 // no-auth provider that is now listed only while its app-server is reachable.
