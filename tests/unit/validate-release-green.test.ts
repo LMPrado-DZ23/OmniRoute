@@ -25,6 +25,7 @@ const {
   mergeSlowReports,
   flagValue,
   SLOW_GATE_IDS,
+  parseUnmeasured,
 } = mod;
 
 const extract = extractCiGates as (
@@ -795,4 +796,67 @@ test("every slow-suite shard stays under the runner's ~60-minute ceiling", async
       `${job} is budgeted ${budget}min — the runner stops at ~60, so it would never report its own timeout`
     );
   }
+});
+
+// ─── A gate this environment cannot run is stated, never omitted ───────────
+
+const unmeasured = parseUnmeasured as (
+  argv: string[]
+) => { id: string; label: string; kind: string; ok: boolean; detail: string }[];
+
+test("an unmeasured gate is recorded as a HARD failure carrying its reason", () => {
+  // Not a defect and not drift — unmeasured. The one thing it must never be is absent:
+  // a sweep missing a required gate is not release-green and must not read as if it were.
+  const [record] = unmeasured(["--unmeasured=pack-artifact:a full next build does not fit"]);
+  assert.equal(record.id, "unmeasured:pack-artifact");
+  assert.equal(record.kind, "hard");
+  assert.equal(record.ok, false);
+  assert.equal(record.detail, "a full next build does not fit");
+  assert.match(record.label, /not measured here/);
+});
+
+test("an unmeasured gate makes the verdict NOT release-green", () => {
+  const { releaseGreen } = computeVerdict(unmeasured(["--unmeasured=pack-artifact:reason"])) as {
+    releaseGreen: boolean;
+  };
+  assert.equal(releaseGreen, false);
+});
+
+test("several may be stated, and a reason may contain colons", () => {
+  // The remedy is the useful half of the message and it contains URLs and colons.
+  const records = unmeasured([
+    "--unmeasured=pack-artifact:does not fit; set USE_VPS_RUNNER=true: see build.yml",
+    "--unmeasured=pack-boot:skipped with pack-artifact",
+  ]);
+  assert.equal(records.length, 2);
+  assert.equal(records[0].detail, "does not fit; set USE_VPS_RUNNER=true: see build.yml");
+  assert.equal(records[1].id, "unmeasured:pack-boot");
+});
+
+test("a malformed --unmeasured THROWS rather than recording nothing", () => {
+  // Recording nothing would be the silent-omission failure this flag exists to prevent.
+  assert.throws(() => unmeasured(["--unmeasured=pack-artifact"]), /expected <id>:<reason>/);
+  assert.throws(() => unmeasured(["--unmeasured=:a reason with no id"]), /expected <id>:<reason>/);
+  assert.throws(() => unmeasured(["--unmeasured=trailing:"]), /expected <id>:<reason>/);
+});
+
+test("absent, it records nothing at all", () => {
+  assert.deepEqual(unmeasured(["--json", "--full-ci"]), []);
+});
+
+test("the sweep states pack-artifact as unmeasured on a hosted runner", async () => {
+  // The workflow half of the same contract: if the hosted branch ever stops saying so,
+  // the sweep would silently drop the artifact gate and still print a verdict.
+  const fs = await import("node:fs");
+  const wf = fs.readFileSync(
+    new URL("../../.github/workflows/nightly-release-green.yml", import.meta.url),
+    "utf8"
+  );
+  assert.match(wf, /--unmeasured=pack-artifact:/);
+  assert.match(wf, /--unmeasured=pack-boot:/);
+  assert.match(
+    wf,
+    /if \[ "\$\{USE_VPS_RUNNER:-\}" = "true" \]/,
+    "the artifact gate must run when a runner that fits the build is selected"
+  );
 });
