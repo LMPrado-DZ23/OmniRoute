@@ -2949,6 +2949,7 @@
       "custom": "Use for custom tool implementations or generic OpenAI-compatible configurations."
     },
     "toolDescriptions": {
+      "gemini": "‏Google Gemini کا کمانڈ لائن ٹول، اپنی بیس یو آر ایل کے ساتھ",
       "aichat": "‏AIChat، لینگوئج ماڈلز کے لیے جامع کمانڈ لائن ٹول، اپنی بیس یو آر ایل کے ساتھ",
       "shell-gpt": "‏ShellGPT، کمانڈ لائن معاون، اپنی بیس یو آر ایل کے ساتھ",
       "mods": "‏Mods، کمانڈ لائن کے لیے اے آئی، Charm کی طرف سے",

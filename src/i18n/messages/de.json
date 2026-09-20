@@ -2949,6 +2949,7 @@
       "custom": "Verwendung für benutzerdefinierte Tool-Implementierungen oder generische OpenAI-kompatible Konfigurationen."
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini CLI mit benutzerdefinierter Basis-URL",
       "aichat": "AIChat All-in-One-LLM-CLI mit benutzerdefinierter Basis-URL",
       "shell-gpt": "ShellGPT-Kommandozeilenassistent mit benutzerdefinierter Basis-URL",
       "mods": "Mods, KI für die Kommandozeile, von Charm",

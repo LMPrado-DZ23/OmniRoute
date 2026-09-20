@@ -2949,6 +2949,7 @@
       "custom": "Use for custom tool implementations or generic OpenAI-compatible configurations."
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini CLI yenye URL msingi maalum",
       "aichat": "AIChat, CLI ya LLM yenye kila kitu na URL msingi maalum",
       "shell-gpt": "ShellGPT, msaidizi wa mstari wa amri na URL msingi maalum",
       "mods": "Mods, AI ya mstari wa amri kutoka Charm",

@@ -2949,6 +2949,7 @@
       "custom": "Gebruik voor aangepaste toolimplementaties of generieke OpenAI-compatibele configuraties."
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini CLI met aangepaste basis-URL",
       "aichat": "AIChat alles-in-één LLM-CLI met aangepaste basis-URL",
       "shell-gpt": "ShellGPT-opdrachtregelassistent met aangepaste basis-URL",
       "mods": "Mods, AI voor de opdrachtregel, van Charm",

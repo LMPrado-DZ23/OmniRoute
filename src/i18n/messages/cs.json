@@ -2949,6 +2949,7 @@
       "custom": "Použijte pro vlastní implementace nástrojů nebo obecné konfigurace kompatibilní s OpenAI."
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini CLI s vlastní základní URL",
       "aichat": "AIChat, univerzální LLM CLI s vlastní základní URL",
       "shell-gpt": "ShellGPT, asistent příkazové řádky s vlastní základní URL",
       "mods": "Mods, AI pro příkazovou řádku od Charm",

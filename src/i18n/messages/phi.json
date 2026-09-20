@@ -2949,6 +2949,7 @@
       "custom": "Gamitin para sa mga custom na pagpapatupad ng tool o generic na mga configuration na tugma sa OpenAI."
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini CLI na may pasadyang base URL",
       "aichat": "AIChat, all-in-one na LLM CLI na may pasadyang base URL",
       "shell-gpt": "ShellGPT, katulong sa command line na may pasadyang base URL",
       "mods": "Mods, AI para sa command line mula sa Charm",

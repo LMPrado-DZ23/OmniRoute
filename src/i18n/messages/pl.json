@@ -2949,6 +2949,7 @@
       "custom": "Do stosowania przy niestandardowych implementacjach narzędzi lub ogólnych konfiguracjach zgodnych z OpenAI."
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini CLI z własnym adresem bazowym",
       "aichat": "AIChat, uniwersalny interfejs CLI dla LLM z własnym adresem bazowym",
       "shell-gpt": "ShellGPT, asystent wiersza poleceń z własnym adresem bazowym",
       "mods": "Mods, sztuczna inteligencja dla wiersza poleceń od Charm",

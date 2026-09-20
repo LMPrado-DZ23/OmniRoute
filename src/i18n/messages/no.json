@@ -2949,6 +2949,7 @@
       "custom": "Bruk for tilpassede verktøyimplementeringer eller generiske OpenAI-kompatible konfigurasjoner."
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini CLI med egendefinert basis-URL",
       "aichat": "AIChat alt-i-ett-LLM-CLI med egendefinert basis-URL",
       "shell-gpt": "ShellGPT kommandolinjeassistent med egendefinert basis-URL",
       "mods": "Mods, KI for kommandolinjen, fra Charm",

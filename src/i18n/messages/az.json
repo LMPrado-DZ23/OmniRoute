@@ -2949,6 +2949,7 @@
       "custom": "Use for custom tool implementations or generic OpenAI-compatible configurations."
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini CLI, fərdi baza URL dəstəyi ilə",
       "aichat": "AIChat hamısı bir arada LLM CLI, fərdi baza URL dəstəyi ilə",
       "shell-gpt": "ShellGPT komanda sətri köməkçisi, fərdi baza URL dəstəyi ilə",
       "mods": "Mods, Charm-dan komanda sətri üçün süni intellekt",

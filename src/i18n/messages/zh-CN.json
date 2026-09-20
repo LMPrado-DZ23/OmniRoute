@@ -2949,6 +2949,7 @@
       "custom": "用于自定义工具实现或通用 OpenAI 兼容配置。"
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini 命令行工具，支持自定义基础 URL",
       "aichat": "AIChat 一体化大模型命令行工具，支持自定义基础 URL",
       "shell-gpt": "ShellGPT 命令行助手，支持自定义基础 URL",
       "mods": "Mods —— Charm 出品的命令行 AI",
