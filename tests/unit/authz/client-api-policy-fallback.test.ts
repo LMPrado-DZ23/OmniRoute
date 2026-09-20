@@ -82,7 +82,8 @@ async function loadPolicy() {
 
 function ctx(headers: Headers, normalizedPath = "/api/v1/chat/completions") {
   return {
-    request: { method: "POST", headers, url: `http://localhost${normalizedPath}` },
+    // A local caller IS loopback; absent a peer the locality helpers fail closed.
+    request: { method: "POST", headers, url: `http://localhost${normalizedPath}`, ip: "127.0.0.1" },
     classification: {
       routeClass: "CLIENT_API" as const,
       reason: "client_api_v1" as const,

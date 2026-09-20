@@ -67,6 +67,10 @@ services:
       - LIVE_WS_ALLOWED_ORIGINS=${LIVE_WS_ALLOWED_ORIGINS:-http://localhost:${PROD_DASHBOARD_PORT:-20130},http://127.0.0.1:${PROD_DASHBOARD_PORT:-20130}}
       - API_HOST=${API_HOST:-0.0.0.0}
       - HOSTNAME=0.0.0.0
+      # This stack binds 0.0.0.0, so it is reachable beyond the host. REQUIRE_API_KEY
+      # governs /v1/**; without it an anonymous request is routed on the operator's
+      # provider credentials. Matches contrib/vps/compose.yaml.
+      - REQUIRE_API_KEY=${REQUIRE_API_KEY:-true}
       - DATA_DIR=/app/data
       - OMNIROUTE_BASE_PATH=${OMNIROUTE_BASE_PATH:-}
       - CHATGPT_WEB_CODEX_CDP_URL=http://chatgpt-web-codex-browser:9223

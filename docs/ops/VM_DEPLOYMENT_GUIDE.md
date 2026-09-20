@@ -114,7 +114,12 @@ HOSTNAME=0.0.0.0
 DATA_DIR=/app/data
 APP_LOG_TO_FILE=true
 AUTH_COOKIE_SECURE=true
-REQUIRE_API_KEY=false
+# Obrigatório neste guia. Esta instância fica atrás de um domínio público, e
+# REQUIRE_API_KEY governa /v1/** — a superfície de inferência. INITIAL_PASSWORD
+# protege o painel (/api/**) e mais nada: com REQUIRE_API_KEY=false um
+# POST /v1/chat/completions sem credencial nenhuma é roteado e executado nas
+# suas credenciais de provedor e na sua cota.
+REQUIRE_API_KEY=true
 
 # === URLs (change to your domain) ===
 # Internal server-to-server base URL for scheduled jobs / self-fetches.

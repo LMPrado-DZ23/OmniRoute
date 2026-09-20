@@ -37,6 +37,10 @@ primary_region = 'sin'
 
 [env]
   TZ = "Asia/Shanghai"
+
+  # A Fly app is on the public internet. REQUIRE_API_KEY governs /v1/**; with it
+  # off, an anonymous request is routed on the operator's provider credentials.
+  REQUIRE_API_KEY = "true"
   
   # Bind to all interfaces for Fly runtime networking.
   HOST = "0.0.0.0"

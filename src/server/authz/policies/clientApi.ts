@@ -4,8 +4,30 @@ import { extractApiKey } from "@/sse/services/auth.ts";
 import { extractGoogApiKeyHeader } from "@/sse/services/googApiKeyAuth.ts";
 import type { AuthOutcome, PolicyContext, RoutePolicy } from "../context";
 import { allow, reject } from "../context";
+import { isLoopbackRequest, isPrivateLanRequest } from "../peerContext";
 
 const HANDSHAKE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+/**
+ * `REQUIRE_API_KEY=false` means "this machine and my LAN may call the gateway
+ * without a key" — the allowed identity is literally named `local`. It never meant
+ * "the internet may". Before this check the distinction did not exist: a public
+ * instance with the shipped default routed and billed an anonymous
+ * `POST /v1/chat/completions` from anywhere, on the operator's provider credentials.
+ * `requireLogin` did not cover it, because that flag governs `/api/**` only.
+ *
+ * Both helpers are proxy-aware and fail closed: a request that arrived through a
+ * reverse proxy is never local, even though its socket peer is loopback, and an
+ * unresolvable peer counts as remote. So a domain → Caddy/nginx/cloudflared → OmniRoute
+ * deployment is refused, while `localhost` and a LAN IDE keep working untouched.
+ *
+ * An operator who genuinely wants remote callers issues them an API key, which is
+ * what `REQUIRE_API_KEY=true` has always been for. There is deliberately no flag to
+ * re-open anonymous remote access: that is the hole, not a feature.
+ */
+function isLocalCaller(ctx: PolicyContext): boolean {
+  return isLoopbackRequest(ctx) || isPrivateLanRequest(ctx);
+}
 
 function isWsHandshake(ctx: PolicyContext): boolean {
   if (ctx.classification.normalizedPath !== "/api/v1/ws") return false;
@@ -70,7 +92,7 @@ export const clientApiPolicy: RoutePolicy = {
         return allow({ kind: "dashboard_session", id: "dashboard" });
       }
 
-      if (!isRequireApiKeyEnabled()) {
+      if (!isRequireApiKeyEnabled() && isLocalCaller(ctx)) {
         return allow({ kind: "anonymous", id: "local" });
       }
 
@@ -86,7 +108,7 @@ export const clientApiPolicy: RoutePolicy = {
       // "anonymous traffic is allowed", so an invalid key should degrade to
       // anonymous instead of rejecting. We log a warning so the bad key is
       // still observable in the request log.
-      if (!isRequireApiKeyEnabled()) {
+      if (!isRequireApiKeyEnabled() && isLocalCaller(ctx)) {
         console.warn(
           `[clientApiPolicy] invalid bearer presented to ${ctx.classification.normalizedPath} ` +
             `but REQUIRE_API_KEY=false — falling through to anonymous (key_id=${maskKeyId(bearer)})`
