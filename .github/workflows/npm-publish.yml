@@ -98,14 +98,31 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           ENABLED: ${{ vars.ENABLE_NPM_PUBLISH }}
+          # Non-empty ONLY when this file is running as a reusable workflow. It matters
+          # because `github.event_name` is then the CALLER's event: dispatching any
+          # workflow that calls this one reports `workflow_dispatch` here, so the
+          # "a human asked for this" exemption would be inherited by a caller nobody
+          # dispatched this workflow through. electron-release.yml carries its own
+          # ENABLE_NPM_PUBLISH guard today, but a gate whose correctness depends on an
+          # `if:` in another file is not a gate.
+          CALLED_AS_REUSABLE: ${{ github.job_workflow_ref }}
         run: |
           set -euo pipefail
-          if [ "$EVENT_NAME" = "workflow_dispatch" ] || [ "$ENABLED" = "true" ]; then
+          if [ "$ENABLED" = "true" ]; then
             echo "allowed=true" >> "$GITHUB_OUTPUT"
-            echo "✅ npm publishing allowed (event=$EVENT_NAME, ENABLE_NPM_PUBLISH=${ENABLED:-<unset>})."
+            echo "✅ npm publishing allowed (ENABLE_NPM_PUBLISH=true, event=$EVENT_NAME)."
+          elif [ "$EVENT_NAME" = "workflow_dispatch" ] && [ -z "${CALLED_AS_REUSABLE:-}" ]; then
+            echo "allowed=true" >> "$GITHUB_OUTPUT"
+            echo "✅ npm publishing allowed (this workflow was dispatched directly)."
           else
             echo "allowed=false" >> "$GITHUB_OUTPUT"
-            echo "⛔ npm publishing is NOT authorised for a $EVENT_NAME trigger."
+            if [ -n "${CALLED_AS_REUSABLE:-}" ]; then
+              echo "⛔ npm publishing is NOT authorised: reached through a reusable call"
+              echo "   ($CALLED_AS_REUSABLE), whose caller's event was $EVENT_NAME."
+              echo "   A dispatch of the CALLER is not a dispatch of this workflow."
+            else
+              echo "⛔ npm publishing is NOT authorised for a $EVENT_NAME trigger."
+            fi
             echo "   This fork does not own the 'omniroute' name on npm; upstream publishes it."
             echo "   Set repository variable ENABLE_NPM_PUBLISH=true to allow it."
           fi

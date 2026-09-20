@@ -133,8 +133,13 @@ test("only a deliberate dispatch is exempt; a tag push and a release are not", (
   );
   assert.match(
     script,
-    /\[\s*"\$EVENT_NAME"\s*=\s*"workflow_dispatch"\s*\]\s*\|\|\s*\[\s*"\$ENABLED"\s*=\s*"true"\s*\]/,
-    "everything except a deliberate dispatch must require ENABLE_NPM_PUBLISH"
+    /\[\s*"\$ENABLED"\s*=\s*"true"\s*\]/,
+    "ENABLE_NPM_PUBLISH must still be the authorisation"
+  );
+  assert.match(
+    script,
+    /\[\s*"\$EVENT_NAME"\s*=\s*"workflow_dispatch"\s*\]\s*&&\s*\[\s*-z\s*"\$\{CALLED_AS_REUSABLE:-\}"\s*\]/,
+    "the dispatch exemption must require that THIS workflow was the one dispatched"
   );
 });
 
@@ -153,5 +158,35 @@ test("the caller still carries its own guard — this is defence in depth, not a
     /vars\.ENABLE_NPM_PUBLISH\s*==\s*'true'/,
     "removing the caller's guard would leave only the callee's — the mirror of the " +
       "situation this PR fixes"
+  );
+});
+
+test("a dispatch of a CALLER does not inherit the dispatch exemption", () => {
+  // `github.event_name` inside a reusable workflow is the caller's event. Dispatching
+  // electron-release.yml therefore reports `workflow_dispatch` in this gate, and the old
+  // condition waved it straight through to a provenance-signed publish of a package name
+  // this fork does not own. `github.job_workflow_ref` is set ONLY on a reusable call, so
+  // it is what separates "a human dispatched this" from "a human dispatched something
+  // that calls this".
+  const workflow = loadWorkflow();
+  const decide = workflow.jobs?.gate?.steps?.find((step) => step.id === "decide");
+
+  const env = (decide?.env ?? {}) as Record<string, string>;
+  assert.equal(
+    env.CALLED_AS_REUSABLE,
+    "${{ github.job_workflow_ref }}",
+    "the gate must read job_workflow_ref to know it is running as a reusable call"
+  );
+
+  const script = decide?.run ?? "";
+  assert.doesNotMatch(
+    script,
+    /\[\s*"\$EVENT_NAME"\s*=\s*"workflow_dispatch"\s*\]\s*\|\|/,
+    "an unqualified workflow_dispatch test is the bypass: it is true for a caller's dispatch too"
+  );
+  assert.match(
+    script,
+    /reusable call/,
+    "the refusal should say WHY it refused, or the next person re-adds the bypass"
   );
 });
