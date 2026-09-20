@@ -5053,7 +5053,7 @@
     "apiKeyHelp": "Une clé API est un mot de passe pour les services d'IA. Obtenez-en un sur le site Web de votre fournisseur (par exemple, platform.openai.com, console.anthropic.com).",
     "tier": {
       "subtitle": "OmniRoute organise les fournisseurs en trois niveaux afin que le routage privilégie en premier le chemin le plus fiable et le moins coûteux.",
-      "flowCaption": "Les requêtes passent d'abord par vos quotas d'abonnement, puis par les fournisseurs économiques payants au jeton, puis par les fournisseurs gratuits — automatique, sans configuration.",
+      "flowCaption": "Les requêtes parcourent les paliers dans l'ordre — d'abord les quotas de votre abonnement, puis vos propres clés d'API à l'usage, puis les fournisseurs bon marché au token, enfin les paliers gratuits — en basculant automatiquement, sans configuration.",
       "afterSetup": "après la configuration.",
       "tier1": {
         "label": "Clients premium",

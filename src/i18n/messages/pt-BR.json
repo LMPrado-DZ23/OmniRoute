@@ -5097,7 +5097,7 @@
     "apiKeyHelp": "Uma chave API é uma senha para serviços de IA. Obtenha um no site do seu provedor (por exemplo, platform.openai.com, console.anthropic.com).",
     "tier": {
       "subtitle": "OmniRoute organiza os provedores em três níveis para que o roteamento prefira primeiro o caminho mais confiável e de menor custo.",
-      "flowCaption": "As requisições passam primeiro pelas suas cotas de assinatura, depois pelos provedores baratos por token e, por fim, pelos provedores gratuitos — automático, sem configuração.",
+      "flowCaption": "As requisições percorrem os tiers em ordem — primeiro as cotas da sua assinatura, depois suas próprias chaves de API pré-pagas, depois provedores baratos por token e, por fim, os tiers gratuitos — caindo de um para o outro automaticamente, sem configuração.",
       "afterSetup": "após a configuração.",
       "tier1": {
         "label": "Clientes premium",

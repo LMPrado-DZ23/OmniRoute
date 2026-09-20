@@ -5097,7 +5097,7 @@
     "apiKeyHelp": "Khóa API là mật khẩu cho các dịch vụ AI. Hãy lấy một khóa từ trang web của nhà cung cấp của bạn (ví dụ: platform.openai.com, console.anthropic.com).",
     "tier": {
       "subtitle": "OmniRoute sắp xếp các nhà cung cấp thành ba cấp để việc định tuyến ưu tiên tuyến đáng tin cậy nhất và có chi phí thấp nhất.",
-      "flowCaption": "Yêu cầu sẽ đi qua hạn ngạch gói đăng ký trước, sau đó đến các nhà cung cấp giá rẻ tính theo token, rồi mới đến các nhà cung cấp miễn phí — hoàn toàn tự động, không cần cấu hình.",
+      "flowCaption": "Yêu cầu đi qua các tầng theo thứ tự — trước tiên là hạn mức gói đăng ký của bạn, rồi đến khóa API trả theo mức dùng của chính bạn, rồi các nhà cung cấp rẻ tính theo token, cuối cùng là các tầng miễn phí — tự động chuyển tiếp, không cần cấu hình.",
       "afterSetup": "sau khi thiết lập.",
       "tier1": {
         "label": "Ứng dụng khách cao cấp",

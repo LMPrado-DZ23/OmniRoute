@@ -5053,7 +5053,7 @@
     "apiKeyHelp": "Ein API-Schlüssel ist ein Passwort für KI-Dienste. Holen Sie sich eines von der Website Ihres Anbieters (z. B. platform.openai.com, console.anthropic.com).",
     "tier": {
       "subtitle": "OmniRoute organisiert Anbieter in drei Ebenen, sodass beim Routing zuerst der zuverlässigste und kostengünstigste Pfad bevorzugt wird.",
-      "flowCaption": "Anfragen laufen zuerst über Ihre Abonnementkontingente, dann über günstige Pay-per-Token-Anbieter und schließlich über Free-Tier-Anbieter – automatisch und ohne Konfiguration.",
+      "flowCaption": "Anfragen durchlaufen die Stufen der Reihe nach — zuerst die Kontingente Ihres Abonnements, dann Ihre eigenen API-Schlüssel nach Verbrauch, dann günstige Anbieter pro Token, zuletzt die kostenlosen Stufen — und fallen automatisch durch, ohne Konfiguration.",
       "afterSetup": "nach der Einrichtung.",
       "tier1": {
         "label": "Premium-Kunden",

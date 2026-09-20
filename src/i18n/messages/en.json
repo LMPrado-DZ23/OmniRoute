@@ -5097,7 +5097,7 @@
     "apiKeyHelp": "An API key is a password for AI services. Get one from your provider's website (e.g., platform.openai.com, console.anthropic.com).",
     "tier": {
       "subtitle": "OmniRoute organises providers into three tiers so routing prefers the most reliable, lowest-cost path first.",
-      "flowCaption": "Requests flow through your subscription quotas first, then pay-per-token cheap providers, then free-tier providers — automatic, zero-config.",
+      "flowCaption": "Requests walk the tiers in order — your subscription quotas first, then your own pay-as-you-go API keys, then cheap pay-per-token providers, then free tiers — falling through automatically, with no configuration.",
       "afterSetup": "after setup.",
       "tier1": {
         "label": "Premium clients",
