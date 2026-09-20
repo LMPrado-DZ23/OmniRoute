@@ -26,12 +26,14 @@ test("keys.mjs exporta novos comandos", async () => {
   assert.equal(typeof mod.registerKeys, "function");
   assert.equal(typeof mod.runKeysRegenerateCommand, "function");
   assert.equal(typeof mod.runKeysRevokeCommand, "function");
-  assert.equal(typeof mod.runKeysRevealCommand, "function");
+  // reveal was removed: a stored key is never revealed again.
+  assert.equal(mod.runKeysRevealCommand, undefined);
   assert.equal(typeof mod.runKeysUsageCommand, "function");
   assert.equal(typeof mod.runKeysPolicyShowCommand, "function");
   assert.equal(typeof mod.runKeysPolicySetCommand, "function");
   assert.equal(typeof mod.runKeysExpirationListCommand, "function");
-  assert.equal(typeof mod.runKeysRotateCommand, "function");
+  // rotate was removed: no route rotates with a grace period.
+  assert.equal(mod.runKeysRotateCommand, undefined);
   assert.equal(typeof mod.runKeysListCommand, "function");
   assert.equal(typeof mod.runKeysRemoveCommand, "function");
 });
@@ -52,13 +54,14 @@ test("provider-store.mjs exporta removeProviderConnectionByProvider", async () =
   assert.equal(typeof mod.removeProviderConnectionByProvider, "function");
 });
 
-test("tunnel.mjs exporta subcomandos status/logs/info/rotate", async () => {
+test("tunnel.mjs exporta os subcomandos com rota real (status/info)", async () => {
   const mod = await import("../../bin/cli/commands/tunnel.mjs");
   assert.equal(typeof mod.registerTunnel, "function");
   assert.equal(typeof mod.runTunnelStatusCommand, "function");
-  assert.equal(typeof mod.runTunnelLogsCommand, "function");
   assert.equal(typeof mod.runTunnelInfoCommand, "function");
-  assert.equal(typeof mod.runTunnelRotateCommand, "function");
+  // no route serves tunnel logs, and nothing rotates a tunnel URL
+  assert.equal(mod.runTunnelLogsCommand, undefined);
+  assert.equal(mod.runTunnelRotateCommand, undefined);
 });
 
 test("backup.mjs exporta runBackupAutoEnableCommand/Disable/Status", async () => {
@@ -197,7 +200,7 @@ test("backup — sem subcomando ainda cria um backup (uso legado documentado)", 
   }
 });
 
-test("tunnel — registerTunnel registra list/create/stop/status/logs/info/rotate", async () => {
+test("tunnel — registerTunnel registra list/create/stop/status/info", async () => {
   const { registerTunnel } = await import("../../bin/cli/commands/tunnel.mjs");
   const { Command } = await import("commander");
   const prog = new Command().exitOverride();
@@ -205,8 +208,11 @@ test("tunnel — registerTunnel registra list/create/stop/status/logs/info/rotat
   const tunnelCmd = prog.commands.find((c) => c.name() === "tunnel");
   assert.ok(tunnelCmd, "tunnel command deve existir");
   const names = tunnelCmd.commands.map((c) => c.name());
-  for (const sub of ["list", "create", "stop", "status", "logs", "info", "rotate"]) {
+  for (const sub of ["list", "create", "stop", "status", "info"]) {
     assert.ok(names.includes(sub), `tunnel ${sub} deve existir`);
+  }
+  for (const gone of ["logs", "rotate"]) {
+    assert.equal(names.includes(gone), false, `tunnel ${gone} não tem rota`);
   }
 });
 

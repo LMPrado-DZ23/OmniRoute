@@ -572,7 +572,7 @@ mv recovered.db ~/.omniroute/storage.sqlite
 Restore from backup:
 
 ```bash
-omniroute sync pull --merge   # or: omniroute backup restore <backup-id>
+omniroute backup restore <backup-id>   # or: omniroute sync import <bundle.tar.gz>
 ```
 
 ### Scenario 3: Encryption Key Lost

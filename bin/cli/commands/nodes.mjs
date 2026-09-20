@@ -109,6 +109,24 @@ const nodeSchema = [
   { key: "lastLatencyMs", header: "Latency", formatter: (v) => (v ? `${v}ms` : "-") },
 ];
 
+/**
+ * Reads the node list. GET /api/provider-nodes answers { nodes, total } and
+ * accepts only offset/limit (paginationSchema), so provider/enabled filtering
+ * and single-node lookups happen here, as the dashboard does it
+ * (src/app/(dashboard)/…/useProviderConnections.ts).
+ */
+async function fetchNodes(apiFetchOpts = {}) {
+  const res = await apiFetch("/api/provider-nodes?limit=200", apiFetchOpts);
+  if (!res.ok) {
+    process.stderr.write(`Error: ${res.status}\n`);
+    process.exit(1);
+    return [];
+  }
+  const data = await res.json();
+  const nodes = data.nodes ?? data;
+  return Array.isArray(nodes) ? nodes : [];
+}
+
 export function registerNodes(program) {
   const nodes = program
     .command("nodes")
@@ -120,25 +138,21 @@ export function registerNodes(program) {
     .option("--provider <p>", t("nodes.list.provider"))
     .option("--enabled", t("nodes.list.enabled"))
     .action(async (opts, cmd) => {
-      const params = new URLSearchParams();
-      if (opts.provider) params.set("provider", opts.provider);
-      if (opts.enabled) params.set("enabled", "true");
-      const res = await apiFetch(`/api/provider-nodes?${params}`);
-      if (!res.ok) {
-        process.stderr.write(`Error: ${res.status}\n`);
-        process.exit(1);
-      }
-      const data = await res.json();
-      emit(data.items ?? data, cmd.optsWithGlobals(), nodeSchema);
+      const nodes = await fetchNodes();
+      const filtered = nodes
+        .filter((node) => !opts.provider || node.provider === opts.provider)
+        .filter((node) => !opts.enabled || node.enabled !== false);
+      emit(filtered, cmd.optsWithGlobals(), nodeSchema);
     });
 
   nodes.command("get <nodeId>").action(async (id, opts, cmd) => {
-    const res = await apiFetch(`/api/provider-nodes/${id}`);
-    if (!res.ok) {
-      process.stderr.write(`Error: ${res.status}\n`);
+    const node = (await fetchNodes()).find((entry) => entry.id === id);
+    if (!node) {
+      process.stderr.write(`Not found: ${id}\n`);
       process.exit(1);
+      return;
     }
-    emit(await res.json(), cmd.optsWithGlobals());
+    emit(node, cmd.optsWithGlobals(), nodeSchema);
   });
 
   nodes
@@ -158,7 +172,9 @@ export function registerNodes(program) {
     .action(async (opts, cmd) => {
       const { endpoint, apiFetchOpts } = resolveNodeEndpoint(opts, cmd);
       if (!endpoint) {
-        process.stderr.write(`error: required option '--endpoint <url>' or '--base-url <url>' not specified\n`);
+        process.stderr.write(
+          `error: required option '--endpoint <url>' or '--base-url <url>' not specified\n`
+        );
         process.exit(1);
       }
       const body = {
@@ -233,7 +249,9 @@ export function registerNodes(program) {
     .action(async (opts, cmd) => {
       const { endpoint, apiFetchOpts } = resolveNodeEndpoint(opts, cmd);
       if (!endpoint) {
-        process.stderr.write(`error: required option '--endpoint <url>' or '--base-url <url>' not specified\n`);
+        process.stderr.write(
+          `error: required option '--endpoint <url>' or '--base-url <url>' not specified\n`
+        );
         process.exit(1);
       }
       const res = await apiFetch("/api/provider-nodes/validate", {
@@ -252,7 +270,17 @@ export function registerNodes(program) {
     .command("test <nodeId>")
     .description(t("nodes.test.description"))
     .action(async (id, opts, cmd) => {
-      const res = await apiFetch(`/api/provider-nodes/${id}?test=true`);
+      const node = (await fetchNodes()).find((entry) => entry.id === id);
+      if (!node) {
+        process.stderr.write(`Not found: ${id}\n`);
+        process.exit(1);
+        return;
+      }
+      const body = { baseUrl: node.baseUrl };
+      for (const field of ["type", "apiType", "compatMode", "chatPath", "modelsPath"]) {
+        if (node[field] != null) body[field] = node[field];
+      }
+      const res = await apiFetch("/api/provider-nodes/validate", { method: "POST", body });
       if (!res.ok) {
         process.stderr.write(`Error: ${res.status}\n`);
         process.exit(1);
@@ -263,13 +291,19 @@ export function registerNodes(program) {
   nodes
     .command("metrics <nodeId>")
     .description(t("nodes.metrics.description"))
-    .option("--period <p>", t("nodes.metrics.period"), "24h")
     .action(async (id, opts, cmd) => {
-      const res = await apiFetch(`/api/provider-nodes/${id}?metrics=true&period=${opts.period}`);
+      const res = await apiFetch("/api/provider-metrics");
       if (!res.ok) {
         process.stderr.write(`Error: ${res.status}\n`);
         process.exit(1);
       }
-      emit(await res.json(), cmd.optsWithGlobals());
+      const data = await res.json();
+      const metrics = data.metrics?.[id];
+      if (!metrics) {
+        process.stderr.write(`${t("nodes.metrics.none", { id })}\n`);
+        process.exit(1);
+        return;
+      }
+      emit({ node: id, ...metrics }, cmd.optsWithGlobals());
     });
 }

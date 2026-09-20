@@ -2,7 +2,77 @@ import { Argument } from "commander";
 import { apiFetch, isServerUp } from "../api.mjs";
 import { t } from "../i18n.mjs";
 
+/**
+ * Tunnels are per provider, not a generic list of tunnel objects with ids.
+ * The server exposes exactly one tunnel per provider:
+ *   GET  /api/tunnels/cloudflared            → CloudflaredTunnelStatus
+ *   POST /api/tunnels/cloudflared {action}    → enable | disable
+ *   GET  /api/tunnels/ngrok                   → NgrokTunnelStatus
+ *   POST /api/tunnels/ngrok {action, authToken?}
+ *   GET  /api/tunnels/tailscale               → TailscaleTunnelStatus
+ *   POST /api/tunnels/tailscale/enable|disable
+ * There is no /api/tunnels collection, no per-tunnel id, no logs route and no
+ * URL rotation, so `list` fans out over the three providers and `logs`/`rotate`
+ * are gone (cloudflared's log file path is part of its status).
+ */
+const PROVIDERS = {
+  cloudflare: "cloudflared",
+  cloudflared: "cloudflared",
+  tailscale: "tailscale",
+  ngrok: "ngrok",
+};
 const VALID_TUNNEL_TYPES = ["cloudflare", "tailscale", "ngrok"];
+
+function resolveProvider(type) {
+  return PROVIDERS[String(type || "").toLowerCase()] ?? null;
+}
+
+/** One shape for three different status payloads. */
+function normalizeStatus(provider, status) {
+  return {
+    type: provider,
+    active: status.running === true || status.enabled === true,
+    url: status.publicUrl ?? status.tunnelUrl ?? null,
+    phase: status.phase ?? null,
+    installed: status.installed ?? null,
+    lastError: status.lastError ?? null,
+    logPath: status.logPath ?? null,
+  };
+}
+
+// Each provider is its own route file, so every path here is spelled out:
+// a computed `/api/tunnels/${provider}` would not resolve to anything.
+async function fetchStatus(provider, opts = {}) {
+  const init = { retry: false, timeout: 8000, acceptNotOk: true, ...opts };
+  const res =
+    provider === "cloudflared"
+      ? await apiFetch("/api/tunnels/cloudflared", init)
+      : provider === "ngrok"
+        ? await apiFetch("/api/tunnels/ngrok", init)
+        : await apiFetch("/api/tunnels/tailscale", init);
+  if (!res.ok) return null;
+  return res.json();
+}
+
+async function postProviderAction(provider, action, extra = {}) {
+  const enable = action === "enable";
+  if (provider === "tailscale") {
+    // tailscale has no {action} body: enable and disable are separate routes.
+    const init = { body: extra, retry: false, timeout: 60000, acceptNotOk: true };
+    return enable
+      ? apiFetch("/api/tunnels/tailscale/enable", { ...init, method: "POST" })
+      : apiFetch("/api/tunnels/tailscale/disable", { ...init, method: "POST" });
+  }
+  const init = {
+    body: { action: enable ? "enable" : "disable", ...extra },
+    retry: false,
+    timeout: 60000,
+    acceptNotOk: true,
+  };
+  return provider === "cloudflared"
+    ? apiFetch("/api/tunnels/cloudflared", { ...init, method: "POST" })
+    : apiFetch("/api/tunnels/ngrok", { ...init, method: "POST" });
+}
 
 export function registerTunnel(program) {
   const tunnel = program.command("tunnel").description(t("tunnel.title"));
@@ -23,6 +93,7 @@ export function registerTunnel(program) {
     .addArgument(
       new Argument("[type]", "Tunnel type").choices(VALID_TUNNEL_TYPES).default("cloudflare")
     )
+    .option("--auth-token <token>", t("tunnel.authTokenOpt"))
     .action(async (type, opts, cmd) => {
       const globalOpts = cmd.parent.optsWithGlobals();
       const exitCode = await runTunnelCreateCommand(type, { ...opts, output: globalOpts.output });
@@ -50,16 +121,6 @@ export function registerTunnel(program) {
     });
 
   tunnel
-    .command("logs <type>")
-    .description(t("tunnel.logsDescription"))
-    .option("--tail <n>", t("tunnel.tailOpt"), "50")
-    .action(async (type, opts, cmd) => {
-      const globalOpts = cmd.parent.optsWithGlobals();
-      const exitCode = await runTunnelLogsCommand(type, { ...opts, output: globalOpts.output });
-      if (exitCode !== 0) process.exit(exitCode);
-    });
-
-  tunnel
     .command("info <type>")
     .description(t("tunnel.infoDescription"))
     .option("--json", t("common.jsonOpt"))
@@ -68,280 +129,140 @@ export function registerTunnel(program) {
       const exitCode = await runTunnelInfoCommand(type, { ...opts, output: globalOpts.output });
       if (exitCode !== 0) process.exit(exitCode);
     });
-
-  tunnel
-    .command("rotate <type>")
-    .description(t("tunnel.rotateDescription"))
-    .option("--yes", t("common.yesOpt"))
-    .action(async (type, opts, cmd) => {
-      const globalOpts = cmd.parent.optsWithGlobals();
-      const exitCode = await runTunnelRotateCommand(type, { ...opts, output: globalOpts.output });
-      if (exitCode !== 0) process.exit(exitCode);
-    });
 }
 
 export async function runTunnelListCommand(opts = {}) {
-  const serverUp = await isServerUp();
-  if (!serverUp) {
+  if (!(await isServerUp())) {
     console.error(t("common.serverOffline"));
     return 1;
   }
 
-  try {
-    const res = await apiFetch("/api/tunnels", { retry: false, timeout: 5000, acceptNotOk: true });
-    if (!res.ok) {
-      console.log(t("tunnel.notAvailable"));
-      return 0;
-    }
-
-    const tunnels = await res.json();
-
-    if (opts.json || opts.output === "json") {
-      console.log(JSON.stringify(tunnels, null, 2));
-      return 0;
-    }
-
-    console.log(`\n\x1b[1m\x1b[36m${t("tunnel.title")}\x1b[0m\n`);
-    if (!Array.isArray(tunnels) || tunnels.length === 0) {
-      console.log(t("tunnel.noTunnels"));
-      return 0;
-    }
-
-    for (const tunnel of tunnels) {
-      const status = tunnel.active ? "\x1b[32m● active\x1b[0m" : "\x1b[2m○ inactive\x1b[0m";
-      console.log(`  ${(tunnel.type || "unknown").padEnd(12)} ${tunnel.url || "N/A"} ${status}`);
-    }
-    return 0;
-  } catch (err) {
-    console.error(t("common.error", { message: err instanceof Error ? err.message : String(err) }));
-    return 1;
+  const rows = [];
+  for (const provider of ["cloudflared", "ngrok", "tailscale"]) {
+    const status = await fetchStatus(provider);
+    if (status) rows.push(normalizeStatus(provider, status));
   }
+
+  if (opts.json || opts.output === "json") {
+    console.log(JSON.stringify(rows, null, 2));
+    return 0;
+  }
+
+  console.log(`\n\x1b[1m\x1b[36m${t("tunnel.title")}\x1b[0m\n`);
+  if (rows.length === 0) {
+    console.log(t("tunnel.notAvailable"));
+    return 0;
+  }
+  for (const row of rows) {
+    const state = row.active ? "\x1b[32m● active\x1b[0m" : "\x1b[2m○ inactive\x1b[0m";
+    console.log(`  ${row.type.padEnd(12)} ${row.url || "N/A"} ${state}`);
+  }
+  return 0;
 }
 
 export async function runTunnelCreateCommand(type = "cloudflare", opts = {}) {
-  const serverUp = await isServerUp();
-  if (!serverUp) {
+  const provider = resolveProvider(type);
+  if (!provider) {
+    console.error(t("tunnel.typeRequired"));
+    return 1;
+  }
+  if (!(await isServerUp())) {
     console.error(t("common.serverOffline"));
     return 1;
   }
 
-  try {
-    const res = await apiFetch("/api/tunnels", {
-      method: "POST",
-      body: { type },
-      retry: false,
-      timeout: 15000,
-      acceptNotOk: true,
-    });
-    if (res.ok) {
-      const result = await res.json();
-      console.log(t("tunnel.created", { url: result.url }));
-      return 0;
-    }
+  const extra = provider === "ngrok" && opts.authToken ? { authToken: opts.authToken } : {};
+  const res = await postProviderAction(provider, "enable", extra);
+  if (!res.ok) {
     console.error(t("common.error", { message: `HTTP ${res.status}` }));
     return 1;
-  } catch (err) {
-    console.error(t("common.error", { message: err instanceof Error ? err.message : String(err) }));
-    return 1;
   }
+  const result = await res.json();
+  const status = result.status ?? result;
+  const url = status.publicUrl ?? status.tunnelUrl ?? result.tunnelUrl ?? null;
+  console.log(url ? t("tunnel.created", { url }) : t("tunnel.createdPending", { type: provider }));
+  return 0;
 }
 
 export async function runTunnelStopCommand(type, opts = {}) {
-  if (!type) {
+  const provider = resolveProvider(type);
+  if (!provider) {
     console.error(t("tunnel.typeRequired"));
     return 1;
   }
-
-  if (!opts.yes) {
-    const readline = await import("node:readline");
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    const answer = await new Promise((resolve) =>
-      rl.question(t("tunnel.confirmStop", { id: type }) + " [y/N] ", resolve)
-    );
-    rl.close();
-    if (!/^y(es)?$/i.test(answer)) {
-      console.log(t("common.cancelled"));
-      return 0;
-    }
-  }
-
-  const serverUp = await isServerUp();
-  if (!serverUp) {
+  if (!(await isServerUp())) {
     console.error(t("common.serverOffline"));
     return 1;
   }
 
-  try {
-    const res = await apiFetch(`/api/tunnels/${encodeURIComponent(type)}`, {
-      method: "DELETE",
-      retry: false,
-      timeout: 5000,
-      acceptNotOk: true,
-    });
-    if (res.ok) {
-      console.log(t("tunnel.stopped"));
-      return 0;
-    }
+  const res = await postProviderAction(provider, "disable");
+  if (!res.ok) {
     console.error(t("common.error", { message: `HTTP ${res.status}` }));
     return 1;
-  } catch (err) {
-    console.error(t("common.error", { message: err instanceof Error ? err.message : String(err) }));
-    return 1;
   }
+  console.log(t("tunnel.stopped"));
+  return 0;
 }
 
 export async function runTunnelStatusCommand(type, opts = {}) {
-  if (!type) {
+  const provider = resolveProvider(type);
+  if (!provider) {
     console.error(t("tunnel.typeRequired"));
     return 1;
   }
-  const serverUp = await isServerUp();
-  if (!serverUp) {
+  if (!(await isServerUp())) {
     console.error(t("common.serverOffline"));
     return 1;
   }
-  try {
-    const res = await apiFetch(`/api/tunnels/${encodeURIComponent(type)}/status`, {
-      retry: false,
-      timeout: 5000,
-      acceptNotOk: true,
-    });
-    if (!res.ok) {
-      console.error(t("common.error", { message: `HTTP ${res.status}` }));
-      return 1;
-    }
-    const data = await res.json();
-    if (opts.json || opts.output === "json") {
-      console.log(JSON.stringify(data, null, 2));
-      return 0;
-    }
-    const uptime = data.uptime ? `${Math.floor(data.uptime / 60)}m` : "N/A";
-    const statusLabel = data.active ? "\x1b[32m● active\x1b[0m" : "\x1b[31m○ inactive\x1b[0m";
-    console.log(`\n\x1b[1m${type}\x1b[0m ${statusLabel}`);
-    console.log(`  URL:      ${data.url || "N/A"}`);
-    console.log(`  Uptime:   ${uptime}`);
-    console.log(`  Requests: ${data.requests ?? data.totalRequests ?? "N/A"}`);
-    console.log(`  Latency:  ${data.avgLatencyMs != null ? `${data.avgLatencyMs}ms` : "N/A"}`);
-    return 0;
-  } catch (err) {
-    console.error(t("common.error", { message: err instanceof Error ? err.message : String(err) }));
-    return 1;
-  }
-}
 
-export async function runTunnelLogsCommand(type, opts = {}) {
-  if (!type) {
-    console.error(t("tunnel.typeRequired"));
-    return 1;
-  }
-  const serverUp = await isServerUp();
-  if (!serverUp) {
-    console.error(t("common.serverOffline"));
-    return 1;
-  }
-  const tail = Number(opts.tail || 50);
-  try {
-    const res = await apiFetch(`/api/tunnels/${encodeURIComponent(type)}/logs?tail=${tail}`, {
-      retry: false,
-      timeout: 5000,
-      acceptNotOk: true,
-    });
-    if (!res.ok) {
-      console.error(t("common.error", { message: `HTTP ${res.status}` }));
-      return 1;
-    }
-    const data = await res.json();
-    const lines = data.logs || data.lines || data;
-    if (!Array.isArray(lines) || lines.length === 0) {
-      console.log(t("tunnel.noLogs"));
-      return 0;
-    }
-    for (const line of lines) {
-      const ts = line.timestamp || line.ts || "";
-      const msg = line.message || line.msg || String(line);
-      console.log(`\x1b[2m${ts}\x1b[0m  ${msg}`);
-    }
+  const status = await fetchStatus(provider);
+  if (!status) {
+    console.log(t("tunnel.notAvailable"));
     return 0;
-  } catch (err) {
-    console.error(t("common.error", { message: err instanceof Error ? err.message : String(err) }));
-    return 1;
   }
+  const row = normalizeStatus(provider, status);
+
+  if (opts.json || opts.output === "json") {
+    console.log(JSON.stringify(row, null, 2));
+    return 0;
+  }
+
+  console.log(`\n\x1b[1m\x1b[36m${t("tunnel.infoTitle", { type: provider })}\x1b[0m\n`);
+  console.log(`  active:    ${row.active ? "yes" : "no"}`);
+  console.log(`  url:       ${row.url ?? "N/A"}`);
+  console.log(`  phase:     ${row.phase ?? "N/A"}`);
+  console.log(`  installed: ${row.installed === null ? "N/A" : row.installed ? "yes" : "no"}`);
+  if (row.logPath) console.log(`  log file:  ${row.logPath}`);
+  if (row.lastError) console.log(`  error:     ${row.lastError}`);
+  return 0;
 }
 
 export async function runTunnelInfoCommand(type, opts = {}) {
-  if (!type) {
+  const provider = resolveProvider(type);
+  if (!provider) {
     console.error(t("tunnel.typeRequired"));
     return 1;
   }
-  const serverUp = await isServerUp();
-  if (!serverUp) {
+  if (!(await isServerUp())) {
     console.error(t("common.serverOffline"));
     return 1;
   }
-  try {
-    const res = await apiFetch(`/api/tunnels/${encodeURIComponent(type)}`, {
-      retry: false,
-      timeout: 5000,
-      acceptNotOk: true,
-    });
-    if (!res.ok) {
-      console.error(t("common.error", { message: `HTTP ${res.status}` }));
-      return 1;
-    }
-    const data = await res.json();
-    if (opts.json || opts.output === "json") {
-      console.log(JSON.stringify(data, null, 2));
-      return 0;
-    }
-    console.log(`\n\x1b[1m\x1b[36m${t("tunnel.infoTitle", { type })}\x1b[0m\n`);
-    for (const [k, v] of Object.entries(data)) {
-      console.log(`  ${String(k).padEnd(20)} ${JSON.stringify(v)}`);
-    }
-    return 0;
-  } catch (err) {
-    console.error(t("common.error", { message: err instanceof Error ? err.message : String(err) }));
-    return 1;
-  }
-}
 
-export async function runTunnelRotateCommand(type, opts = {}) {
-  if (!type) {
-    console.error(t("tunnel.typeRequired"));
-    return 1;
-  }
-  if (!opts.yes) {
-    const readline = await import("node:readline");
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    const answer = await new Promise((resolve) =>
-      rl.question(t("tunnel.confirmRotate", { type }) + " [y/N] ", resolve)
-    );
-    rl.close();
-    if (!/^y(es)?$/i.test(answer)) {
-      console.log(t("common.cancelled"));
-      return 0;
-    }
-  }
-  const serverUp = await isServerUp();
-  if (!serverUp) {
-    console.error(t("common.serverOffline"));
-    return 1;
-  }
-  try {
-    const res = await apiFetch(`/api/tunnels/${encodeURIComponent(type)}/rotate`, {
-      method: "POST",
-      retry: false,
-      timeout: 15000,
-      acceptNotOk: true,
-    });
-    if (!res.ok) {
-      console.error(t("common.error", { message: `HTTP ${res.status}` }));
-      return 1;
-    }
-    const data = await res.json();
-    console.log(t("tunnel.rotated", { url: data.url || "(see dashboard)" }));
+  const status = await fetchStatus(provider);
+  if (!status) {
+    console.log(t("tunnel.notAvailable"));
     return 0;
-  } catch (err) {
-    console.error(t("common.error", { message: err instanceof Error ? err.message : String(err) }));
-    return 1;
   }
+
+  if (opts.json || opts.output === "json") {
+    console.log(JSON.stringify(status, null, 2));
+    return 0;
+  }
+
+  console.log(`\n\x1b[1m\x1b[36m${t("tunnel.infoTitle", { type: provider })}\x1b[0m\n`);
+  for (const [key, value] of Object.entries(status)) {
+    if (value === null || value === undefined || typeof value === "object") continue;
+    console.log(`  ${key.padEnd(18)} ${value}`);
+  }
+  return 0;
 }

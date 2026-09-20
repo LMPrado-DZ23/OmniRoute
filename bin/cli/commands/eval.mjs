@@ -1,14 +1,7 @@
 import { readFileSync } from "node:fs";
-import { setTimeout as sleep } from "node:timers/promises";
 import { apiFetch } from "../api.mjs";
 import { emit } from "../output.mjs";
 import { t } from "../i18n.mjs";
-
-function truncate(v, len = 30) {
-  if (v == null) return "-";
-  const s = String(v);
-  return s.length > len ? s.slice(0, len - 1) + "…" : s;
-}
 
 function fmtTs(v) {
   if (!v) return "-";
@@ -41,42 +34,6 @@ const runSchema = [
   { key: "startedAt", header: "Started", formatter: fmtTs },
 ];
 
-const sampleSchema = [
-  { key: "id", header: "Sample", width: 14 },
-  { key: "score", header: "Score", formatter: (v) => (v != null ? v.toFixed(2) : "-") },
-  { key: "passed", header: "✓", formatter: (v) => (v ? "✓" : "✗") },
-  { key: "input", header: "Input", width: 30, formatter: truncate },
-  { key: "output", header: "Output", width: 30, formatter: truncate },
-];
-
-async function confirm(q) {
-  return new Promise((resolve) => {
-    process.stdout.write(`${q} (yes/no) `);
-    process.stdin.setEncoding("utf8");
-    process.stdin.once("data", (c) => resolve(c.toString().trim().toLowerCase().startsWith("y")));
-  });
-}
-
-async function watchRun(runId, globalOpts) {
-  let lastStatus = "";
-  while (true) {
-    await sleep(3000);
-    const res = await apiFetch(`/api/evals/${runId}`);
-    if (!res.ok) continue;
-    const r = await res.json();
-    if (r.status !== lastStatus) {
-      const done = r.progress?.completed ?? 0;
-      const total = r.progress?.total ?? "?";
-      process.stderr.write(`[${new Date().toISOString()}] ${r.status} — ${done}/${total}\n`);
-      lastStatus = r.status;
-    }
-    if (["completed", "failed", "cancelled"].includes(r.status)) {
-      emit(r, globalOpts, runSchema);
-      return;
-    }
-  }
-}
-
 function renderScorecard(data) {
   const score = data.score ?? data.overallScore ?? null;
   const passed = data.passed ?? data.summary?.passed ?? null;
@@ -95,14 +52,20 @@ function renderScorecard(data) {
   process.stdout.write("\n");
 }
 
-export async function runEvalSuitesList(opts, cmd) {
-  const res = await apiFetch("/api/evals/suites");
+/** GET /api/evals returns { suites, recentRuns, scorecard, targets, apiKeys }. */
+async function fetchEvalOverview() {
+  const res = await apiFetch("/api/evals");
   if (!res.ok) {
     process.stderr.write(`Error: ${res.status}\n`);
     process.exit(1);
+    return {};
   }
-  const data = await res.json();
-  emit(data.items ?? data, cmd.optsWithGlobals(), suiteSchema);
+  return res.json();
+}
+
+export async function runEvalSuitesList(opts, cmd) {
+  const data = await fetchEvalOverview();
+  emit(data.suites ?? [], cmd.optsWithGlobals(), suiteSchema);
 }
 
 export async function runEvalSuitesGet(id, opts, cmd) {
@@ -130,91 +93,37 @@ export async function runEvalSuitesCreate(opts, cmd) {
 
 export async function runEvalRun(suiteId, opts, cmd) {
   const globalOpts = cmd.optsWithGlobals();
-  const body = {
-    suiteId,
-    model: opts.model ?? "auto",
-    ...(opts.combo ? { combo: opts.combo } : {}),
-    concurrency: opts.concurrency ?? 4,
-    ...(opts.tag ? { tag: opts.tag } : {}),
-  };
+  // evalRunSuiteSchema: a target is {type: "model"|"combo"|"suite-default", id}.
+  const body = { suiteId };
+  if (opts.model) body.target = { type: "model", id: opts.model };
+  else if (opts.combo) body.target = { type: "combo", id: opts.combo };
+  if (opts.compareModel) body.compareTarget = { type: "model", id: opts.compareModel };
+  if (opts.apiKeyId) body.apiKeyId = opts.apiKeyId;
   const res = await apiFetch("/api/evals", { method: "POST", body });
   if (!res.ok) {
     process.stderr.write(`Error: ${res.status}\n`);
     process.exit(1);
+    return;
   }
-  const run = await res.json();
-  emit(run, globalOpts, runSchema);
-  if (opts.watch) {
-    if (process.stdout.isTTY) {
-      const { startEvalWatchTui } = await import("../tui/EvalWatch.jsx");
-      await startEvalWatchTui({
-        runId: run.id,
-        suiteId: opts.suite,
-        baseUrl: globalOpts.baseUrl ?? "http://localhost:20128",
-        apiKey: globalOpts.apiKey ?? process.env.OMNIROUTE_API_KEY,
-      });
-    } else {
-      process.stderr.write("\nWatching run... (Ctrl+C to detach)\n");
-      await watchRun(run.id, globalOpts);
-    }
+  // The run completes inside the request; the answer carries every run.
+  const result = await res.json();
+  emit(result.runs ?? result, globalOpts, runSchema);
+  if (result.scorecard && !globalOpts.quiet && globalOpts.output !== "json") {
+    renderScorecard(result.scorecard);
   }
 }
 
 export async function runEvalList(opts, cmd) {
-  const params = new URLSearchParams({ limit: String(opts.limit ?? 50) });
-  if (opts.suite) params.set("suiteId", opts.suite);
-  if (opts.status) params.set("status", opts.status);
-  if (opts.since) params.set("since", opts.since);
-  const res = await apiFetch(`/api/evals?${params}`);
-  if (!res.ok) {
-    process.stderr.write(`Error: ${res.status}\n`);
-    process.exit(1);
-  }
-  const data = await res.json();
-  emit(data.items ?? data, cmd.optsWithGlobals(), runSchema);
+  // The route returns the 20 most recent runs and takes no filters.
+  const data = await fetchEvalOverview();
+  const runs = Array.isArray(data.recentRuns) ? data.recentRuns : [];
+  const filtered = opts.suite ? runs.filter((run) => run.suiteId === opts.suite) : runs;
+  emit(filtered, cmd.optsWithGlobals(), runSchema);
 }
 
-export async function runEvalGet(id, opts, cmd) {
-  const res = await apiFetch(`/api/evals/${id}`);
-  if (!res.ok) {
-    process.stderr.write(`Not found: ${id}\n`);
-    process.exit(1);
-  }
-  emit(await res.json(), cmd.optsWithGlobals());
-}
-
-export async function runEvalResults(id, opts, cmd) {
-  const params = new URLSearchParams();
-  if (opts.failed) params.set("filter", "failed");
-  const res = await apiFetch(`/api/evals/${id}?${params}`);
-  if (!res.ok) {
-    process.stderr.write(`Not found: ${id}\n`);
-    process.exit(1);
-  }
-  const data = await res.json();
-  emit(data.samples ?? data.results ?? [], cmd.optsWithGlobals(), sampleSchema);
-}
-
-export async function runEvalCancel(id, opts, cmd) {
-  if (!opts.yes) {
-    const ok = await confirm(`Cancel run ${id}?`);
-    if (!ok) return;
-  }
-  const res = await apiFetch(`/api/evals/${id}`, { method: "POST", body: { op: "cancel" } });
-  if (!res.ok) {
-    process.stderr.write(`Error: ${res.status}\n`);
-    process.exit(1);
-  }
-  process.stdout.write("Cancelled\n");
-}
-
-export async function runEvalScorecard(id, opts, cmd) {
-  const res = await apiFetch(`/api/evals/${id}?scorecard=true`);
-  if (!res.ok) {
-    process.stderr.write(`Not found: ${id}\n`);
-    process.exit(1);
-  }
-  const data = await res.json();
+export async function runEvalScorecard(opts, cmd) {
+  // The scorecard is the history the overview already computes.
+  const data = (await fetchEvalOverview()).scorecard ?? {};
   const globalOpts = cmd.optsWithGlobals();
   if (globalOpts.output === "json") {
     emit(data, globalOpts);
@@ -241,38 +150,20 @@ export function registerEval(program) {
   evalCmd
     .command("run <suiteId>")
     .description(t("eval.run.description"))
-    .option("-m, --model <id>", t("eval.run.model"), "auto")
+    .option("-m, --model <id>", t("eval.run.model"))
     .option("--combo <name>", t("eval.run.combo"))
-    .option("--concurrency <n>", t("eval.run.concurrency"), parseInt, 4)
-    .option("--tag <tag>", t("eval.run.tag"))
-    .option("--watch", t("eval.run.watch"))
+    .option("--compare-model <id>", t("eval.run.compareModel"))
+    .option("--api-key-id <id>", t("eval.run.apiKeyId"))
     .action(runEvalRun);
 
   evalCmd
     .command("list")
     .description(t("eval.list.description"))
     .option("--suite <id>", t("eval.list.suite"))
-    .option("--status <s>", t("eval.list.status"))
-    .option("--since <ts>", t("eval.list.since"))
-    .option("--limit <n>", t("eval.list.limit"), parseInt, 50)
     .action(runEvalList);
 
-  evalCmd.command("get <runId>").description(t("eval.get.description")).action(runEvalGet);
-
   evalCmd
-    .command("results <runId>")
-    .description(t("eval.results.description"))
-    .option("--failed", t("eval.results.failed"))
-    .action(runEvalResults);
-
-  evalCmd
-    .command("cancel <runId>")
-    .description(t("eval.cancel.description"))
-    .option("--yes", t("eval.cancel.yes"))
-    .action(runEvalCancel);
-
-  evalCmd
-    .command("scorecard <runId>")
+    .command("scorecard")
     .description(t("eval.scorecard.description"))
     .action(runEvalScorecard);
 }

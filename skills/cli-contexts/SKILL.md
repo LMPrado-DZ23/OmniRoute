@@ -128,29 +128,17 @@ omniroute context-eng filters
 omniroute context-eng list
 ```
 
-### `context-eng add`
+### `context-eng import <file>`
 
 **Flags:**
 
-- `--priority <n>`
-- `--action <a>`
+- `--install`
+- `--overwrite`
 
 **Example:**
 
 ```bash
-omniroute context-eng add
-```
-
-### `context-eng remove <id>`
-
-**Flags:**
-
-- `--yes`
-
-**Example:**
-
-```bash
-omniroute context-eng remove <id>
+omniroute context-eng import <file>
 ```
 
 ### `context-eng test`
@@ -368,30 +356,6 @@ omniroute sessions list
 
 ```bash
 omniroute sessions show <sessionId>
-```
-
-### `sessions expire <sessionId>`
-
-**Flags:**
-
-- `--yes`
-
-**Example:**
-
-```bash
-omniroute sessions expire <sessionId>
-```
-
-### `sessions expire-all`
-
-**Flags:**
-
-- `--yes`
-
-**Example:**
-
-```bash
-omniroute sessions expire-all
 ```
 
 ### `sessions current`

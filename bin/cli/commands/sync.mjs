@@ -58,33 +58,6 @@ export function registerSync(program) {
     });
 
   sync
-    .command("pull")
-    .description(t("sync.pull.description"))
-    .option("--source <s>", t("sync.pull.source"), "cloud")
-    .option("--merge", t("sync.pull.merge"))
-    .option("--replace", t("sync.pull.replace"))
-    .option("--dry-run", t("sync.pull.dryRun"))
-    .action(async (opts, cmd) => {
-      if (opts.merge && opts.replace) {
-        process.stderr.write("--merge and --replace are mutually exclusive\n");
-        process.exit(2);
-      }
-      const res = await apiFetch("/api/db-backups/exportAll", {
-        method: "POST",
-        body: {
-          source: opts.source,
-          strategy: opts.replace ? "replace" : "merge",
-          dryRun: !!opts.dryRun,
-        },
-      });
-      if (!res.ok) {
-        process.stderr.write(`Error: ${res.status}\n`);
-        process.exit(1);
-      }
-      emit(await res.json(), cmd.optsWithGlobals());
-    });
-
-  sync
     .command("diff")
     .option("--source <s>", t("sync.diff.source"))
     .option("--target <t>", t("sync.diff.target"))

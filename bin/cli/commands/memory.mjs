@@ -85,7 +85,7 @@ export async function runMemorySearch(query, opts, cmd) {
   const params = new URLSearchParams({ q: query, limit: String(opts.limit ?? 20) });
   const mappedSearchType = applyLegacyTypeMap(opts.type);
   if (mappedSearchType) params.set("type", mappedSearchType);
-  if (opts.apiKey) params.set("apiKey", opts.apiKey);
+  if (opts.apiKey) params.set("apiKeyId", opts.apiKey);
   if (opts.tokenBudget) params.set("tokenBudget", String(opts.tokenBudget));
   const res = await apiFetch(`/api/memory?${params}`);
   if (!res.ok) {
@@ -104,11 +104,17 @@ export async function runMemoryAdd(opts, cmd) {
     process.exit(2);
   }
   const resolvedType = opts.type ? applyLegacyTypeMap(opts.type) : "factual";
+  if (!opts.key) {
+    process.stderr.write("--key required\n");
+    process.exit(2);
+    return;
+  }
   const body = {
     content,
+    key: opts.key,
     type: resolvedType,
     ...(opts.metadata ? { metadata: JSON.parse(opts.metadata) } : {}),
-    ...(opts.apiKey ? { apiKey: opts.apiKey } : {}),
+    ...(opts.apiKey ? { apiKeyId: opts.apiKey } : {}),
   };
   const res = await apiFetch("/api/memory", { method: "POST", body });
   if (!res.ok) {
@@ -119,27 +125,63 @@ export async function runMemoryAdd(opts, cmd) {
   emit(created, globalOpts, memorySchema);
 }
 
+// /api/memory exports GET and POST only; a single entry is deleted through
+// DELETE /api/memory/{id} (what the dashboard's memories tab calls). Clearing
+// therefore means: list the matching entries, then delete them one by one.
 export async function runMemoryClear(opts, cmd) {
   const globalOpts = cmd.optsWithGlobals();
   if (!opts.yes) {
     const ok = await confirm("This will delete memories. Continue?");
     if (!ok) process.exit(0);
   }
-  const params = new URLSearchParams();
+
+  const filters = new URLSearchParams({ limit: "200" });
   const mappedClearType = applyLegacyTypeMap(opts.type);
-  if (mappedClearType) params.set("type", mappedClearType);
+  if (mappedClearType) filters.set("type", mappedClearType);
+  if (opts.apiKey) filters.set("apiKeyId", opts.apiKey);
+
+  let olderThanMs = null;
   if (opts.olderThan) {
     const iso = parseDuration(opts.olderThan);
     if (!iso) {
       process.stderr.write(`Invalid --older-than value: ${opts.olderThan}\n`);
       process.exit(2);
+      return;
     }
-    params.set("olderThan", iso);
+    olderThanMs = Date.parse(iso);
   }
-  if (opts.apiKey) params.set("apiKey", opts.apiKey);
-  const res = await apiFetch(`/api/memory?${params}`, { method: "DELETE" });
-  const data = await res.json();
-  emit(data, globalOpts);
+
+  const entries = [];
+  for (let page = 1; ; page += 1) {
+    filters.set("page", String(page));
+    const listRes = await apiFetch(`/api/memory?${filters}`);
+    if (!listRes.ok) {
+      process.stderr.write(`Error: ${listRes.status}\n`);
+      process.exit(1);
+      return;
+    }
+    const listed = await listRes.json();
+    entries.push(...(Array.isArray(listed.data) ? listed.data : []));
+    if (page >= (listed.totalPages ?? 1)) break;
+  }
+  const doomed = entries.filter((entry) => {
+    if (olderThanMs === null) return true;
+    const created = Date.parse(entry.createdAt ?? entry.created_at ?? "");
+    return Number.isFinite(created) && created < olderThanMs;
+  });
+
+  let deleted = 0;
+  const failed = [];
+  for (const entry of doomed) {
+    const res = await apiFetch(`/api/memory/${encodeURIComponent(entry.id)}`, {
+      method: "DELETE",
+    });
+    if (res.ok) deleted += 1;
+    else failed.push(entry.id);
+  }
+
+  emit({ deleted, matched: doomed.length, failed }, globalOpts);
+  if (failed.length > 0) process.exit(1);
 }
 
 export async function runMemoryList(opts, cmd) {
@@ -147,7 +189,7 @@ export async function runMemoryList(opts, cmd) {
   const params = new URLSearchParams({ limit: String(opts.limit ?? 100) });
   const mappedListType = applyLegacyTypeMap(opts.type);
   if (mappedListType) params.set("type", mappedListType);
-  if (opts.apiKey) params.set("apiKey", opts.apiKey);
+  if (opts.apiKey) params.set("apiKeyId", opts.apiKey);
   const res = await apiFetch(`/api/memory?${params}`);
   if (!res.ok) {
     process.stderr.write(`Error: ${res.status}\n`);
@@ -209,6 +251,7 @@ export function registerMemory(program) {
     .command("add")
     .description(t("memory.add.description"))
     .option("--content <text>", t("memory.add.content"))
+    .option("--key <key>", t("memory.add.key"))
     .option("--file <path>", t("memory.add.file"))
     .option("--type <type>", t("memory.add.type"))
     .option("--metadata <json>", t("memory.add.metadata"))

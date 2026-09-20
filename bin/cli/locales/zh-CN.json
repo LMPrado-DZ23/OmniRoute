@@ -104,11 +104,8 @@
     "removeDescription": "移除提供者的 API 密钥",
     "regenerateDescription": "重新生成 OmniRoute API 密钥",
     "revokeDescription": "撤销 OmniRoute API 密钥",
-    "revealDescription": "显示未掩码的 API 密钥值",
     "usageDescription": "显示 API 密钥的最近使用情况",
     "usageLimitOpt": "最近请求数",
-    "rotateDescription": "生成新密钥并使旧密钥失效",
-    "graceOpt": "旧密钥失效前的宽限期（毫秒）",
     "stdinOpt": "从标准输入读取 API 密钥而不是参数",
     "added": "已为 {provider} 添加密钥。",
     "removed": "密钥已移除。",
@@ -118,11 +115,8 @@
     "confirmRemove": "移除密钥 {id}？",
     "confirmRegenerate": "重新生成密钥 {id}？",
     "confirmRevoke": "撤销密钥 {id}？",
-    "confirmRotate": "轮换密钥 {id}？（旧密钥将在宽限期后失效）",
     "regenerated": "已重新生成。新密钥：{key}",
     "revoked": "密钥 {id} 已撤销。",
-    "rotated": "密钥 {id} 已轮换。新密钥 ID：{newId}",
-    "revealWarning": "⚠ 这将显示完整的未掩码密钥。请确保您的屏幕不被人看到。",
     "providerRequired": "需要提供者。",
     "keyRequired": "需要 API 密钥。",
     "stdinEmpty": "未通过标准输入提供 API 密钥。",
@@ -143,7 +137,8 @@
       "daysOpt": "显示 N 天内过期的密钥",
       "none": "{days} 天内没有密钥过期。",
       "listTitle": "{days} 天内过期的密钥："
-    }
+    },
+    "idSpaces": "add / list / remove 管理提供者凭据（提供者连接）。regenerate / revoke / usage / policy / expiration 接受 OmniRoute API 密钥 id。已保存的密钥不会再次显示：regenerate 只会显示一次新值。"
   },
   "stream": {
     "description": "使用 SSE 检查模式流式传输聊天响应",
@@ -169,10 +164,26 @@
       "provider": "按提供者 ID 筛选"
     },
     "budget": {
-      "description": "管理成本预算",
+      "description": "管理按 API 密钥的花费预算",
+      "list": {
+        "description": "显示所有 API 密钥的预算与花费"
+      },
+      "get": {
+        "description": "显示某个 API 密钥的预算与花费"
+      },
       "set": {
-        "scope": "预算范围（默认：全局）",
-        "period": "预算周期：daily|weekly|monthly（默认：monthly）"
+        "description": "设置某个 API 密钥的花费上限（0 表示不限制）",
+        "daily": "每日上限（美元）",
+        "weekly": "每周上限（美元）",
+        "monthly": "每月上限（美元）",
+        "warningThreshold": "达到上限的该比例时告警（0-1）",
+        "resetInterval": "重置周期：daily|weekly|monthly",
+        "nothingToSet": "未提供任何上限。请使用 --daily、--weekly 或 --monthly。",
+        "done": "已更新 {apiKeyId} 的预算"
+      },
+      "clear": {
+        "description": "解除某个 API 密钥的所有花费上限（已记录的花费保留）",
+        "done": "已解除 {apiKeyId} 的预算上限"
       }
     },
     "quota": {
@@ -344,7 +355,6 @@
     "title": "MCP 服务器",
     "running": "MCP 服务器正在运行（{transport}）",
     "stopped": "MCP 服务器已停止。",
-    "restarted": "MCP 服务器已重启。",
     "call": {
       "description": "直接调用 MCP 工具",
       "args": "JSON 参数对象（内联）",
@@ -431,11 +441,11 @@
       "description": "管理压缩组合统计"
     },
     "rules": {
-      "description": "管理压缩规则",
-      "add": {
-        "pattern": "要匹配的模式（正则或 field:pattern）",
-        "action": "操作：drop|shrink|replace"
-      }
+      "description": "查看引擎内置的压缩规则",
+      "list": {
+        "description": "列出内置的 caveman 规则"
+      },
+      "readOnly": "规则内置于引擎中，无法新增或删除。要跳过某条规则或保护文本，请在设置 → 压缩中配置 cavemanConfig.skipRules / preservePatterns。"
     },
     "language_packs": {
       "description": "列出可用的压缩语言包"
@@ -451,20 +461,15 @@
     "createDescription": "创建隧道",
     "created": "隧道已创建：{url}",
     "stopped": "隧道已停止。",
-    "confirmStop": "停止隧道 {id}？",
     "stopDescription": "停止隧道",
     "statusDescription": "显示隧道的详细状态",
-    "logsDescription": "显示隧道日志",
     "infoDescription": "显示隧道的配置详情",
-    "rotateDescription": "生成新的隧道 URL",
-    "tailOpt": "显示的日志行数",
     "typeRequired": "需要隧道类型。",
-    "noLogs": "没有可用日志。",
     "notAvailable": "隧道信息不可用。",
     "noTunnels": "没有活动隧道。",
     "infoTitle": "隧道信息：{type}",
-    "rotated": "隧道 URL 已轮换：{url}",
-    "confirmRotate": "轮换隧道 {type}？（将生成新 URL）"
+    "authTokenOpt": "ngrok 认证令牌（仅 ngrok）",
+    "createdPending": "{type} 隧道已启用；尚无公开 URL"
   },
   "stop": {
     "description": "停止 OmniRoute 服务器",
@@ -521,10 +526,11 @@
     "description": "管理 OmniRoute 技能（沙箱、内置、自定义、混合、skillssh）",
     "list": {
       "description": "列出已安装的技能",
-      "type": "按类型筛选（sandbox|custom|builtin|hybrid|skillssh）",
+      "query": "按名称或描述过滤",
+      "source": "按来源过滤（skillsmp|skillssh|local）",
       "enabled": "仅显示已启用的技能",
       "disabled": "仅显示已禁用的技能",
-      "api_key": "按 API 密钥筛选"
+      "limit": "每页最大结果数"
     },
     "get": {
       "description": "按 ID 获取技能详情"
@@ -600,12 +606,13 @@
       "token_budget": "限制结果中的总令牌数"
     },
     "add": {
-      "description": "添加新的记忆条目",
-      "content": "记忆文本内容",
+      "description": "新增一条记忆",
+      "content": "记忆的文本内容",
+      "key": "条目的唯一键（必填）",
       "file": "从文件读取内容",
-      "type": "记忆类型（默认：user）",
+      "type": "类型：factual、episodic、procedural 或 semantic",
       "metadata": "JSON 元数据对象",
-      "api_key": "关联到 API 密钥"
+      "api_key": "关联到某个 API 密钥 id"
     },
     "clear": {
       "description": "删除匹配筛选条件的记忆条目",
@@ -719,33 +726,18 @@
       }
     },
     "run": {
-      "description": "为套件启动评估运行",
-      "model": "要评估的模型 ID（默认：auto）",
-      "combo": "强制指定组合名称",
-      "concurrency": "并发样本数（默认：4）",
-      "tag": "标记此次运行以便后续筛选",
-      "watch": "观察运行进度直至完成"
+      "description": "运行一个评估套件（同步完成）",
+      "model": "针对该模型 id 运行，而不是套件默认值",
+      "combo": "针对该组合运行",
+      "compareModel": "同时针对该模型运行并对比",
+      "apiKeyId": "将本次运行归属到该 API 密钥 id"
     },
     "list": {
-      "description": "列出评估运行",
-      "suite": "按套件 ID 筛选",
-      "status": "按状态筛选",
-      "since": "返回自此时间戳以来的运行",
-      "limit": "最大结果数（默认：50）"
-    },
-    "get": {
-      "description": "按 ID 获取评估运行详情"
-    },
-    "results": {
-      "description": "显示评估运行的样本结果",
-      "failed": "仅显示失败的样本"
-    },
-    "cancel": {
-      "description": "取消正在运行的评估",
-      "yes": "跳过确认提示"
+      "description": "列出最近 20 次评估运行",
+      "suite": "按套件 id 过滤"
     },
     "scorecard": {
-      "description": "显示已完成评估运行的记分卡"
+      "description": "显示评估记分卡历史"
     }
   },
   "webhooks": {
@@ -869,11 +861,7 @@
       "limit": "最大结果数"
     },
     "defaults": {
-      "description": "管理默认定价",
-      "input": "每 1M 令牌的输入成本（美元）",
-      "output": "每 1M 令牌的输出成本（美元）",
-      "cacheRead": "每 1M 令牌的缓存读取成本（美元）",
-      "cacheWrite": "每 1M 令牌的缓存写入成本（美元）"
+      "description": "管理默认定价"
     },
     "diff": {
       "description": "显示与上游价格的差异",
@@ -947,8 +935,8 @@
       "description": "向节点发送测试请求"
     },
     "metrics": {
-      "description": "显示节点指标",
-      "period": "时间范围（例如 24h, 7d）"
+      "description": "显示节点的请求指标（全时段，来自调用日志）",
+      "none": "{id} 没有记录任何指标"
     }
   },
   "context": {
@@ -973,11 +961,15 @@
         "reservePct": "保留百分比"
       },
       "filters": {
-        "description": "管理 RTK 过滤器",
-        "pattern": "过滤器模式（正则）",
-        "priority": "过滤器优先级（默认：100）",
-        "action": "过滤器操作：drop|shrink|replace",
-        "yes": "跳过确认"
+        "description": "查看并导入 RTK 过滤器目录",
+        "list": {
+          "description": "列出已加载的 RTK 过滤器"
+        },
+        "import": {
+          "description": "校验（或安装）filters.toml 包",
+          "install": "安装该包，而不是仅做校验",
+          "overwrite": "替换已有的 filters.toml（会保留 .bak 备份）"
+        }
       },
       "test": {
         "file": "请求 JSON 文件路径"
@@ -994,31 +986,6 @@
       "kind": "按类型筛选（dashboard|api-key|mcp|a2a）",
       "active": "仅显示活动会话",
       "limit": "最大结果数（默认：100）"
-    },
-    "expire": {
-      "yes": "跳过确认"
-    },
-    "expireAll": {
-      "user": "要过期其会话的用户",
-      "yes": "跳过确认"
-    }
-  },
-  "tags": {
-    "description": "管理资源标签",
-    "add": {
-      "color": "标签颜色（十六进制或名称）",
-      "description": "标签描述"
-    },
-    "remove": {
-      "yes": "跳过确认"
-    },
-    "assign": {
-      "tag": "标签名称",
-      "to": "目标资源，格式为 type:id（例如 provider:openai）"
-    },
-    "unassign": {
-      "tag": "标签名称",
-      "from": "来源资源，格式为 type:id"
     }
   },
   "openapi": {
@@ -1054,14 +1021,11 @@
     "noCombos": "未配置组合。",
     "confirmDelete": "删除组合 {name}？",
     "suggest": {
-      "description": "使用 AI 评分为任务推荐最佳组合",
-      "task": "任务描述",
+      "description": "为某类任务推荐组合（MCP omniroute_best_combo_for_task）",
+      "taskType": "任务类型：coding、review、planning、analysis、debugging 或 documentation",
       "maxCost": "每次请求的最大成本（美元）",
       "maxLatencyMs": "最大延迟（毫秒）",
-      "weights": "JSON 评分权重，例如 {\"latency\":0.7,\"cost\":0.3}",
-      "top": "要显示的候选数（默认：5）",
-      "explain": "将理由打印到 stderr",
-      "switch": "激活排名最高的组合"
+      "useHint": "要使用它，请在请求中发送 \"model\": \"{name}\" —— 组合按名称逐请求选择。"
     }
   },
   "oneproxy": {
@@ -1081,11 +1045,7 @@
       "connectionId": "要轮换的特定连接 ID"
     },
     "config": {
-      "description": "显示或更新 OneProxy 配置",
-      "enabled": "启用代理池（true|false）",
-      "poolSize": "池大小",
-      "providerSource": "代理提供者的 URL",
-      "rotationPolicy": "轮换策略：sticky|per-request|periodic"
+      "description": "显示或更新 OneProxy 配置"
     },
     "pool": {
       "description": "列出当前代理池及指标"
@@ -1114,13 +1074,6 @@
       "description": "将配置推送到云或远程实例",
       "target": "目标（cloud 或 context:name）",
       "bundle": "要同步的包部分",
-      "dryRun": "预览但不应用"
-    },
-    "pull": {
-      "description": "从云或远程拉取配置",
-      "source": "来源（cloud 或 context:name）",
-      "merge": "与现有配置合并",
-      "replace": "替换现有配置",
       "dryRun": "预览但不应用"
     },
     "diff": {

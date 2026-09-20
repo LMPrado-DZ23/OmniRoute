@@ -92,11 +92,8 @@
     "removeDescription": "Remove an API key for a provider",
     "regenerateDescription": "Regenerate an OmniRoute API key",
     "revokeDescription": "Revoke an OmniRoute API key",
-    "revealDescription": "Reveal the unmasked API key value",
     "usageDescription": "Show recent usage for an API key",
     "usageLimitOpt": "Number of recent requests",
-    "rotateDescription": "Generate a new key and invalidate the old one",
-    "graceOpt": "Grace period (ms) before the old key is invalidated",
     "stdinOpt": "Read API key from stdin instead of argument",
     "added": "Key added for {provider}.",
     "removed": "Key removed.",
@@ -106,11 +103,8 @@
     "confirmRemove": "Remove key {id}?",
     "confirmRegenerate": "Regenerate key {id}?",
     "confirmRevoke": "Revoke key {id}?",
-    "confirmRotate": "Rotate key {id}? (old key will be invalidated after grace period)",
     "regenerated": "Regenerated. New key: {key}",
     "revoked": "Key {id} revoked.",
-    "rotated": "Key {id} rotated. New key ID: {newId}",
-    "revealWarning": "⚠  This will display the full unmasked key. Ensure your screen is private.",
     "providerRequired": "Provider is required.",
     "keyRequired": "API key is required.",
     "stdinEmpty": "No API key provided via stdin.",
@@ -131,7 +125,8 @@
       "daysOpt": "Show keys expiring within N days",
       "none": "No keys expiring within {days} days.",
       "listTitle": "Keys expiring within {days} days:"
-    }
+    },
+    "idSpaces": "add / list / remove manage provider credentials (provider connections). regenerate / revoke / usage / policy / expiration take an OmniRoute API key id. A stored key is never revealed again: regenerate prints the new value once."
   },
   "authExport": {
     "description": "Export DECRYPTED provider credentials (local-only, plaintext output)",
@@ -171,10 +166,26 @@
       "provider": "Filter by provider ID"
     },
     "budget": {
-      "description": "Manage cost budgets",
+      "description": "Manage per-API-key spend budgets",
+      "list": {
+        "description": "Show the budget and spend of every API key"
+      },
+      "get": {
+        "description": "Show the budget and spend of one API key"
+      },
       "set": {
-        "scope": "Budget scope (default: global)",
-        "period": "Budget period: daily|weekly|monthly (default: monthly)"
+        "description": "Set spend limits for an API key (0 = no limit)",
+        "daily": "Daily limit in USD",
+        "weekly": "Weekly limit in USD",
+        "monthly": "Monthly limit in USD",
+        "warningThreshold": "Warn at this fraction of the limit (0-1)",
+        "resetInterval": "Reset interval: daily|weekly|monthly",
+        "nothingToSet": "No limits provided. Use --daily, --weekly or --monthly.",
+        "done": "Budget updated for {apiKeyId}"
+      },
+      "clear": {
+        "description": "Lift all spend limits for an API key (recorded spend is kept)",
+        "done": "Budget limits cleared for {apiKeyId}"
       }
     },
     "quota": {
@@ -346,7 +357,6 @@
     "title": "MCP Server",
     "running": "MCP server running ({transport})",
     "stopped": "MCP server stopped.",
-    "restarted": "MCP server restarted.",
     "call": {
       "description": "Invoke an MCP tool directly",
       "args": "JSON arguments object (inline)",
@@ -433,11 +443,11 @@
       "description": "Manage compression combo statistics"
     },
     "rules": {
-      "description": "Manage compression rules",
-      "add": {
-        "pattern": "Pattern to match (regex or field:pattern)",
-        "action": "Action: drop|shrink|replace"
-      }
+      "description": "Inspect the engine's built-in compression rules",
+      "list": {
+        "description": "List the built-in caveman rules"
+      },
+      "readOnly": "Rules are built into the engine and cannot be created or deleted. To skip one or protect text, set cavemanConfig.skipRules / preservePatterns in Settings → Compression."
     },
     "language_packs": {
       "description": "List available compression language packs"
@@ -453,20 +463,15 @@
     "createDescription": "Create a tunnel",
     "created": "Tunnel created: {url}",
     "stopped": "Tunnel stopped.",
-    "confirmStop": "Stop tunnel {id}?",
     "stopDescription": "Stop a tunnel",
     "statusDescription": "Show detailed status of a tunnel",
-    "logsDescription": "Show logs for a tunnel",
     "infoDescription": "Show configuration details of a tunnel",
-    "rotateDescription": "Generate a new tunnel URL",
-    "tailOpt": "Number of log lines to show",
     "typeRequired": "Tunnel type is required.",
-    "noLogs": "No logs available.",
     "notAvailable": "Tunnel info not available.",
     "noTunnels": "No active tunnels.",
     "infoTitle": "Tunnel info: {type}",
-    "rotated": "Tunnel URL rotated: {url}",
-    "confirmRotate": "Rotate tunnel {type}? (a new URL will be generated)"
+    "authTokenOpt": "ngrok auth token (ngrok only)",
+    "createdPending": "{type} tunnel enabled; no public URL yet"
   },
   "stop": {
     "description": "Stop the OmniRoute server",
@@ -523,10 +528,11 @@
     "description": "Manage OmniRoute skills (sandbox, builtin, custom, hybrid, skillssh)",
     "list": {
       "description": "List installed skills",
-      "type": "Filter by type (sandbox|custom|builtin|hybrid|skillssh)",
+      "query": "Filter by name or description",
+      "source": "Filter by source (skillsmp|skillssh|local)",
       "enabled": "Show only enabled skills",
       "disabled": "Show only disabled skills",
-      "api_key": "Filter by API key"
+      "limit": "Maximum results per page"
     },
     "get": {
       "description": "Get details for a skill by ID"
@@ -604,10 +610,11 @@
     "add": {
       "description": "Add a new memory entry",
       "content": "Memory text content",
+      "key": "Unique key for the entry (required)",
       "file": "Read content from file",
-      "type": "Memory type (default: user)",
+      "type": "Memory type: factual, episodic, procedural or semantic",
       "metadata": "JSON metadata object",
-      "api_key": "Associate with API key"
+      "api_key": "Associate with an API key id"
     },
     "clear": {
       "description": "Delete memory entries matching filters",
@@ -721,33 +728,18 @@
       }
     },
     "run": {
-      "description": "Start an eval run for a suite",
-      "model": "Model ID to evaluate (default: auto)",
-      "combo": "Force a specific combo by name",
-      "concurrency": "Number of concurrent samples (default: 4)",
-      "tag": "Tag this run for later filtering",
-      "watch": "Watch run progress until completion"
+      "description": "Run an eval suite (completes synchronously)",
+      "model": "Run against this model id instead of the suite default",
+      "combo": "Run against this combo",
+      "compareModel": "Also run against this model and compare",
+      "apiKeyId": "Attribute the run to this API key id"
     },
     "list": {
-      "description": "List eval runs",
-      "suite": "Filter by suite ID",
-      "status": "Filter by status",
-      "since": "Return runs since this timestamp",
-      "limit": "Maximum results (default: 50)"
-    },
-    "get": {
-      "description": "Get eval run details by ID"
-    },
-    "results": {
-      "description": "Show sample results for an eval run",
-      "failed": "Show only failed samples"
-    },
-    "cancel": {
-      "description": "Cancel a running eval",
-      "yes": "Skip confirmation prompt"
+      "description": "List the 20 most recent eval runs",
+      "suite": "Filter by suite id"
     },
     "scorecard": {
-      "description": "Show scorecard for a completed eval run"
+      "description": "Show the eval scorecard history"
     }
   },
   "webhooks": {
@@ -883,11 +875,7 @@
       "limit": "Max results"
     },
     "defaults": {
-      "description": "Manage default pricing",
-      "input": "Input cost per 1M tokens (USD)",
-      "output": "Output cost per 1M tokens (USD)",
-      "cacheRead": "Cache read cost per 1M tokens (USD)",
-      "cacheWrite": "Cache write cost per 1M tokens (USD)"
+      "description": "Manage default pricing"
     },
     "diff": {
       "description": "Show divergence from upstream prices",
@@ -966,8 +954,8 @@
       "description": "Send test request to node"
     },
     "metrics": {
-      "description": "Show node metrics",
-      "period": "Time period (e.g. 24h, 7d)"
+      "description": "Show request metrics for a node (all-time, from the call log)",
+      "none": "No metrics recorded for {id}"
     }
   },
   "context": {
@@ -992,11 +980,15 @@
         "reservePct": "Reserve percentage"
       },
       "filters": {
-        "description": "Manage RTK filters",
-        "pattern": "Filter pattern (regex)",
-        "priority": "Filter priority (default: 100)",
-        "action": "Filter action: drop|shrink|replace",
-        "yes": "Skip confirmation"
+        "description": "Inspect and import the RTK filter catalog",
+        "list": {
+          "description": "List the loaded RTK filters"
+        },
+        "import": {
+          "description": "Validate (or install) a filters.toml bundle",
+          "install": "Install the bundle instead of only validating it",
+          "overwrite": "Replace an existing filters.toml (a .bak copy is kept)"
+        }
       },
       "test": {
         "file": "Path to request JSON file"
@@ -1013,31 +1005,6 @@
       "kind": "Filter by kind (dashboard|api-key|mcp|a2a)",
       "active": "Show only active sessions",
       "limit": "Maximum results (default: 100)"
-    },
-    "expire": {
-      "yes": "Skip confirmation"
-    },
-    "expireAll": {
-      "user": "User whose sessions to expire",
-      "yes": "Skip confirmation"
-    }
-  },
-  "tags": {
-    "description": "Manage resource tags",
-    "add": {
-      "color": "Tag color (hex or name)",
-      "description": "Tag description"
-    },
-    "remove": {
-      "yes": "Skip confirmation"
-    },
-    "assign": {
-      "tag": "Tag name",
-      "to": "Target resource as type:id (e.g. provider:openai)"
-    },
-    "unassign": {
-      "tag": "Tag name",
-      "from": "Source resource as type:id"
     }
   },
   "openapi": {
@@ -1073,14 +1040,11 @@
     "noCombos": "No combos configured.",
     "confirmDelete": "Delete combo {name}?",
     "suggest": {
-      "description": "Suggest the best combo for a task using AI scoring",
-      "task": "Task description",
+      "description": "Recommend a combo for a task type (MCP omniroute_best_combo_for_task)",
+      "taskType": "Task type: coding, review, planning, analysis, debugging or documentation",
       "maxCost": "Maximum cost per request in USD",
       "maxLatencyMs": "Maximum latency in milliseconds",
-      "weights": "JSON scoring weights e.g. {\"latency\":0.7,\"cost\":0.3}",
-      "top": "Number of top candidates to show (default: 5)",
-      "explain": "Print rationale to stderr",
-      "switch": "Activate the top-ranked combo"
+      "useHint": "To use it, send \"model\": \"{name}\" in your requests — combos are selected per request by name."
     }
   },
   "oneproxy": {
@@ -1100,11 +1064,7 @@
       "connectionId": "Specific connection ID to rotate"
     },
     "config": {
-      "description": "Show or update OneProxy config",
-      "enabled": "Enable proxy pool (true|false)",
-      "poolSize": "Pool size",
-      "providerSource": "URL for proxy provider",
-      "rotationPolicy": "Rotation policy: sticky|per-request|periodic"
+      "description": "Show or update OneProxy config"
     },
     "pool": {
       "description": "List current proxy pool with metrics"
@@ -1133,13 +1093,6 @@
       "description": "Push config to cloud or remote instance",
       "target": "Target (cloud or context:name)",
       "bundle": "Bundle parts to sync",
-      "dryRun": "Preview without applying"
-    },
-    "pull": {
-      "description": "Pull config from cloud or remote",
-      "source": "Source (cloud or context:name)",
-      "merge": "Merge with existing config",
-      "replace": "Replace existing config",
       "dryRun": "Preview without applying"
     },
     "diff": {

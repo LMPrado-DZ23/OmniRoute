@@ -25,7 +25,10 @@ function maskKey(raw) {
 }
 
 export function registerKeys(program) {
-  const keys = program.command("keys").description(t("keys.title"));
+  const keys = program
+    .command("keys")
+    .description(t("keys.title"))
+    .addHelpText("after", `\n${t("keys.idSpaces")}\n`);
 
   keys
     .command("add <provider> [apiKey]")
@@ -78,15 +81,6 @@ export function registerKeys(program) {
     });
 
   keys
-    .command("reveal <id>")
-    .description(t("keys.revealDescription"))
-    .action(async (id, opts, cmd) => {
-      const globalOpts = cmd.parent.optsWithGlobals();
-      const exitCode = await runKeysRevealCommand(id, { ...opts, ...globalOpts });
-      if (exitCode !== 0) process.exit(exitCode);
-    });
-
-  keys
     .command("usage <id>")
     .description(t("keys.usageDescription"))
     .option("--limit <n>", t("keys.usageLimitOpt"), "20")
@@ -131,17 +125,22 @@ export function registerKeys(program) {
       const exitCode = await runKeysExpirationListCommand({ ...opts, ...globalOpts });
       if (exitCode !== 0) process.exit(exitCode);
     });
+}
 
-  keys
-    .command("rotate <id>")
-    .description(t("keys.rotateDescription"))
-    .option("--grace-period <ms>", t("keys.graceOpt"), "60000")
-    .option("--yes", t("common.yesOpt"))
-    .action(async (id, opts, cmd) => {
-      const globalOpts = cmd.parent.optsWithGlobals();
-      const exitCode = await runKeysRotateCommand(id, { ...opts, ...globalOpts });
-      if (exitCode !== 0) process.exit(exitCode);
-    });
+/**
+ * Provider credentials are provider CONNECTIONS: /api/providers (list/create),
+ * /api/providers/{id} (PATCH/DELETE). There is no /api/v1/providers/keys.
+ */
+async function fetchApiKeyConnections(provider) {
+  const options = { retry: false, acceptNotOk: true };
+  const res = provider
+    ? await apiFetch(`/api/providers?provider=${encodeURIComponent(provider)}`, options)
+    : await apiFetch("/api/providers", options);
+  if (!res.ok) return null;
+  const data = await res.json();
+  const connections = data.connections ?? data;
+  if (!Array.isArray(connections)) return null;
+  return connections.filter((connection) => connection.authType === "apikey");
 }
 
 export async function runKeysAddCommand(provider, apiKey, opts = {}) {
@@ -174,12 +173,23 @@ export async function runKeysAddCommand(provider, apiKey, opts = {}) {
   const serverUp = await isServerUp();
   if (serverUp) {
     try {
-      const res = await apiFetch("/api/v1/providers/keys", {
-        method: "POST",
-        body: { provider: providerLower, apiKey: key },
-        retry: false,
-        acceptNotOk: true,
-      });
+      // Update the provider's existing api-key connection if it has one,
+      // otherwise create it — the CLI's offline path upserts the same way.
+      const existingRemote = await fetchApiKeyConnections(providerLower);
+      const target = existingRemote?.[0];
+      const res = target
+        ? await apiFetch(`/api/providers/${encodeURIComponent(target.id)}`, {
+            method: "PATCH",
+            body: { apiKey: key },
+            retry: false,
+            acceptNotOk: true,
+          })
+        : await apiFetch("/api/providers", {
+            method: "POST",
+            body: { provider: providerLower, name: providerLower, apiKey: key },
+            retry: false,
+            acceptNotOk: true,
+          });
       if (res.ok) {
         console.log(t("keys.added", { provider: providerLower }));
         return 0;
@@ -216,13 +226,9 @@ export async function runKeysListCommand(opts = {}) {
 
   if (serverUp) {
     try {
-      const res = await apiFetch("/api/v1/providers/keys", { retry: false, acceptNotOk: true });
-      if (res.ok) {
-        const data = await res.json();
-        const connections = data.keys || data.connections || data.items || data;
-        if (Array.isArray(connections)) {
-          return _printKeysList(connections, opts);
-        }
+      const connections = await fetchApiKeyConnections();
+      if (connections) {
+        return _printKeysList(connections, opts);
       }
     } catch {}
   }
@@ -299,14 +305,22 @@ export async function runKeysRemoveCommand(provider, opts = {}) {
   const serverUp = await isServerUp();
   if (serverUp) {
     try {
-      const res = await apiFetch(`/api/v1/providers/keys/${encodeURIComponent(providerLower)}`, {
-        method: "DELETE",
-        retry: false,
-        acceptNotOk: true,
-      });
-      if (res.ok) {
-        console.log(t("keys.removed"));
-        return 0;
+      // DELETE takes a connection id, so resolve the provider's connections first.
+      const connections = await fetchApiKeyConnections(providerLower);
+      if (connections && connections.length > 0) {
+        let removed = 0;
+        for (const connection of connections) {
+          const res = await apiFetch(`/api/providers/${encodeURIComponent(connection.id)}`, {
+            method: "DELETE",
+            retry: false,
+            acceptNotOk: true,
+          });
+          if (res.ok) removed += 1;
+        }
+        if (removed > 0) {
+          console.log(t("keys.removed"));
+          return 0;
+        }
       }
     } catch {}
   }
@@ -352,7 +366,7 @@ export async function runKeysRegenerateCommand(id, opts = {}) {
     return 1;
   }
   try {
-    const res = await apiFetch(`/api/v1/registered-keys/${encodeURIComponent(id)}/regenerate`, {
+    const res = await apiFetch(`/api/keys/${encodeURIComponent(id)}/regenerate`, {
       method: "POST",
       retry: false,
     });
@@ -403,29 +417,6 @@ export async function runKeysRevokeCommand(id, opts = {}) {
   }
 }
 
-export async function runKeysRevealCommand(id, opts = {}) {
-  process.stderr.write(t("keys.revealWarning") + "\n");
-  if (!(await isServerUp())) {
-    console.error(t("common.serverOffline"));
-    return 1;
-  }
-  try {
-    const res = await apiFetch(`/api/v1/registered-keys/${encodeURIComponent(id)}/reveal`, {
-      retry: false,
-    });
-    if (!res.ok) {
-      console.error(t("common.error", { message: `HTTP ${res.status}` }));
-      return 1;
-    }
-    const data = await res.json();
-    console.log(data.key || data.apiKey || "(not available)");
-    return 0;
-  } catch (err) {
-    console.error(t("common.error", { message: err instanceof Error ? err.message : String(err) }));
-    return 1;
-  }
-}
-
 export async function runKeysUsageCommand(id, opts = {}) {
   if (!(await isServerUp())) {
     console.error(t("common.serverOffline"));
@@ -433,16 +424,26 @@ export async function runKeysUsageCommand(id, opts = {}) {
   }
   const limit = opts.limit || "20";
   try {
-    const res = await apiFetch(
-      `/api/v1/registered-keys/${encodeURIComponent(id)}/usage?limit=${limit}`,
-      { retry: false }
-    );
+    // Request history lives in the call log, which filters by key NAME
+    // (src/app/api/usage/call-logs/route.ts), so resolve the key first.
+    const keyRes = await apiFetch(`/api/keys/${encodeURIComponent(id)}`, {
+      retry: false,
+      acceptNotOk: true,
+    });
+    if (!keyRes.ok) {
+      console.error(t("common.error", { message: `HTTP ${keyRes.status}` }));
+      return 1;
+    }
+    const key = await keyRes.json();
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (key.name) params.set("apiKey", key.name);
+    const res = await apiFetch(`/api/usage/call-logs?${params}`, { retry: false });
     if (!res.ok) {
       console.error(t("common.error", { message: `HTTP ${res.status}` }));
       return 1;
     }
     const data = await res.json();
-    const rows = data.usage || data.requests || data.items || [];
+    const rows = Array.isArray(data) ? data : (data.logs ?? data.data ?? []);
     if (rows.length === 0) {
       console.log(t("keys.noUsage"));
       return 0;
@@ -466,7 +467,8 @@ export async function runKeysPolicyShowCommand(id, opts = {}) {
     return 1;
   }
   try {
-    const res = await apiFetch(`/api/v1/registered-keys/${encodeURIComponent(id)}/policy`, {
+    // The per-key limits live on the key record itself: GET /api/keys/{id}.
+    const res = await apiFetch(`/api/keys/${encodeURIComponent(id)}`, {
       acceptNotOk: true,
       retry: false,
     });
@@ -475,16 +477,27 @@ export async function runKeysPolicyShowCommand(id, opts = {}) {
       return 1;
     }
     const data = await res.json();
+    const rateLimits = Array.isArray(data.rateLimits) ? data.rateLimits : [];
+    const policy = {
+      rateLimits,
+      modelAccessMode: data.modelAccessMode ?? "all",
+      allowedModels: data.allowedModels ?? [],
+      blockedModels: data.blockedModels ?? [],
+      dailyUsageLimitUsd: data.dailyUsageLimitUsd ?? null,
+      weeklyUsageLimitUsd: data.weeklyUsageLimitUsd ?? null,
+      monthlyUsageLimitUsd: data.monthlyUsageLimitUsd ?? null,
+    };
     if (opts.output === "json" || opts.json) {
-      console.log(JSON.stringify(data, null, 2));
+      console.log(JSON.stringify(policy, null, 2));
       return 0;
     }
     console.log(t("keys.policy.title") + ` (${id}):`);
-    console.log(`  rate_limit:      ${data.rateLimit ?? data.rate_limit ?? "(unset)"}`);
-    console.log(`  max_cost:        ${data.maxCost ?? data.max_cost ?? "(unset)"}`);
-    console.log(
-      `  allowed_models:  ${(data.allowedModels ?? data.allowed_models ?? []).join(", ") || "(all)"}`
-    );
+    const rateText = rateLimits.map((entry) => `${entry.limit}/${entry.window}s`).join(", ");
+    console.log(`  rate_limits:     ${rateText || "(unset)"}`);
+    console.log(`  daily_max_usd:   ${policy.dailyUsageLimitUsd ?? "(unset)"}`);
+    console.log(`  model_access:    ${policy.modelAccessMode}`);
+    console.log(`  allowed_models:  ${policy.allowedModels.join(", ") || "(all)"}`);
+    console.log(`  blocked_models:  ${policy.blockedModels.join(", ") || "(none)"}`);
     return 0;
   } catch (err) {
     console.error(t("common.error", { message: err instanceof Error ? err.message : String(err) }));
@@ -493,10 +506,21 @@ export async function runKeysPolicyShowCommand(id, opts = {}) {
 }
 
 export async function runKeysPolicySetCommand(id, opts = {}) {
+  // updateKeyPermissionsSchema shape: rate limits are {limit, window} pairs
+  // (window in seconds), a spend cap is dailyUsageLimitUsd + usageLimitEnabled,
+  // and an allow-list only applies with modelAccessMode "restricted".
   const body = {};
-  if (opts.rateLimit != null) body.rateLimit = Number(opts.rateLimit);
-  if (opts.maxCost != null) body.maxCost = Number(opts.maxCost);
-  if (opts.allowedModels) body.allowedModels = opts.allowedModels.split(",").map((s) => s.trim());
+  if (opts.rateLimit != null) {
+    body.rateLimits = [{ limit: Number(opts.rateLimit), window: 60 }];
+  }
+  if (opts.maxCost != null) {
+    body.usageLimitEnabled = true;
+    body.dailyUsageLimitUsd = Number(opts.maxCost);
+  }
+  if (opts.allowedModels) {
+    body.allowedModels = opts.allowedModels.split(",").map((s) => s.trim());
+    body.modelAccessMode = "restricted";
+  }
 
   if (Object.keys(body).length === 0) {
     console.error(t("keys.policy.nothingToSet"));
@@ -507,7 +531,7 @@ export async function runKeysPolicySetCommand(id, opts = {}) {
     return 1;
   }
   try {
-    const res = await apiFetch(`/api/v1/registered-keys/${encodeURIComponent(id)}/policy`, {
+    const res = await apiFetch(`/api/keys/${encodeURIComponent(id)}`, {
       method: "PATCH",
       body,
       acceptNotOk: true,
@@ -555,45 +579,6 @@ export async function runKeysExpirationListCommand(opts = {}) {
       const exp = k.expiresAt || k.expires_at || "(unknown)";
       console.log(`  ${(k.id || "").padEnd(24)} ${(k.name || "").padEnd(20)} expires: ${exp}`);
     }
-    return 0;
-  } catch (err) {
-    console.error(t("common.error", { message: err instanceof Error ? err.message : String(err) }));
-    return 1;
-  }
-}
-
-export async function runKeysRotateCommand(id, opts = {}) {
-  if (!opts.yes) {
-    const readline = await import("node:readline");
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    const answer = await new Promise((r) =>
-      rl.question(t("keys.confirmRotate", { id }) + " [y/N] ", r)
-    );
-    rl.close();
-    if (!/^y(es)?$/i.test(answer)) {
-      console.log(t("common.cancelled"));
-      return 0;
-    }
-  }
-  if (!(await isServerUp())) {
-    console.error(t("common.serverOffline"));
-    return 1;
-  }
-  const gracePeriod = Number(opts.gracePeriod || 60000);
-  try {
-    const res = await apiFetch(`/api/v1/registered-keys/${encodeURIComponent(id)}/rotate`, {
-      method: "POST",
-      body: { gracePeriodMs: gracePeriod },
-      acceptNotOk: true,
-      retry: false,
-    });
-    if (!res.ok) {
-      console.error(t("common.error", { message: `HTTP ${res.status}` }));
-      return 1;
-    }
-    const data = await res.json();
-    const newId = data.newKeyId || data.id || "(see dashboard)";
-    console.log(t("keys.rotated", { id, newId }));
     return 0;
   } catch (err) {
     console.error(t("common.error", { message: err instanceof Error ? err.message : String(err) }));

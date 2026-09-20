@@ -39,16 +39,6 @@ Show MCP server status
 omniroute mcp status
 ```
 
-### `mcp restart`
-
-Restart the MCP server
-
-**Example:**
-
-```bash
-omniroute mcp restart
-```
-
 ### `mcp call <tool> [argsJson]`
 
 **Flags:**

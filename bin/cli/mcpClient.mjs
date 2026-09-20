@@ -9,6 +9,11 @@
  * Older CLI paths POSTed { name, arguments } to /api/mcp/tools/call, which is
  * not a registered route, so every MCP-backed command was broken.
  *
+ * Streamable HTTP requires every POST to accept BOTH application/json and
+ * text/event-stream (the server answers 406 otherwise), requires the
+ * Mcp-Session-Id from initialize on every later request, and may answer a
+ * request with an SSE stream instead of a JSON body.
+ *
  * These functions route through apiFetch so CLI auth, remote contexts and
  * timeouts are handled the same way as every other management API call.
  */
@@ -20,20 +25,26 @@ function mcpError(message, status) {
   return err;
 }
 
-async function callMcpEndpoint(payload, { timeout, stream }) {
+const MCP_ACCEPT = "application/json, text/event-stream";
+
+async function callMcpEndpoint(payload, { timeout, sessionId, extraHeaders = {} }) {
   const res = await apiFetch("/api/mcp/stream", {
     method: "POST",
     body: payload,
     timeout,
     acceptNotOk: true,
-    headers: stream ? { Accept: "text/event-stream" } : {},
+    headers: {
+      ...extraHeaders,
+      Accept: MCP_ACCEPT,
+      ...(sessionId ? { "Mcp-Session-Id": sessionId } : {}),
+    },
   });
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw mcpError(
       `${payload.method} ${payload.id}: HTTP ${res.status}${text ? ` — ${text}` : ""}`,
-      res.status,
+      res.status
     );
   }
   return res;
@@ -60,13 +71,16 @@ export async function mcpCallTool(name, args = {}, options = {}) {
         clientInfo: { name: "omniroute-cli", version: "1.0" },
       },
     },
-    { timeout, stream: options.stream },
+    { timeout, extraHeaders: scopeHeader }
   );
 
   const sessionId = initRes.headers.get("mcp-session-id");
   if (!sessionId) {
     throw mcpError("MCP initialize failed: no Mcp-Session-Id in response", 500);
   }
+  // Drain the initialize answer (JSON or a one-shot SSE stream) so the
+  // connection is released before the next request.
+  await readJsonRpc(initRes, 1).catch(() => null);
 
   const callRes = await callMcpEndpoint(
     {
@@ -75,14 +89,20 @@ export async function mcpCallTool(name, args = {}, options = {}) {
       method: "tools/call",
       params: { name, arguments: args },
     },
-    { timeout, stream: options.stream },
+    { timeout, sessionId, extraHeaders: scopeHeader }
   );
 
-  if (options.stream) {
-    return consumeSse(callRes.body, options.onChunk);
+  try {
+    if (options.stream) {
+      return await consumeSse(callRes.body, options.onChunk);
+    }
+    return unwrapToolResult(await readJsonRpc(callRes, 2));
+  } finally {
+    await closeSession(sessionId, timeout);
   }
+}
 
-  const data = await callRes.json();
+function unwrapToolResult(data) {
   if (data.error) {
     const err = mcpError(`MCP error: ${data.error.message || JSON.stringify(data.error)}`);
     err.code = data.error.code;
@@ -92,7 +112,64 @@ export async function mcpCallTool(name, args = {}, options = {}) {
     const msg = data.result?.content?.[0]?.text || "unknown tool error";
     throw mcpError(`MCP error: ${msg}`, 500);
   }
-  return data.result;
+  return toolPayload(data.result);
+}
+
+/**
+ * MCP tools answer `{ content: [{ type: "text", text }], structuredContent? }`.
+ * Callers want the tool's own payload: prefer structuredContent, else a single
+ * JSON text block, else the raw result.
+ */
+function toolPayload(result) {
+  if (!result || typeof result !== "object") return result;
+  if (result.structuredContent && typeof result.structuredContent === "object") {
+    return result.structuredContent;
+  }
+  const blocks = Array.isArray(result.content) ? result.content : null;
+  if (blocks && blocks.length === 1 && blocks[0]?.type === "text") {
+    try {
+      return JSON.parse(blocks[0].text);
+    } catch {
+      return result;
+    }
+  }
+  return result;
+}
+
+/** A JSON-RPC response arrives either as a JSON body or as SSE `data:` events. */
+async function readJsonRpc(res, id) {
+  const contentType = res.headers.get("content-type") || "";
+  if (!contentType.includes("text/event-stream")) return res.json();
+  const text = await res.text();
+  let match = null;
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.startsWith("data:")) continue;
+    const raw = line.slice(5).trim();
+    if (!raw) continue;
+    try {
+      const message = JSON.parse(raw);
+      if (message && message.id === id) match = message;
+    } catch {
+      // not a JSON-RPC frame — ignore
+    }
+  }
+  if (!match) throw mcpError(`MCP response for request ${id} not found in event stream`, 502);
+  return match;
+}
+
+/** Best-effort: release the server-side session (DELETE with the session id). */
+async function closeSession(sessionId, timeout) {
+  try {
+    await apiFetch("/api/mcp/stream", {
+      method: "DELETE",
+      timeout,
+      retry: false,
+      acceptNotOk: true,
+      headers: { "Mcp-Session-Id": sessionId },
+    });
+  } catch {
+    // the session expires server-side anyway
+  }
 }
 
 async function consumeSse(body, onChunk) {

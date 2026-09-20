@@ -10,7 +10,7 @@ const PROVIDERS_WITH_OAUTH = [
   { id: "zed", name: "Zed", flow: "import" },
   { id: "kiro", name: "Amazon Kiro", flow: "social" },
   { id: "claude-code", name: "Claude Code (OAuth)", flow: "browser" },
-  { id: "codex", name: "OpenAI Codex (OAuth)", flow: "device" },
+  { id: "codex", name: "OpenAI Codex (OAuth)", flow: "browser" },
   { id: "copilot", name: "GitHub Copilot", flow: "device" },
 ];
 
@@ -25,6 +25,10 @@ const PROVIDERS_WITH_OAUTH = [
 // (issue #9474). Map the alias to the real backend key instead.
 const BACKEND_OAUTH_KEY = {
   "claude-code": "claude",
+  // GitHub Copilot's OAuth app is registered under the github provider key
+  // (src/lib/oauth/providers/github.ts, flowType "device_code"); there is no
+  // copilot provider, so /api/oauth/copilot/* answered 400 for every call.
+  copilot: "github",
 };
 
 function resolveBackendKey(id) {
@@ -226,28 +230,30 @@ async function runSocialFlow(def, opts) {
   process.stdout.write(`Authorized: ${result.email ?? result.userId ?? "connected"}\n`);
 }
 
+/**
+ * Device flow, as the server implements it
+ * (src/app/api/oauth/[provider]/[action]/route.ts):
+ *   GET  /api/oauth/{key}/device-code → provider payload + codeVerifier
+ *   POST /api/oauth/{key}/poll {deviceCode, codeVerifier}
+ *        → { success: true, connection } | { success: false, pending, error }
+ * The poll route stores the connection itself, so there is no apply step.
+ */
 async function runDeviceFlow(def, opts) {
   const providerKey = resolveBackendKey(def.id);
-  let startRes = await apiFetch(`/api/oauth/${providerKey}/device-code`, targetApiOptions(opts));
+  const startRes = await apiFetch(`/api/oauth/${providerKey}/device-code`, targetApiOptions(opts));
   if (!startRes.ok) {
-    startRes = await apiFetch(`/api/providers/${providerKey}/auth/start`, {
-      ...targetApiOptions(opts),
-      method: "POST",
-    });
-  }
-  if (!startRes.ok) {
-    process.stderr.write(`Failed to start device flow: ${startRes.status}\n`);
+    const detail = await safeErrorBody(startRes);
+    process.stderr.write(`Failed to start device flow: ${startRes.status}${detail}\n`);
     process.exit(1);
+    return;
   }
   const start = await startRes.json();
-  const userCode = start.userCode ?? start.user_code ?? "";
+  const userCode = start.user_code ?? start.userCode ?? "";
   const verificationUri =
-    start.verificationUriComplete ??
     start.verification_uri_complete ??
-    start.verificationUri ??
+    start.verificationUriComplete ??
     start.verification_uri ??
-    start.authUrl ??
-    start.url ??
+    start.verificationUri ??
     "";
 
   if (userCode) {
@@ -255,34 +261,37 @@ async function runDeviceFlow(def, opts) {
   } else if (verificationUri) {
     process.stdout.write(`\nVisit: ${verificationUri}\n\n`);
   } else {
-    process.stdout.write(`\nAuthorization URL not available\n\n`);
+    process.stdout.write("\nAuthorization URL not available\n\n");
   }
 
   if (opts.browser !== false && verificationUri) await openBrowser(verificationUri);
   process.stderr.write("Waiting for device authorization...\n");
   const deadline = Date.now() + (opts.timeout ?? 300000);
-  const intervalMs = (start.intervalMs ?? start.interval ?? 5) * 1000;
+  const intervalMs = (start.interval ?? start.intervalMs ?? 5) * 1000;
   while (Date.now() < deadline) {
     await sleep(intervalMs);
-    const statusRes = await apiFetch(
-      `/api/providers/${providerKey}/auth/status?state=${encodeURIComponent(start.state ?? "")}`,
-      targetApiOptions(opts)
-    );
-    if (!statusRes.ok) continue;
-    const status = await statusRes.json();
-    if (status.status === "complete" || status.status === "authorized") {
-      await apiFetch(`/api/providers/${providerKey}/auth/apply`, {
-        ...targetApiOptions(opts),
-        method: "POST",
-        body: { state: start.state },
-      });
-      process.stdout.write(`Authorized: ${status.account ?? status.email ?? "connected"}\n`);
+    const pollRes = await apiFetch(`/api/oauth/${providerKey}/poll`, {
+      ...targetApiOptions(opts),
+      method: "POST",
+      body: {
+        deviceCode: start.device_code ?? start.deviceCode,
+        ...(start.codeVerifier ? { codeVerifier: start.codeVerifier } : {}),
+      },
+      acceptNotOk: true,
+    });
+    if (!pollRes.ok) continue;
+    const result = await pollRes.json();
+    if (result.success) {
+      const conn = result.connection ?? {};
+      process.stdout.write(
+        `Authorized: ${conn.email ?? conn.displayName ?? conn.provider ?? "connected"}\n`
+      );
       return;
     }
-    if (status.status === "error") {
-      process.stderr.write(`Device auth failed: ${status.error}\n`);
-      process.exit(1);
-    }
+    if (result.pending) continue;
+    process.stderr.write(`Device auth failed: ${result.errorDescription ?? result.error}\n`);
+    process.exit(1);
+    return;
   }
   process.stderr.write("Timeout\n");
   process.exit(124);
