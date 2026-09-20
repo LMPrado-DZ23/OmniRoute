@@ -18,18 +18,16 @@ lastUpdated: 2026-09-11
 
 All three methods below install **this fork**. Pick one:
 
-### Option A: Desktop app (Windows, macOS, Linux) — not published yet
+### Option A: Desktop app (Windows, macOS, Linux)
 
-Once installers are published on this fork's [Releases](https://github.com/LMPrado-DZ23/OmniRoute/releases) page, download the file for your OS (`.exe` on Windows, `.dmg` on macOS, `.AppImage` on Linux) and open it. The app starts the embedded server, lives in the system tray and updates itself (always asking before installing; a snapshot of your data is written to `db_backups/pre-update-*` before every update).
-
-If the Releases page has no installers yet, use **Option B** or **Option C**.
+Download the file for your OS from this fork's [Releases](https://github.com/LMPrado-DZ23/OmniRoute/releases) page — `.exe` on Windows, `.dmg` on macOS, `.AppImage` or `.deb` on Linux, each for x64 and arm64 — and open it. The app starts the embedded server, lives in the system tray and updates itself (always asking before installing; a snapshot of your data is written to `db_backups/pre-update-*` before every update).
 
 ### Option B: Docker (works today)
 
-This fork publishes `ghcr.io/lmprado-dz23/omniroute:next` and `:next-web`, built from the current default branch. Every publish boots the image and requires it to answer `/healthz` before the tag is left in place.
+This fork publishes `ghcr.io/lmprado-dz23/omniroute:latest` and `:next-web`, built from the current default branch. Every publish boots the image and requires it to answer `/healthz` before the tag is left in place.
 
 ```bash
-docker run -d --name omniroute -p 127.0.0.1:20128:20128 -v omniroute-data:/app/data ghcr.io/lmprado-dz23/omniroute:next
+docker run -d --name omniroute -p 127.0.0.1:20128:20128 -v omniroute-data:/app/data ghcr.io/lmprado-dz23/omniroute:latest
 ```
 
 Your data lives in the `omniroute-data` volume (`/app/data` inside the container). `:next` is mutable — pulling later can give you a newer build; pin a digest for a reproducible deployment. `:latest` is the highest **published** stable SemVer and starts existing once a version is released. It does **not** track git `main`. Pin `ghcr.io/lmprado-dz23/omniroute:X.Y.Z` for GitOps. See [Image Tags / Release Channels](../guides/DOCKER_GUIDE.md#release-channels).

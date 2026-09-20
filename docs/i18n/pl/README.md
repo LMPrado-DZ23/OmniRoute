@@ -621,7 +621,7 @@ Używaj ich tylko w przypadku klientów, którzy nie mogą dołączyć nagłówk
 
 ```bash
 docker run -d --name omniroute --restart unless-stopped --stop-timeout 40 \
-  -p 20128:20128 -v omniroute-data:/app/data ghcr.io/lmprado-dz23/omniroute:next
+  -p 20128:20128 -v omniroute-data:/app/data ghcr.io/lmprado-dz23/omniroute:latest
 ```
 
 **🛠️ Ze źródeł**

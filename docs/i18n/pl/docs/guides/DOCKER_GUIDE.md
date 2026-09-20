@@ -34,7 +34,7 @@ docker run -d \
   --stop-timeout 40 \
   -p 20128:20128 \
   -v omniroute-data:/app/data \
-  ghcr.io/lmprado-dz23/omniroute:next
+  ghcr.io/lmprado-dz23/omniroute:latest
 ```
 
 ## Z plikiem środowiskowym
@@ -50,7 +50,7 @@ docker run -d \
   --env-file .env \
   -p 20128:20128 \
   -v omniroute-data:/app/data \
-  ghcr.io/lmprado-dz23/omniroute:next
+  ghcr.io/lmprado-dz23/omniroute:latest
 ```
 
 ## Docker Compose
@@ -213,7 +213,7 @@ Połącz to z pasującym publicznym originem:
 ```yaml
 services:
   omniroute:
-    image: ghcr.io/lmprado-dz23/omniroute:next
+    image: ghcr.io/lmprado-dz23/omniroute:latest
     environment:
       OMNIROUTE_BASE_PATH: /omniroute
       NEXT_PUBLIC_BASE_URL: https://myhostname.example.com/omniroute
@@ -236,7 +236,7 @@ OmniRoute można bezpiecznie udostępnić dzięki automatycznemu provisionowaniu
 ```yaml
 services:
   omniroute:
-    image: ghcr.io/lmprado-dz23/omniroute:next
+    image: ghcr.io/lmprado-dz23/omniroute:latest
     container_name: omniroute
     restart: unless-stopped
     volumes:

@@ -74,7 +74,7 @@ docker volume rm omniroute-data
 Opcional — liberar o espaço em disco da imagem:
 
 ```bash
-docker rmi ghcr.io/lmprado-dz23/omniroute:next
+docker rmi ghcr.io/lmprado-dz23/omniroute:latest
 ```
 
 Com Docker Compose: `docker compose down` remove os contêineres e mantém os dados; `docker compose down -v` também apaga os volumes (irreversível).

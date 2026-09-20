@@ -34,18 +34,16 @@ Se algo falhar, o painel mostra a mensagem de erro no próprio passo (não é pr
 
 Os três métodos abaixo instalam **este fork**. Escolha um:
 
-### Opção A: Aplicativo desktop (Windows, macOS, Linux) — quando disponível
+### Opção A: Aplicativo desktop (Windows, macOS, Linux)
 
-Quando houver instaladores publicados na página de [Releases](https://github.com/LMPrado-DZ23/OmniRoute/releases) deste fork, baixe o arquivo do seu sistema (`.exe` no Windows, `.dmg` no macOS, `.AppImage` no Linux) e abra-o. O aplicativo inicia o servidor embutido, fica na bandeja do sistema e atualiza sozinho (sempre pedindo confirmação antes de instalar; um instantâneo dos seus dados é gravado em `db_backups/pre-update-*` antes de cada atualização).
-
-Se a página de Releases ainda não tiver instaladores, use a **Opção B** ou a **Opção C**.
+Baixe o arquivo do seu sistema na página de [Releases](https://github.com/LMPrado-DZ23/OmniRoute/releases) deste fork — `.exe` no Windows, `.dmg` no macOS, `.AppImage` ou `.deb` no Linux, cada um para x64 e arm64 — e abra-o. O aplicativo inicia o servidor embutido, fica na bandeja do sistema e atualiza sozinho (sempre pedindo confirmação antes de instalar; um instantâneo dos seus dados é gravado em `db_backups/pre-update-*` antes de cada atualização).
 
 ### Opção B: Docker — quando a imagem estiver publicada
 
 A imagem deste fork é `ghcr.io/lmprado-dz23/omniroute` (é o que o fluxo de publicação do repositório produz). Se o `docker run` abaixo responder que a imagem não foi encontrada, ela ainda não foi publicada — use a **Opção C**.
 
 ```bash
-docker run -d --name omniroute -p 127.0.0.1:20128:20128 -v omniroute-data:/app/data ghcr.io/lmprado-dz23/omniroute:next
+docker run -d --name omniroute -p 127.0.0.1:20128:20128 -v omniroute-data:/app/data ghcr.io/lmprado-dz23/omniroute:latest
 ```
 
 Seus dados ficam no volume `omniroute-data` (dentro do contêiner, em `/app/data`). `:latest` é a versão estável **publicada** mais alta (SemVer). Ela **não** acompanha o `main` do git. Para GitOps, fixe `ghcr.io/lmprado-dz23/omniroute:X.Y.Z`. Veja [Tags de imagem / canais de release](../../../../guides/DOCKER_GUIDE.md#release-channels).

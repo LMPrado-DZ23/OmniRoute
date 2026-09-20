@@ -135,7 +135,7 @@ EOF
 ### 2.3 啟動容器
 
 ```bash
-docker pull ghcr.io/lmprado-dz23/omniroute:next
+docker pull ghcr.io/lmprado-dz23/omniroute:latest
 
 docker run -d \
   --name omniroute \
@@ -143,7 +143,7 @@ docker run -d \
   --env-file /opt/omniroute/.env \
   -p 20128:20128 \
   -v omniroute-data:/app/data \
-  ghcr.io/lmprado-dz23/omniroute:next
+  ghcr.io/lmprado-dz23/omniroute:latest
 ```
 
 ### 2.4 確認運作中
@@ -300,13 +300,13 @@ curl -sI https://llms.seudominio.com/health
 ### 升級至新版本
 
 ```bash
-docker pull ghcr.io/lmprado-dz23/omniroute:next
+docker pull ghcr.io/lmprado-dz23/omniroute:latest
 docker stop omniroute && docker rm omniroute
 docker run -d --name omniroute --restart unless-stopped \
   --env-file /opt/omniroute/.env \
   -p 20128:20128 \
   -v omniroute-data:/app/data \
-  ghcr.io/lmprado-dz23/omniroute:next
+  ghcr.io/lmprado-dz23/omniroute:latest
 ```
 
 ### 檢視日誌

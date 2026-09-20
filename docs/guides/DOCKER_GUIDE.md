@@ -36,7 +36,7 @@ docker run -d \
   --stop-timeout 40 \
   -p 20128:20128 \
   -v omniroute-data:/app/data \
-  ghcr.io/lmprado-dz23/omniroute:next
+  ghcr.io/lmprado-dz23/omniroute:latest
 ```
 
 ## With Environment File
@@ -52,7 +52,7 @@ docker run -d \
   --env-file .env \
   -p 20128:20128 \
   -v omniroute-data:/app/data \
-  ghcr.io/lmprado-dz23/omniroute:next
+  ghcr.io/lmprado-dz23/omniroute:latest
 ```
 
 ## Docker Compose
@@ -322,7 +322,7 @@ Size **cgroup `--memory` above the heap** — native buffers, SQLite, and compre
 ```bash
 docker run -d --name omniroute --restart unless-stopped --stop-timeout 40 \
   -e OMNIROUTE_MEMORY_MB=8192 --memory=10g \
-  -p 127.0.0.1:20128:20128 -v omniroute-data:/app/data ghcr.io/lmprado-dz23/omniroute:next
+  -p 127.0.0.1:20128:20128 -v omniroute-data:/app/data ghcr.io/lmprado-dz23/omniroute:latest
 ```
 
 ## Critical Environment Variables
@@ -383,7 +383,7 @@ Pair it with the matching public origin:
 ```yaml
 services:
   omniroute:
-    image: ghcr.io/lmprado-dz23/omniroute:next
+    image: ghcr.io/lmprado-dz23/omniroute:latest
     environment:
       OMNIROUTE_BASE_PATH: /omniroute
       NEXT_PUBLIC_BASE_URL: https://myhostname.example.com/omniroute
@@ -424,7 +424,7 @@ OmniRoute can be securely exposed using Caddy's automatic SSL provisioning. Ensu
 ```yaml
 services:
   omniroute:
-    image: ghcr.io/lmprado-dz23/omniroute:next
+    image: ghcr.io/lmprado-dz23/omniroute:latest
     container_name: omniroute
     restart: unless-stopped
     volumes:
@@ -626,7 +626,7 @@ Compose sketch (two heaps, two volumes — not `deploy.replicas: 2`):
 ```yaml
 services:
   omniroute-a:
-    image: ghcr.io/lmprado-dz23/omniroute:3.8.49
+    image: ghcr.io/lmprado-dz23/omniroute:3.8.54
     environment:
       DATA_DIR: /app/data
       OMNIROUTE_MEMORY_MB: "12288"
@@ -635,7 +635,7 @@ services:
     volumes: [omniroute-a-data:/app/data]
     ports: ["20128:20128"]
   omniroute-b:
-    image: ghcr.io/lmprado-dz23/omniroute:3.8.49
+    image: ghcr.io/lmprado-dz23/omniroute:3.8.54
     environment:
       DATA_DIR: /app/data
       OMNIROUTE_MEMORY_MB: "12288"
