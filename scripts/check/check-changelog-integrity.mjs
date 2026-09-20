@@ -92,10 +92,20 @@ export function findAddedBullets(baseText, headText) {
   return findMissingOccurrences(headText, baseText);
 }
 
-/** Stable digest tying a reconciliation record to the complete file, not just its bullets. */
+/**
+ * Stable digest tying a reconciliation record to the complete file, not just its bullets.
+ *
+ * CRLF is normalised to LF first, and that is not cosmetic. The two sides arrive
+ * differently: the base comes from `git show <ref>:CHANGELOG.md`, which is always the
+ * stored LF content, while the result is read from the WORKING TREE — CRLF on a Windows
+ * checkout with core.autocrlf=true, LF on CI. Hashing raw bytes made a record written on
+ * Windows verifiable only on Windows: it passed locally and failed on CI with no hint as
+ * to why, on a gate whose whole value is that it cannot be waved through. A reconciliation
+ * binds CONTENT, so its digest must not depend on who checked the file out.
+ */
 export function changelogSha256(text) {
   return createHash("sha256")
-    .update(String(text || ""), "utf8")
+    .update(String(text || "").replace(/\r\n/g, "\n"), "utf8")
     .digest("hex");
 }
 

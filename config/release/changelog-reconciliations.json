@@ -25,6 +25,18 @@
         "- **fix(catalog):** imported/custom models on no-auth providers now appear in `GET /api/v1/models` and the Playground model selector — the eligibility gate required a DB connection row which no-auth providers never have, silently dropping every imported model for them. ([#3463](https://github.com/diegosouzapw/OmniRoute/pull/3463) — thanks @tjengbudi / @diegosouzapw)",
         "- **fix(dashboard):** keep no-auth providers (opencode, duckduckgo-web, veoaifree-web) visible under the \"Show configured only\" filter — they never create a connection row (`stats.total === 0`) but are always usable and already appear in `/v1/models`, so the filter now treats `displayAuthType === \"no-auth\"` as configured. (#3290 — thanks @uniQta)"
       ]
+    },
+    {
+      "id": "add-api-key-link-scope-2026-09-20",
+      "reason": "The v3.8.55 bullet for #50 read 'links to the page that issues the key'. Audited against the catalog: a key-issuing URL exists for 16 of the 355 providers; for the rest the dialog links the provider's own site, and it already says which of the two it is showing. The component was honest; the release note was not. The bullet is reworded to the measured scope — same feature, same PR, no claim removed that was true. The digests here are line-ending independent: changelogSha256 normalises CRLF to LF, because the base side comes from `git show` (always LF) while the result side is read from the working tree (CRLF on a Windows checkout), and hashing raw bytes made this record verifiable only on the machine that wrote it.",
+      "baseChangelogSha256": "632654f7569da6195246a8ca722145e89431a9c6df38aba17e99a7ce032cd712",
+      "resultChangelogSha256": "66e20f2aeeb48f598770a91539b48515bbe8ea7099b05f124114240a3ef1b79d",
+      "removedBullets": [
+        "- **feat(providers):** the Add API Key dialog now links to the page that issues the key. It asked for a credential without saying where to get one — for API-key providers it offered no link at all, so the user left for a search engine ([#50](https://github.com/LMPrado-DZ23/OmniRoute/pull/50))"
+      ],
+      "addedBullets": [
+        "- **feat(providers):** the Add API Key dialog now links to where the credential comes from. It asked for one without saying where to get it — for API-key providers it offered no link at all, so the user left for a search engine. For **16 of the 355** providers the link is the exact key-issuing page; for the rest it is the provider's own site, and the dialog says which of the two it is showing ([#50](https://github.com/LMPrado-DZ23/OmniRoute/pull/50))"
+      ]
     }
   ]
 }
