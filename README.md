@@ -991,7 +991,7 @@ Auto-trigger by token threshold, flip on the adaptive dial, pin a named profile,
 
 Pick the channel of **this fork** that fits you:
 
-- **Desktop installer** — not published for this fork yet. When a version is released the `.exe` / `.dmg` / `.AppImage` for your OS appear on [GitHub Releases](https://github.com/LMPrado-DZ23/OmniRoute/releases), and opening one starts the server and the dashboard. Until then use Docker or source; both are supported.
+- **Desktop installer** — download the build for your OS from [GitHub Releases](https://github.com/LMPrado-DZ23/OmniRoute/releases) (`.exe`, `.dmg`, `.AppImage` and `.deb`, x64 and arm64) and open it; it starts the server and the dashboard.
 - **Docker** — `docker run -d --name omniroute -p 127.0.0.1:20128:20128 -v omniroute-data:/app/data ghcr.io/lmprado-dz23/omniroute:latest`
 - **From source** (needs Node.js 22/24 LTS):
 

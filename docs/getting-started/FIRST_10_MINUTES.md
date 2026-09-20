@@ -24,7 +24,7 @@ Pick **one**.
 docker run -d --name omniroute \
   -p 127.0.0.1:20128:20128 \
   -v omniroute-data:/app/data \
-  ghcr.io/lmprado-dz23/omniroute:next
+  ghcr.io/lmprado-dz23/omniroute:latest
 ```
 
 - The image sets `PORT=20128` and `DATA_DIR=/app/data` (see `Dockerfile`), so everything you configure lands in the `omniroute-data` volume.

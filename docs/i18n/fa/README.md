@@ -1015,7 +1015,7 @@ docker run -d \
   --stop-timeout 40 \
   -p 20128:20128 \
   -v omniroute-data:/app/data \
-  ghcr.io/lmprado-dz23/omniroute:next
+  ghcr.io/lmprado-dz23/omniroute:latest
 ```
 
 **به همراه فایل محیطی:**
@@ -1031,7 +1031,7 @@ docker run -d \
   --env-file .env \
   -p 20128:20128 \
   -v omniroute-data:/app/data \
-  ghcr.io/lmprado-dz23/omniroute:next
+  ghcr.io/lmprado-dz23/omniroute:latest
 ```
 
 **با استفاده از Docker نوشتن:**
@@ -1064,7 +1064,7 @@ OmniRoute را می توان با استفاده از تهیه خودکار SSL 
 ```yaml
 services:
   omniroute:
-    image: ghcr.io/lmprado-dz23/omniroute:next
+    image: ghcr.io/lmprado-dz23/omniroute:latest
     container_name: omniroute
     restart: unless-stopped
     volumes:
