@@ -210,7 +210,16 @@ export default function CliCodePageClient({ machineId: _machineId }: CliCodePage
       {/* Empty state — no active providers */}
       {!providersLoading && !hasActiveProviders && (
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 flex items-start gap-3">
-          <span className="material-symbols-outlined text-amber-500 flex-shrink-0">warning</span>
+          {/* aria-hidden: the ligature text is the literal word "warning", so without this a
+              screen reader reads "warning" as content before the sentence that follows — the
+              icon is decoration for a message that already says what is wrong. Every other
+              icon on this surface is hidden the same way; this one was the last that was not. */}
+          <span
+            className="material-symbols-outlined text-amber-500 flex-shrink-0"
+            aria-hidden="true"
+          >
+            warning
+          </span>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-amber-800 dark:text-amber-400">
               {tCommon("detail.noActiveProviders")}
