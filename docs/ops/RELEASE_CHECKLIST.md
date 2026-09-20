@@ -134,7 +134,7 @@ matrix automatically, without any label.
 
 ### Claims the release makes stale
 
-Nothing regenerates the prose that describes *what exists*, so it rots silently one
+Nothing regenerates the prose that describes _what exists_, so it rots silently one
 release at a time. Before the first release of a fork, and after any release that changes
 what is published, re-read and correct:
 
