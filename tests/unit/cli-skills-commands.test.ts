@@ -72,7 +72,7 @@ function makeCmd(output = "json") {
 
 test("runSkillsList retorna lista de skills", async () => {
   const origFetch = globalThis.fetch;
-  globalThis.fetch = (() => Promise.resolve(makeResp({ items: SKILLS_DATA }))) as any;
+  globalThis.fetch = (() => Promise.resolve(makeResp({ skills: SKILLS_DATA }))) as any;
 
   const { runSkillsList } = await import("../../bin/cli/commands/skills.mjs");
   const out = await captureStdout(() => runSkillsList({}, makeCmd() as any));
@@ -83,34 +83,38 @@ test("runSkillsList retorna lista de skills", async () => {
   assert.equal(parsed[0].id, "sk_pdf");
 });
 
-test("runSkillsList filtra por --enabled", async () => {
+test("runSkillsList filtra por --enabled via mode=on", async () => {
   let capturedUrl = "";
   const origFetch = globalThis.fetch;
   globalThis.fetch = ((url: string) => {
     capturedUrl = url;
-    return Promise.resolve(makeResp({ items: [SKILLS_DATA[0]] }));
+    return Promise.resolve(makeResp({ skills: [SKILLS_DATA[0]] }));
   }) as any;
 
   const { runSkillsList } = await import("../../bin/cli/commands/skills.mjs");
   await captureStdout(() => runSkillsList({ enabled: true }, makeCmd() as any));
 
   globalThis.fetch = origFetch;
-  assert.ok(capturedUrl.includes("enabled=true"));
+  // the catalog route reads mode/q/source, never "enabled"
+  assert.ok(capturedUrl.includes("mode=on"));
+  assert.ok(!capturedUrl.includes("enabled=true"));
 });
 
-test("runSkillsGet busca /api/skills/:id", async () => {
+test("runSkillsGet lê o catálogo e escolhe a skill pelo id", async () => {
   let capturedUrl = "";
   const origFetch = globalThis.fetch;
   globalThis.fetch = ((url: string) => {
     capturedUrl = url;
-    return Promise.resolve(makeResp(SKILLS_DATA[0]));
+    return Promise.resolve(makeResp({ skills: SKILLS_DATA }));
   }) as any;
 
   const { runSkillsGet } = await import("../../bin/cli/commands/skills.mjs");
   const out = await captureStdout(() => runSkillsGet("sk_pdf", {}, makeCmd() as any));
 
   globalThis.fetch = origFetch;
-  assert.ok(capturedUrl.includes("/api/skills/sk_pdf"));
+  // there is no GET /api/skills/{id}; the route exports DELETE and PUT only
+  assert.ok(capturedUrl.includes("/api/skills?"));
+  assert.ok(capturedUrl.includes("q=sk_pdf"));
   const parsed = JSON.parse(out);
   assert.equal(parsed.id, "sk_pdf");
 });
@@ -130,7 +134,9 @@ test("runSkillsEnable usa JSON-RPC tools/call", async () => {
 
   globalThis.fetch = origFetch;
   assert.ok(calls.some((x) => String(x.url).includes("/api/mcp/stream")));
-  const callBody = JSON.parse(calls.find((x) => String(x.init?.body || "").includes("tools/call"))?.init?.body || "{}");
+  const callBody = JSON.parse(
+    calls.find((x) => String(x.init?.body || "").includes("tools/call"))?.init?.body || "{}"
+  );
   assert.equal(callBody.method, "tools/call");
   assert.equal(callBody.params.name, "omniroute_skills_enable");
   assert.equal(callBody.params.arguments.skillId, "sk_pdf");
@@ -154,7 +160,9 @@ test("runSkillsExecute usa JSON-RPC tools/call", async () => {
   );
 
   globalThis.fetch = origFetch;
-  const callBody = JSON.parse(calls.find((x) => String(x.init?.body || "").includes("tools/call"))?.init?.body || "{}");
+  const callBody = JSON.parse(
+    calls.find((x) => String(x.init?.body || "").includes("tools/call"))?.init?.body || "{}"
+  );
   assert.equal(callBody.method, "tools/call");
   assert.equal(callBody.params.name, "omniroute_skills_execute");
   assert.equal(callBody.params.arguments.skillId, "sk_pdf");

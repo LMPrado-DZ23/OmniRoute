@@ -85,14 +85,6 @@ omniroute keys regenerate <id>
 omniroute keys revoke <id>
 ```
 
-### `keys reveal <id>`
-
-**Example:**
-
-```bash
-omniroute keys reveal <id>
-```
-
 ### `keys usage <id>`
 
 **Flags:**
@@ -154,19 +146,6 @@ omniroute keys expiration
 
 ```bash
 omniroute keys list
-```
-
-### `keys rotate <id>`
-
-**Flags:**
-
-- `--grace-period <ms>`
-- `--yes`
-
-**Example:**
-
-```bash
-omniroute keys rotate <id>
 ```
 
 ### `oauth`

@@ -89,7 +89,7 @@ test("runMemorySearch envia q e type na query", async () => {
   assert.ok(capturedUrl.includes("limit=10"));
 });
 
-test("runMemoryAdd envia POST com content e type", async () => {
+test("runMemoryAdd envia POST com content, key e type", async () => {
   // Plan 21 / D17: legacy 'user' type is mapped to canonical 'factual'.
   let capturedUrl = "";
   let capturedInit: any = null;
@@ -97,14 +97,12 @@ test("runMemoryAdd envia POST com content e type", async () => {
   globalThis.fetch = ((url: string, init: any) => {
     capturedUrl = url;
     capturedInit = init;
-    return Promise.resolve(
-      makeResp({ id: "mem_new", type: "factual", content: "test content" })
-    );
+    return Promise.resolve(makeResp({ id: "mem_new", type: "factual", content: "test content" }));
   }) as any;
 
   const { runMemoryAdd } = await import("../../bin/cli/commands/memory.mjs");
   await captureStdout(() =>
-    runMemoryAdd({ content: "test content", type: "user" }, makeCmd() as any)
+    runMemoryAdd({ content: "test content", key: "test-key", type: "user" }, makeCmd() as any)
   );
 
   globalThis.fetch = origFetch;
@@ -112,6 +110,7 @@ test("runMemoryAdd envia POST com content e type", async () => {
   assert.equal(capturedInit?.method, "POST");
   const body = JSON.parse(capturedInit?.body);
   assert.equal(body.content, "test content");
+  assert.equal(body.key, "test-key", "the route requires a key");
   // Legacy 'user' is remapped to canonical 'factual' by CLI (plan 21 / D17).
   assert.equal(body.type, "factual");
 });
@@ -164,24 +163,30 @@ test("runMemoryHealth retorna status do subsistema", async () => {
   assert.equal(parsed.status, "healthy");
 });
 
-test("runMemoryClear --yes envia DELETE com filtro de type", async () => {
-  let capturedUrl = "";
-  let capturedInit: any = null;
+test("runMemoryClear --yes lista com filtro de type e apaga por id", async () => {
+  const calls: Array<{ url: string; method: string }> = [];
   const origFetch = globalThis.fetch;
   globalThis.fetch = ((url: string, init: any) => {
-    capturedUrl = url;
-    capturedInit = init;
-    return Promise.resolve(makeResp({ deleted: 5 }));
+    calls.push({ url: String(url), method: init?.method ?? "GET" });
+    if ((init?.method ?? "GET") === "GET") {
+      return Promise.resolve(
+        makeResp({ data: [{ id: "mem_1", createdAt: "2026-01-01T00:00:00Z" }], totalPages: 1 })
+      );
+    }
+    return Promise.resolve(makeResp({ success: true }));
   }) as any;
 
   const { runMemoryClear } = await import("../../bin/cli/commands/memory.mjs");
   await captureStdout(() => runMemoryClear({ yes: true, type: "project" }, makeCmd() as any));
 
   globalThis.fetch = origFetch;
-  assert.ok(capturedUrl.includes("/api/memory"));
-  assert.equal(capturedInit?.method, "DELETE");
+  const list = calls.find((c) => c.method === "GET");
+  assert.ok(list, "clear lista as memórias antes de apagar");
   // Plan 21 / D17: legacy 'project' is remapped to canonical 'factual' by
   // applyLegacyTypeMap in the CLI before reaching the backend.
-  assert.ok(capturedUrl.includes("type=factual"));
-  assert.ok(!capturedUrl.includes("type=project"));
+  assert.ok(list.url.includes("type=factual"));
+  assert.ok(!list.url.includes("type=project"));
+  const remove = calls.find((c) => c.method === "DELETE");
+  assert.ok(remove, "cada entrada é apagada em /api/memory/{id}");
+  assert.ok(remove.url.includes("/api/memory/mem_1"));
 });

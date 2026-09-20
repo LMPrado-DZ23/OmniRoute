@@ -55,7 +55,7 @@ function ClientConfig({ apiEndpoint, modelId }: { apiEndpoint: string; modelId: 
         <button
           type="button"
           onClick={() => void copy()}
-          className="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-white hover:bg-primary/90 cursor-pointer"
+          className="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-on-primary hover:bg-primary/90 cursor-pointer"
         >
           {copyState === "copied" ? t("copied") : t("copyConfig")}
         </button>

@@ -1,18 +1,13 @@
 import { readFileSync } from "node:fs";
-import { createInterface } from "node:readline";
 import { apiFetch } from "../api.mjs";
 import { emit } from "../output.mjs";
 import { t } from "../i18n.mjs";
 
-async function confirm(q) {
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise((resolve) => {
-    rl.question(`${q} [y/N] `, (a) => {
-      rl.close();
-      resolve(a.trim().toLowerCase() === "y");
-    });
-  });
-}
+const filterSchema = [
+  { key: "id", header: "Filter", width: 28 },
+  { key: "category", header: "Category", width: 16 },
+  { key: "description", header: "Description", width: 48 },
+];
 
 export function registerContextEng(program) {
   const ctx = program.command("context-eng").alias("ctx").description(t("context.description"));
@@ -87,46 +82,43 @@ export function registerContextEng(program) {
       emit(await res.json(), cmd.optsWithGlobals());
     });
 
+  // RTK filters are declared in a filters.toml bundle, not created one flag at a
+  // time: GET /api/context/rtk/filters lists the loaded catalog and
+  // POST /api/context/rtk/import validates or installs a bundle. There is no
+  // per-filter create/delete route.
   const filters = rtk.command("filters").description(t("context.rtk.filters.description"));
 
-  filters.command("list").action(async (opts, cmd) => {
-    const res = await apiFetch("/api/context/rtk/filters");
-    if (!res.ok) {
-      process.stderr.write(`Error: ${res.status}\n`);
-      process.exit(1);
-    }
-    emit(await res.json(), cmd.optsWithGlobals());
-  });
-
   filters
-    .command("add")
-    .requiredOption("--pattern <p>", t("context.rtk.filters.pattern"))
-    .option("--priority <n>", t("context.rtk.filters.priority"), parseInt, 100)
-    .option("--action <a>", t("context.rtk.filters.action"), "drop")
+    .command("list")
+    .description(t("context.rtk.filters.list.description"))
     .action(async (opts, cmd) => {
-      const body = { pattern: opts.pattern, priority: opts.priority, action: opts.action };
-      const res = await apiFetch("/api/context/rtk/filters", { method: "POST", body });
+      const res = await apiFetch("/api/context/rtk/filters");
       if (!res.ok) {
         process.stderr.write(`Error: ${res.status}\n`);
         process.exit(1);
       }
-      emit(await res.json(), cmd.optsWithGlobals());
+      const data = await res.json();
+      emit(data.filters ?? data, cmd.optsWithGlobals(), filterSchema);
     });
 
   filters
-    .command("remove <id>")
-    .option("--yes", t("context.rtk.filters.yes"))
-    .action(async (id, opts, cmd) => {
-      if (!opts.yes) {
-        const ok = await confirm(`Remove filter ${id}?`);
-        if (!ok) return;
-      }
-      const res = await apiFetch(`/api/context/rtk/filters/${id}`, { method: "DELETE" });
+    .command("import <file>")
+    .description(t("context.rtk.filters.import.description"))
+    .option("--install", t("context.rtk.filters.import.install"))
+    .option("--overwrite", t("context.rtk.filters.import.overwrite"))
+    .action(async (file, opts, cmd) => {
+      const body = {
+        action: opts.install ? "install" : "validate",
+        content: readFileSync(file, "utf8"),
+        ...(opts.install && opts.overwrite ? { overwrite: true } : {}),
+      };
+      const res = await apiFetch("/api/context/rtk/import", { method: "POST", body });
       if (!res.ok) {
-        process.stderr.write(`Error: ${res.status}\n`);
+        const payload = await res.json().catch(() => null);
+        process.stderr.write(`Error: ${payload?.error?.message ?? res.status}\n`);
         process.exit(1);
       }
-      process.stdout.write("Removed\n");
+      emit(await res.json(), cmd.optsWithGlobals());
     });
 
   rtk

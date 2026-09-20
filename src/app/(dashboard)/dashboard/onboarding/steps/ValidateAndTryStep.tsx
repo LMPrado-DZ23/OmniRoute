@@ -52,7 +52,7 @@ function CredentialPanel({
       {status === "idle" && (
         <button
           onClick={() => void credential.run()}
-          className="px-6 py-2.5 bg-primary rounded-lg text-white font-medium text-sm hover:bg-primary/90 transition-colors cursor-pointer"
+          className="px-6 py-2.5 bg-primary rounded-lg text-on-primary font-medium text-sm hover:bg-primary/90 transition-colors cursor-pointer"
         >
           {t("runTest")}
         </button>
@@ -160,7 +160,7 @@ function ModelTrialPanel({ trial }: { trial: ModelTrial }) {
       <button
         onClick={() => void trial.runTrial()}
         disabled={!trial.model.trim() || trial.trialState === "running"}
-        className="px-4 py-2 bg-primary rounded-lg text-white font-medium text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+        className="px-4 py-2 bg-primary rounded-lg text-on-primary font-medium text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
       >
         {t("sendTestRequest")}
       </button>

@@ -70,13 +70,48 @@ export function filterScope(paths, { dirs, exts, excludePrefixes = [] }) {
  * Materialize `sha` in a throwaway worktree with node_modules linked from ROOT, run `fn(dir)`,
  * always tear it down. Never touches the caller's tree or index (no stash, no checkout).
  */
+/**
+
+ * Link the repo's node_modules into the throwaway base worktree.
+
+ *
+
+ * A "dir" symlink needs SeCreateSymbolicLinkPrivilege on Windows — that is, an elevated
+
+ * shell or Developer Mode. Without it `fs.symlinkSync` throws EPERM and every new-code
+
+ * gate dies before it compares anything, so a contributor on Windows cannot run
+
+ * check:complexity-ratchets, check:dead-code or check:file-size locally at all and only
+
+ * learns about a regression from CI. A **junction** is the same thing for our purpose —
+
+ * a directory reparse point — and needs no privilege. Junctions are Windows-only and
+
+ * require an absolute target, which `nm` already is.
+
+ */
+
+export function linkNodeModules(nm, target) {
+  const type = process.platform === "win32" ? "junction" : "dir";
+
+  try {
+    fs.symlinkSync(nm, target, type);
+  } catch (err) {
+    throw new Error(
+      `could not link node_modules into the base worktree (${type}): ${err.message}
+` + "The new-code gates need it to lint the base revision."
+    );
+  }
+}
+
 export function withBaseWorktree(sha, fn) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-newcode-base-"));
   fs.rmdirSync(dir); // git worktree add wants a non-existent path
   git(["worktree", "add", "--detach", "--quiet", dir, sha]);
   try {
     const nm = path.join(ROOT, "node_modules");
-    if (fs.existsSync(nm)) fs.symlinkSync(nm, path.join(dir, "node_modules"), "dir");
+    if (fs.existsSync(nm)) linkNodeModules(nm, path.join(dir, "node_modules"));
     return fn(dir);
   } finally {
     try {

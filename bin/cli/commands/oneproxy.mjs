@@ -80,25 +80,6 @@ export function registerOneProxy(program) {
     emit(await res.json(), cmd.optsWithGlobals());
   });
 
-  config
-    .command("set")
-    .option("--enabled <b>", t("oneproxy.config.enabled"), (v) => v === "true")
-    .option("--pool-size <n>", t("oneproxy.config.poolSize"), parseInt)
-    .option("--provider-source <url>", t("oneproxy.config.providerSource"))
-    .option("--rotation-policy <p>", t("oneproxy.config.rotationPolicy"))
-    .action(async (opts, cmd) => {
-      const body = {};
-      for (const k of ["enabled", "poolSize", "providerSource", "rotationPolicy"]) {
-        if (opts[k] !== undefined) body[k] = opts[k];
-      }
-      const res = await apiFetch("/api/settings/oneproxy", { method: "PUT", body });
-      if (!res.ok) {
-        process.stderr.write(`Error: ${res.status}\n`);
-        process.exit(1);
-      }
-      emit(await res.json(), cmd.optsWithGlobals());
-    });
-
   op.command("pool")
     .description(t("oneproxy.pool.description"))
     .action(async (opts, cmd) => {

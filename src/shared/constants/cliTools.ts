@@ -2,6 +2,7 @@
 import { getClaudeCodeDefaultModels } from "@omniroute/open-sse/config/providerRegistry";
 import type { CliCatalogEntry } from "@/shared/schemas/cliCatalog";
 import { GROK_BUILD_CLI_TOOL } from "@/shared/constants/cliToolsGrokBuild";
+import { EXTRA_CLI_TOOLS } from "@/shared/constants/cliToolsExtra";
 
 const _cc = getClaudeCodeDefaultModels();
 type CliModel = NonNullable<CliCatalogEntry["defaultModels"]>[number];
@@ -909,6 +910,10 @@ OPENAI_API_KEY: "{{apiKey}}"`,
       },
     ],
   },
+
+  // Verified additions kept in their own module so this file stays under its
+  // file-size cap — see cliToolsExtra.ts for the per-entry verification notes.
+  ...EXTRA_CLI_TOOLS,
 };
 
 // ─── Registry helpers ────────────────────────────────────────────────────────

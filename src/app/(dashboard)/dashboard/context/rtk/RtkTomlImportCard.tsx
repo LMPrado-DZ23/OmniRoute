@@ -99,7 +99,7 @@ function RtkTomlEditor({
           onClick={() => onProcess("install")}
           disabled={processing !== null || !content.trim()}
           data-testid="rtk-toml-install"
-          className="rounded bg-primary px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+          className="rounded bg-primary px-3 py-1.5 text-xs font-medium text-on-primary disabled:opacity-50"
         >
           {processing === "install" ? t("tomlInstalling") : t("tomlInstall")}
         </button>

@@ -540,7 +540,7 @@ export default function RequestTimeline({
                 title={t(`modes.${MODE_META[m].descriptionKey}`)}
                 className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
                   mode === m
-                    ? "bg-primary text-white"
+                    ? "bg-primary text-on-primary"
                     : "bg-bg-subtle text-text-muted hover:text-text-main"
                 }`}
               >

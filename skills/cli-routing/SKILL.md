@@ -23,10 +23,6 @@ omniroute --version
 
 - `--max-cost <usd>`
 - `--max-latency-ms <ms>`
-- `--weights <json>`
-- `--top <n>`
-- `--explain`
-- `--switch`
 
 **Example:**
 

@@ -50,7 +50,7 @@ export function ServiceKindTabs({ kinds, activeKind, onSelect, className }: Serv
             className={cn(
               "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors",
               isActive
-                ? "bg-primary text-white border-primary"
+                ? "bg-primary text-on-primary border-primary"
                 : "bg-bg-subtle border-border text-text-muted hover:text-text-primary hover:border-primary/30"
             )}
           >

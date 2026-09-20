@@ -3,7 +3,7 @@
 import { cn } from "@/shared/utils/cn";
 
 const variants = {
-  primary: "bg-[image:var(--grad-brand)] text-white shadow-sm hover:brightness-105",
+  primary: "bg-[image:var(--grad-brand)] text-on-primary shadow-sm hover:brightness-105",
   accent: "bg-accent text-white shadow-sm hover:bg-accent-hover",
   secondary:
     "bg-white dark:bg-white/10 border border-black/10 dark:border-white/10 text-text-main hover:bg-black/5 dark:hover:bg-white/5",

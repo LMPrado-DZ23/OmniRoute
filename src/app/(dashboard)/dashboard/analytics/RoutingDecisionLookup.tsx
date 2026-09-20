@@ -320,7 +320,7 @@ export default function RoutingDecisionLookup() {
         <button
           type="submit"
           disabled={status === "loading" || query.trim().length === 0}
-          className="focus-ring inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
+          className="focus-ring inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
         >
           <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
             search

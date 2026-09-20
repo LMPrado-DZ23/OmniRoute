@@ -6,12 +6,12 @@
  * NIGHTLY: this suite is scheduled in the NIGHTLY CI job, not in the per-PR job,
  * because axe analysis adds ~10–20 s per page × width (see REQUIRE_AXE below).
  *
- * Two assertions per audited page:
+ * Two assertions per audited page, in BOTH themes (light and dark):
  *   1. ZERO `critical` or `serious` violations at every responsive width in
  *      A11Y_WIDTHS (768 / 900 / 1024 / 1280 / 1440). A single blocking violation fails.
  *   2. Ratchet on the TOTAL violation count (any impact) at the 1280px desktop
  *      viewport: the count may never exceed VIOLATION_BASELINES. Lower the baseline
- *      whenever a violation is fixed; never raise it.
+ *      whenever a violation is fixed; never raise it. The baselines hold for both themes.
  *
  * Violations are fixed at the source, never silenced with `disableRules`.
  *
@@ -90,6 +90,17 @@ const VIOLATION_BASELINES: Record<string, number> = {
   [ONBOARDING_PATH]: 0,
 };
 
+// Dark-theme audit (2026-09-19): until now every page was audited in the LIGHT theme only
+// (a fresh Playwright context has no persisted theme and prefers light), so the dark
+// theme's white-on-brand-primary text (#ffffff on #e54d5e = 3.78:1) shipped unseen on
+// /dashboard/providers, /dashboard/logs and the onboarding wizard. Every page now runs in
+// both themes against the same zero baselines.
+const THEMES = ["light", "dark"] as const;
+type Theme = (typeof THEMES)[number];
+// Must match THEME_CONFIG.storageKey (src/shared/constants/appConfig.ts) — the zustand
+// persist key the theme store rehydrates from on first paint.
+const THEME_STORAGE_KEY = "theme";
+
 const BLOCKING_IMPACTS = new Set(["critical", "serious"]);
 const RATCHET_WIDTH = VIEWPORTS.desktop.width;
 const A11Y_VIEWPORTS = [
@@ -153,6 +164,36 @@ function describeBlocking(violations: AxeViolation[]): string[] {
     });
 }
 
+/**
+ * Pins the theme for every document the page loads: the persisted theme store plus the
+ * matching `prefers-color-scheme`, so neither a stale preference nor the OS setting can
+ * silently turn a dark audit into a light one.
+ */
+async function pinTheme(page: Page, theme: Theme) {
+  await page.emulateMedia({ colorScheme: theme });
+  await page.addInitScript(
+    ({ key, value }) => {
+      try {
+        window.localStorage.setItem(
+          key,
+          JSON.stringify({ state: { theme: value, colorTheme: "coral" }, version: 0 })
+        );
+      } catch {
+        // Storage unavailable — prefers-color-scheme above still selects the theme.
+      }
+    },
+    { key: THEME_STORAGE_KEY, value: theme }
+  );
+}
+
+/** Waits until the theme store has applied `theme` to <html> (it runs after hydration). */
+async function waitForTheme(page: Page, theme: Theme) {
+  await page.waitForFunction(
+    (isDark) => document.documentElement.classList.contains("dark") === isDark,
+    theme === "dark"
+  );
+}
+
 async function openPage(page: Page, path: string) {
   if (path === "/login") {
     await page.goto(path);
@@ -175,23 +216,28 @@ async function openPage(page: Page, path: string) {
  * Audits `path` at every responsive width: zero critical/serious violations at each
  * width, and the total count at the desktop width may not exceed the frozen baseline.
  */
-async function auditAcrossWidths(page: Page, path: string) {
+async function auditAcrossWidths(page: Page, path: string, theme: Theme) {
   const blockingByWidth: string[] = [];
   let ratchetCount: number | null = null;
 
+  await pinTheme(page, theme);
   for (const viewport of A11Y_VIEWPORTS) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await openPage(page, path);
-    const violations = await runAxe(page, `${path}@${viewport.width}`);
+    await waitForTheme(page, theme);
+    const violations = await runAxe(page, `${path}@${viewport.width}[${theme}]`);
     for (const line of describeBlocking(violations)) {
       blockingByWidth.push(`${viewport.width}px ${line}`);
     }
     if (viewport.width === RATCHET_WIDTH) ratchetCount = violations.length;
   }
 
-  expect(blockingByWidth, `Critical/serious a11y violations on ${path}`).toEqual([]);
+  expect(blockingByWidth, `Critical/serious a11y violations on ${path} (${theme})`).toEqual([]);
   const baseline = VIOLATION_BASELINES[path] ?? 0;
-  expect(ratchetCount, `axe did not run at ${RATCHET_WIDTH}px on ${path}`).not.toBeNull();
+  expect(
+    ratchetCount,
+    `axe did not run at ${RATCHET_WIDTH}px on ${path} (${theme})`
+  ).not.toBeNull();
   expect(ratchetCount ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(baseline);
 }
 
@@ -218,13 +264,15 @@ test.describe("A11y — Dashboard key surfaces (@axe-core, nightly)", () => {
     LOGS_PATH,
     ONBOARDING_PATH,
   ]) {
-    test(`${path} — zero critical/serious violations at 768–1440px and total within baseline`, async ({
-      page,
-    }) => {
-      skipUnlessAxeRequired();
-      test.setTimeout(WIDTH_SWEEP_TIMEOUT_MS);
-      await auditAcrossWidths(page, path);
-    });
+    for (const theme of THEMES) {
+      test(`${path} [${theme}] — zero critical/serious violations at 768–1440px and total within baseline`, async ({
+        page,
+      }) => {
+        skipUnlessAxeRequired();
+        test.setTimeout(WIDTH_SWEEP_TIMEOUT_MS);
+        await auditAcrossWidths(page, path, theme);
+      });
+    }
   }
 
   test("/dashboard/settings — axe violations must not exceed baseline", async ({ page }) => {

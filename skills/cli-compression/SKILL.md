@@ -116,30 +116,6 @@ omniroute compression rules
 omniroute compression list
 ```
 
-### `compression add`
-
-**Flags:**
-
-- `--replacement <r>`
-
-**Example:**
-
-```bash
-omniroute compression add
-```
-
-### `compression remove <id>`
-
-**Flags:**
-
-- `--yes`
-
-**Example:**
-
-```bash
-omniroute compression remove <id>
-```
-
 ### `compression language-packs`
 
 **Example:**
