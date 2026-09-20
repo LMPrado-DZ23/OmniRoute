@@ -733,33 +733,18 @@
       }
     },
     "run": {
-      "description": "Start an eval run for a suite",
-      "model": "Model ID to evaluate (default: auto)",
-      "combo": "Force a specific combo by name",
-      "concurrency": "Number of concurrent samples (default: 4)",
-      "tag": "Tag this run for later filtering",
-      "watch": "Watch run progress until completion"
+      "description": "Run an eval suite (completes synchronously)",
+      "model": "Run against this model id instead of the suite default",
+      "combo": "Run against this combo",
+      "compareModel": "Also run against this model and compare",
+      "apiKeyId": "Attribute the run to this API key id"
     },
     "list": {
-      "description": "List eval runs",
-      "suite": "Filter by suite ID",
-      "status": "Filter by status",
-      "since": "Return runs since this timestamp",
-      "limit": "Maximum results (default: 50)"
-    },
-    "get": {
-      "description": "Get eval run details by ID"
-    },
-    "results": {
-      "description": "Show sample results for an eval run",
-      "failed": "Show only failed samples"
-    },
-    "cancel": {
-      "description": "Cancel a running eval",
-      "yes": "Skip confirmation prompt"
+      "description": "List the 20 most recent eval runs",
+      "suite": "Filter by suite id"
     },
     "scorecard": {
-      "description": "Show scorecard for a completed eval run"
+      "description": "Show the eval scorecard history"
     }
   },
   "webhooks": {

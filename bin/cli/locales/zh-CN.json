@@ -731,33 +731,18 @@
       }
     },
     "run": {
-      "description": "为套件启动评估运行",
-      "model": "要评估的模型 ID（默认：auto）",
-      "combo": "强制指定组合名称",
-      "concurrency": "并发样本数（默认：4）",
-      "tag": "标记此次运行以便后续筛选",
-      "watch": "观察运行进度直至完成"
+      "description": "运行一个评估套件（同步完成）",
+      "model": "针对该模型 id 运行，而不是套件默认值",
+      "combo": "针对该组合运行",
+      "compareModel": "同时针对该模型运行并对比",
+      "apiKeyId": "将本次运行归属到该 API 密钥 id"
     },
     "list": {
-      "description": "列出评估运行",
-      "suite": "按套件 ID 筛选",
-      "status": "按状态筛选",
-      "since": "返回自此时间戳以来的运行",
-      "limit": "最大结果数（默认：50）"
-    },
-    "get": {
-      "description": "按 ID 获取评估运行详情"
-    },
-    "results": {
-      "description": "显示评估运行的样本结果",
-      "failed": "仅显示失败的样本"
-    },
-    "cancel": {
-      "description": "取消正在运行的评估",
-      "yes": "跳过确认提示"
+      "description": "列出最近 20 次评估运行",
+      "suite": "按套件 id 过滤"
     },
     "scorecard": {
-      "description": "显示已完成评估运行的记分卡"
+      "description": "显示评估记分卡历史"
     }
   },
   "webhooks": {

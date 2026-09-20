@@ -731,33 +731,18 @@
       }
     },
     "run": {
-      "description": "為套件啟動評估執行",
-      "model": "要評估的模型 ID（預設：auto）",
-      "combo": "強制指定組合名稱",
-      "concurrency": "併發樣本數（預設：4）",
-      "tag": "標記此次執行以便後續篩選",
-      "watch": "觀察執行進度直至完成"
+      "description": "執行一個評估套件（同步完成）",
+      "model": "針對該模型 id 執行，而不是套件預設值",
+      "combo": "針對該組合執行",
+      "compareModel": "同時針對該模型執行並比較",
+      "apiKeyId": "將本次執行歸屬到該 API 金鑰 id"
     },
     "list": {
-      "description": "列出評估執行",
-      "suite": "按套件 ID 篩選",
-      "status": "按狀態篩選",
-      "since": "返回自此時間戳以來的執行",
-      "limit": "最大結果數（預設：50）"
-    },
-    "get": {
-      "description": "按 ID 獲取評估執行詳情"
-    },
-    "results": {
-      "description": "顯示評估執行的樣本結果",
-      "failed": "僅顯示失敗的樣本"
-    },
-    "cancel": {
-      "description": "取消正在執行的評估",
-      "yes": "跳過確認提示"
+      "description": "列出最近 20 次評估執行",
+      "suite": "依套件 id 過濾"
     },
     "scorecard": {
-      "description": "顯示已完成評估執行的記分卡"
+      "description": "顯示評估記分卡歷史"
     }
   },
   "webhooks": {
