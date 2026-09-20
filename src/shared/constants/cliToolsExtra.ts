@@ -40,7 +40,7 @@ export const EXTRA_CLI_TOOLS: Record<string, CliCatalogEntry> = {
       {
         step: 5,
         title: "Add the client",
-        desc: "Append the block below to config.yaml, then run: aichat -m omniroute:{{model}}",
+        desc: "Append the block below to config.yaml, then run aichat against the omniroute client.",
       },
     ],
     notes: [
@@ -57,7 +57,9 @@ export const EXTRA_CLI_TOOLS: Record<string, CliCatalogEntry> = {
     api_base: {{baseUrl}}
     api_key: {{apiKey}}
     models:
-      - name: {{model}}`,
+      - name: {{model}}
+
+# then:  aichat -m omniroute:{{model}} "summarise what this repo does"`,
     },
   },
 
@@ -133,7 +135,7 @@ sgpt "summarise what this repo does"`,
       {
         step: 5,
         title: "Edit mods.yml",
-        desc: "Run `mods --settings` to open it, paste the block below, then: mods -m {{model}} 'explain this diff'",
+        desc: "Run `mods --settings` to open it and paste the block below; the run command is in the block.",
       },
     ],
     notes: [
@@ -151,7 +153,9 @@ apis:
     api-key: {{apiKey}}
     models:
       {{model}}:
-        max-input-chars: 392000`,
+        max-input-chars: 392000
+
+# then:  mods -m {{model}} "explain this diff"`,
     },
   },
 
@@ -290,7 +294,7 @@ OPENAI_API_BASE_URL={{baseUrl}}
       {
         step: 5,
         title: "Fill in Settings → LLM",
-        desc: "Enable Advanced options, set Custom Model to openai/{{model}}, paste the Base URL and API Key above.",
+        desc: "Enable Advanced options, set Custom Model to the model selected above with an openai/ prefix, and paste the Base URL and API Key.",
       },
     ],
     notes: [
