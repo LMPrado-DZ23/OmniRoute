@@ -2947,6 +2947,7 @@
       "custom": "用於自定義工具實現或通用 OpenAI 相容設定。"
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini 命令列工具，支援自訂基礎 URL",
       "antigravity": "帶 MITM 的 Google Antigravity IDE",
       "claude": "Claude Code CLI",
       "codex": "OpenAI Codex CLI",

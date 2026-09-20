@@ -2947,6 +2947,7 @@
       "custom": "השתמש עבור הטמעת כלים מותאמים אישית או תצורות כלליות תואמות OpenAI."
     },
     "toolDescriptions": {
+      "gemini": "‏Google Gemini CLI עם כתובת בסיס מותאמת",
       "antigravity": "Google Antigravity IDE עם MITM",
       "claude": "קלוד האנתרופי קוד CLI",
       "codex": "OpenAI Codex CLI",

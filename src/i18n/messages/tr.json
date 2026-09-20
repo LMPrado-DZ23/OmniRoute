@@ -2947,6 +2947,7 @@
       "custom": "Özel araç uygulamaları veya genel OpenAI uyumlu yapılandırmalar için kullanın."
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini CLI, özel temel URL destekli",
       "antigravity": "MITM ile Google Antigravity IDE",
       "claude": "Anthropic Claude Code CLI",
       "codex": "OpenAI Codex CLI",

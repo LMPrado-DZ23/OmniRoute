@@ -2947,6 +2947,7 @@
       "custom": "Используйте для пользовательских реализаций инструментов или общих конфигураций, совместимых с OpenAI."
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini CLI с пользовательским базовым URL",
       "antigravity": "Google Antigravity IDE с MITM",
       "claude": "Антропный код Клода CLI",
       "codex": "Интерфейс командной строки Кодекса OpenAI",

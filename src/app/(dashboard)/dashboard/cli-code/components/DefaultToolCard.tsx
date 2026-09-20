@@ -7,6 +7,7 @@ import { copyToClipboard } from "@/shared/utils/clipboard";
 import { buildOpenCodeConfigDocument } from "@/shared/services/opencodeConfig";
 import { useTheme } from "@/shared/hooks/useTheme";
 import { DEFAULT_DISPLAY_BASE_URL } from "@/shared/hooks";
+import { toGatewayOriginUrl, toGatewayV1Url } from "@/shared/utils/cliBaseUrl";
 import ProviderIcon from "@/shared/components/ProviderIcon";
 
 export default function DefaultToolCard({
@@ -94,9 +95,12 @@ export default function DefaultToolCard({
   );
 
   const normalizedBaseUrl = baseUrl || DEFAULT_DISPLAY_BASE_URL;
-  const baseUrlWithV1 = normalizedBaseUrl.endsWith("/v1")
-    ? normalizedBaseUrl
-    : `${normalizedBaseUrl}/v1`;
+  // Two forms, because the two families of client differ — see cliBaseUrl.ts.
+  // `{{baseUrl}}` is the OpenAI-compatible base; `{{baseOrigin}}` is the bare
+  // origin, for a client that appends its own versioned path (Gemini CLI's
+  // /v1beta/..., Goose's OPENAI_BASE_PATH).
+  const baseUrlWithV1 = toGatewayV1Url(normalizedBaseUrl);
+  const baseOrigin = toGatewayOriginUrl(normalizedBaseUrl);
 
   // Persist and restore model selection per tool via localStorage
   useEffect(() => {
@@ -195,15 +199,20 @@ export default function DefaultToolCard({
     (text, modelOverride = "") => {
       const keyToUse = resolveApiKeyValue();
 
-      return text
-        .replace(/\{\{baseUrl\}\}/g, baseUrlWithV1)
-        .replace(/\{\{apiKey\}\}/g, keyToUse)
-        .replace(
-          /\{\{model\}\}/g,
-          modelOverride || getSelectedModelLabels()[0] || t("modelPlaceholder")
-        );
+      return (
+        text
+          // baseOrigin first: {{baseUrl}} is a substring-free token, but replacing
+          // the longer name first keeps the intent obvious to the next reader.
+          .replace(/\{\{baseOrigin\}\}/g, baseOrigin)
+          .replace(/\{\{baseUrl\}\}/g, baseUrlWithV1)
+          .replace(/\{\{apiKey\}\}/g, keyToUse)
+          .replace(
+            /\{\{model\}\}/g,
+            modelOverride || getSelectedModelLabels()[0] || t("modelPlaceholder")
+          )
+      );
     },
-    [baseUrlWithV1, getSelectedModelLabels, resolveApiKeyValue, t]
+    [baseOrigin, baseUrlWithV1, getSelectedModelLabels, resolveApiKeyValue, t]
   );
 
   const handleCopy = async (text, field) => {

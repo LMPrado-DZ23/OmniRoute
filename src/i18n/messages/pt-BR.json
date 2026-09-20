@@ -2991,6 +2991,7 @@
       "custom": "Use quando seu CLI ou SDK não estiver hardcoded no OmniRoute, mas ainda aceitar base URL, chave de API e model string compatíveis com OpenAI."
     },
     "toolDescriptions": {
+      "gemini": "CLI do Google Gemini com URL base personalizada",
       "antigravity": "Google Antigravity IDE com MITM",
       "claude": "CLI Claude Code da Anthropic",
       "codex": "CLI Codex da OpenAI",

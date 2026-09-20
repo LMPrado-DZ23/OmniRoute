@@ -2947,6 +2947,7 @@
       "custom": "사용자 정의 도구 구현 또는 일반 OpenAI 호환 구성에 사용합니다."
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini CLI, 사용자 지정 기본 URL 지원",
       "antigravity": "MITM이 포함된 Google Antigravity IDE",
       "claude": "Anthropic Claude Code CLI",
       "codex": "OpenAI Codex CLI",

@@ -2947,6 +2947,7 @@
       "custom": "ใช้สำหรับการใช้เครื่องมือแบบกำหนดเองหรือการกำหนดค่าทั่วไปที่เข้ากันได้กับ OpenAI"
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini CLI รองรับ base URL ที่กำหนดเอง",
       "antigravity": "Google ต้านแรงโน้มถ่วง IDE พร้อม MITM",
       "claude": "รหัสมานุษยวิทยา Claude CLI",
       "codex": "OpenAI Codex CLI",

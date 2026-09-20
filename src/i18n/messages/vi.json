@@ -2991,6 +2991,7 @@
       "custom": "Sử dụng để triển khai công cụ tùy chỉnh hoặc cấu hình chung tương thích với OpenAI."
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini CLI với URL cơ sở tùy chỉnh",
       "antigravity": "Google Antigravity IDE với MITM",
       "claude": "Anthropic Claude Code CLI",
       "codex": "OpenAI Codex CLI",

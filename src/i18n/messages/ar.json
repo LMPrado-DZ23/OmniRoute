@@ -2947,6 +2947,7 @@
       "custom": "يستخدم لتطبيقات الأدوات المخصصة أو التكوينات العامة المتوافقة مع OpenAI."
     },
     "toolDescriptions": {
+      "gemini": "‏واجهة سطر أوامر Google Gemini مع عنوان أساسي مخصص",
       "antigravity": "Google Antigravity IDE مع MITM",
       "claude": "Anthropic Claude code CLI",
       "codex": "واجهة OpenAI Codex لسطر الأوامر",
