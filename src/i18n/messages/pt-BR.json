@@ -14519,6 +14519,20 @@
     "createdMessage": "Criado.",
     "deletedMessage": "Excluído.",
     "loadError": "Não foi possível carregar os espaços de trabalho.",
-    "requestError": "A alteração não foi salva: {message}"
+    "requestError": "A alteração não foi salva: {message}",
+    "errors": {
+      "authentication_required": "Sua sessão terminou. Entre novamente e repita a ação.",
+      "viewer_readonly": "Seu papel neste workspace é leitor, que não pode fazer alterações.",
+      "workspace_not_found": "Esse workspace não existe mais, ou você não tem acesso a ele.",
+      "project_not_found": "Esse projeto não existe mais.",
+      "member_not_found": "Esse membro não está neste workspace.",
+      "name_taken": "Esse nome já está em uso.",
+      "budget_exceeds_parent": "O orçamento de um projeto não pode ultrapassar o do workspace no mesmo intervalo.",
+      "workspace_not_empty": "Exclua antes os projetos do workspace.",
+      "project_not_empty": "Desvincule antes as chaves de API do projeto.",
+      "key_in_other_workspace": "Essa chave de API está atribuída a um projeto de outro workspace.",
+      "invalid_json": "Não foi possível ler a requisição. Recarregue a página e tente de novo.",
+      "internal_error": "O servidor não conseguiu concluir a alteração. Tente de novo em instantes."
+    }
   }
 }

@@ -41,13 +41,39 @@ export interface ApiKeyOption {
 }
 
 interface ErrorPayload {
-  error?: string | { message?: string };
+  error?: string | { message?: string; code?: string };
 }
 
 function errorMessage(payload: ErrorPayload, status: number): string {
   const error = payload?.error;
   if (typeof error === "string") return error;
   return error?.message || `HTTP ${status}`;
+}
+
+function errorCode(payload: ErrorPayload): string | undefined {
+  const error = payload?.error;
+  return typeof error === "string" ? undefined : error?.code;
+}
+
+/**
+ * A refusal from `/api/workspaces/**`, carrying the machine-readable `code` alongside the
+ * server's English `message`.
+ *
+ * The page used to show `message` verbatim, which meant every workspaces error was English
+ * no matter the chosen language — including for the locales that have a real translation.
+ * The `code` is the part a UI can translate; `message` stays as the fallback for a code the
+ * dashboard does not know yet, so a new server error is never rendered as a blank toast.
+ */
+export class WorkspaceApiError extends Error {
+  readonly code: string | undefined;
+  readonly status: number;
+
+  constructor(message: string, code: string | undefined, status: number) {
+    super(message);
+    this.name = "WorkspaceApiError";
+    this.code = code;
+    this.status = status;
+  }
 }
 
 async function send<T>(url: string, method = "GET", body?: unknown): Promise<T> {
@@ -57,7 +83,13 @@ async function send<T>(url: string, method = "GET", body?: unknown): Promise<T> 
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const payload: T & ErrorPayload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(errorMessage(payload, response.status));
+  if (!response.ok) {
+    throw new WorkspaceApiError(
+      errorMessage(payload, response.status),
+      errorCode(payload),
+      response.status
+    );
+  }
   return payload;
 }
 

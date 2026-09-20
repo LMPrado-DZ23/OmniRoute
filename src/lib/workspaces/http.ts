@@ -11,7 +11,11 @@ export function errorJson(status: number, message: string, code?: string): Respo
   return NextResponse.json({ error: code ? { message, code } : { message } }, { status });
 }
 
-export const PROJECT_NOT_FOUND_BODY = { error: { message: "Project not found" } } as const;
+// The `code` is what the dashboard translates; `message` stays English for API clients
+// and as the fallback when a code is one the UI does not know yet.
+export const PROJECT_NOT_FOUND_BODY = {
+  error: { message: "Project not found", code: "project_not_found" },
+} as const;
 
 export function projectNotFound(): Response {
   return NextResponse.json(PROJECT_NOT_FOUND_BODY, { status: 404 });
@@ -29,7 +33,7 @@ export async function parseBody<TSchema extends z.ZodTypeAny>(
   try {
     raw = await request.json();
   } catch {
-    return { data: null, response: errorJson(400, "Invalid JSON body") };
+    return { data: null, response: errorJson(400, "Invalid JSON body", "invalid_json") };
   }
   const validation = validateBody(schema, raw);
   if (isValidationFailure(validation)) {
@@ -52,7 +56,7 @@ export function auditWorkspaceChange(
 }
 
 function internalError(): Response {
-  return errorJson(500, "Workspace operation failed");
+  return errorJson(500, "Workspace operation failed", "internal_error");
 }
 
 /**

@@ -14361,6 +14361,20 @@
     "createdMessage": "Created.",
     "deletedMessage": "Deleted.",
     "loadError": "Could not load workspaces.",
-    "requestError": "The change was not saved: {message}"
+    "requestError": "The change was not saved: {message}",
+    "errors": {
+      "authentication_required": "Votre session a expiré. Reconnectez-vous et réessayez.",
+      "viewer_readonly": "Votre rôle dans cet espace est lecteur, qui ne peut rien modifier.",
+      "workspace_not_found": "Cet espace n'existe plus, ou vous n'y avez pas accès.",
+      "project_not_found": "Ce projet n'existe plus.",
+      "member_not_found": "Ce membre ne fait pas partie de cet espace.",
+      "name_taken": "Ce nom est déjà utilisé.",
+      "budget_exceeds_parent": "Le budget d'un projet ne peut pas dépasser celui de son espace sur le même intervalle.",
+      "workspace_not_empty": "Supprimez d'abord les projets de l'espace.",
+      "project_not_empty": "Détachez d'abord les clés d'API du projet.",
+      "key_in_other_workspace": "Cette clé d'API est attribuée à un projet d'un autre espace.",
+      "invalid_json": "La requête n'a pas pu être lue. Rechargez la page et réessayez.",
+      "internal_error": "Le serveur n'a pas pu terminer la modification. Réessayez dans un instant."
+    }
   }
 }

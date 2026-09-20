@@ -46,7 +46,7 @@ export async function handleRemoveMember(
   const refusal = await authorized(request, workspaceId, "write");
   if (refusal) return refusal;
   if (!MEMBER_PRINCIPAL_PATTERN.test(principal) || !removeMember(workspaceId, principal)) {
-    return errorJson(404, "Member not found");
+    return errorJson(404, "Member not found", "member_not_found");
   }
   auditWorkspaceChange(request, "workspace.member.remove", workspaceId, { principal });
   return NextResponse.json({ members: listMembers(workspaceId) });

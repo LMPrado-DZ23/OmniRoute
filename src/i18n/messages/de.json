@@ -14361,6 +14361,20 @@
     "createdMessage": "Created.",
     "deletedMessage": "Deleted.",
     "loadError": "Could not load workspaces.",
-    "requestError": "The change was not saved: {message}"
+    "requestError": "The change was not saved: {message}",
+    "errors": {
+      "authentication_required": "Ihre Sitzung ist abgelaufen. Melden Sie sich erneut an.",
+      "viewer_readonly": "Ihre Rolle in diesem Workspace ist Betrachter und darf nichts ändern.",
+      "workspace_not_found": "Diesen Workspace gibt es nicht mehr, oder Sie haben keinen Zugriff.",
+      "project_not_found": "Dieses Projekt gibt es nicht mehr.",
+      "member_not_found": "Dieses Mitglied gehört nicht zu diesem Workspace.",
+      "name_taken": "Dieser Name ist bereits vergeben.",
+      "budget_exceeds_parent": "Ein Projektbudget darf das Workspace-Budget im selben Intervall nicht überschreiten.",
+      "workspace_not_empty": "Löschen Sie zuerst die Projekte des Workspace.",
+      "project_not_empty": "Lösen Sie zuerst die API-Schlüssel des Projekts.",
+      "key_in_other_workspace": "Dieser API-Schlüssel gehört zu einem Projekt eines anderen Workspace.",
+      "invalid_json": "Die Anfrage konnte nicht gelesen werden. Laden Sie die Seite neu.",
+      "internal_error": "Der Server konnte die Änderung nicht abschließen. Versuchen Sie es gleich erneut."
+    }
   }
 }

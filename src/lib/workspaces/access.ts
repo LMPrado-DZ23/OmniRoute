@@ -41,14 +41,20 @@ export interface WorkspaceAccess {
 
 const OWNER: WorkspaceCaller = { isOwner: true, principal: null };
 
-export const WORKSPACE_NOT_FOUND_BODY = { error: { message: "Workspace not found" } } as const;
+// The `code` is what the dashboard translates; `message` stays English for API clients
+// and as the fallback when a code is one the UI does not know yet. Both "no such
+// workspace" and "not a member of it" answer with THIS body, code included, so a
+// foreign id still cannot be probed.
+export const WORKSPACE_NOT_FOUND_BODY = {
+  error: { message: "Workspace not found", code: "workspace_not_found" },
+} as const;
 
 export function workspaceNotFound(): Response {
   return NextResponse.json(WORKSPACE_NOT_FOUND_BODY, { status: 404 });
 }
 
-export function forbidden(message: string): Response {
-  return NextResponse.json({ error: { message } }, { status: 403 });
+export function forbidden(message: string, code?: string): Response {
+  return NextResponse.json({ error: code ? { message, code } : { message } }, { status: 403 });
 }
 
 function isLoopbackCliStamp(request: Request): boolean {
@@ -92,7 +98,7 @@ export async function resolveWorkspaceCaller(
     return {
       caller: null,
       response: NextResponse.json(
-        { error: { message: "Authentication required" } },
+        { error: { message: "Authentication required", code: "authentication_required" } },
         { status: 401 }
       ),
     };
@@ -117,7 +123,10 @@ export function authorizeWorkspace(
   if (need === "write" && role !== "admin") {
     return {
       workspace: null,
-      response: forbidden("Workspace role 'viewer' cannot modify this workspace"),
+      response: forbidden(
+        "Workspace role 'viewer' cannot modify this workspace",
+        "viewer_readonly"
+      ),
       role,
     };
   }
