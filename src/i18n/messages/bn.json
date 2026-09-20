@@ -6357,6 +6357,8 @@
     "bedrockModelPlaceholder": "anthropic.claude-sonnet-4-6",
     "addProviderSessionCookieTitle": "{provider} সেশন কুকি যোগ করুন",
     "openWebProviderSite": "{host} খুলুন",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "{provider} ওয়েব টোকেন যোগ করুন",
     "addProviderConnectionTitle": "{provider} সংযোগ যোগ করুন",
     "webTokenCredentialLabel": "ওয়েব সেশন টোকেন",

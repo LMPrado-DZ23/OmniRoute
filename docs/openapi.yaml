@@ -684,6 +684,14 @@ paths:
       tags:
         - Memory
       summary: Create a memory entry
+      description: >-
+        Creates a memory entry and answers `200` with `{ success: true, id }`.
+        NOTE: despite its name, `id` holds the FULL created MemoryEntry, not an
+        identifier string — read the new entry's identifier from `id.id`. This
+        shape is consumed by the dashboard and the CLI and is kept for
+        compatibility; it is known design debt that blocks promoting this
+        operation to `stable` (a later release can add a correctly named field
+        alongside and deprecate `id` before removing it at a major).
       security:
         - ManagementSessionAuth: []
       requestBody:
@@ -723,16 +731,32 @@ paths:
                   format: date-time
                   nullable: true
       responses:
-        "201":
-          description: Created memory entry
+        "200":
+          description: >-
+            Memory entry created. `id` carries the full created MemoryEntry (not an
+            identifier string); see the operation description.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MemoryEntry"
+                type: object
+                required:
+                  - success
+                  - id
+                properties:
+                  success:
+                    type: boolean
+                    enum:
+                      - true
+                  id:
+                    $ref: "#/components/schemas/MemoryEntry"
         "400":
-          description: Validation error
+          description: >-
+            Validation error (body is `{ message, details: [{ field, message }] }`), or
+            a storage failure (body is `{ error: { message } }`).
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: API key lacks the manage scope
   /api/memory/{id}:
     parameters:
       - name: id
@@ -8076,10 +8100,23 @@ paths:
       x-rate-limit: none
       tags: [Telemetry]
       summary: Get telemetry summary
-      description: Returns aggregated telemetry data including request metrics and performance stats.
+      description: >-
+        Returns aggregated telemetry data including request metrics and performance stats.
+        Management-scoped. When login is required, an anonymous caller gets 401 and a
+        key without the manage scope gets 403 (enforced by the central middleware and,
+        as defence in depth, by the handler). With requireLogin disabled — the
+        documented local-only mode, where the whole management surface is open — the
+        route answers anonymous callers, so the dashboard telemetry card works on
+        keyless installs. Unlike /api/metrics it is intentionally not always-protected.
+      security:
+        - BearerAuth: []
       responses:
         "200":
           description: Telemetry summary data
+        "401":
+          description: Management authentication required
+        "403":
+          description: API key lacks the manage scope
 
   /api/token-health:
     get:
@@ -18530,8 +18567,10 @@ paths:
         - Webhooks
       summary: "POST webhooks"
       responses:
-        "200":
-          description: OK
+        "201":
+          description: Webhook created. Body is `{ webhook }`, the stored row.
+        "400":
+          description: Invalid body (unknown event, blocked private URL, or telegram without storage encryption).
   /api/webhooks/{id}:
     delete:
       x-stability: internal

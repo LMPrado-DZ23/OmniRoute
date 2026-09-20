@@ -6357,6 +6357,8 @@
     "bedrockModelPlaceholder": "anthropic.クロード・ソネット-4-6",
     "addProviderSessionCookieTitle": "{provider} セッション Cookie を追加します",
     "openWebProviderSite": "{host} を開く",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "{provider} Web トークンを追加",
     "addProviderConnectionTitle": "{provider} 接続を追加",
     "webTokenCredentialLabel": "Webセッショントークン",

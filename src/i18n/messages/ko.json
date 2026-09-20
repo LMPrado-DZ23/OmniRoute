@@ -6357,6 +6357,8 @@
     "bedrockModelPlaceholder": "anthropic.claude-sonnet-4-6",
     "addProviderSessionCookieTitle": "{provider} 세션 쿠키 추가",
     "openWebProviderSite": "{host} 열기",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "{provider} 웹 토큰 추가",
     "addProviderConnectionTitle": "{provider} 연결 추가",
     "webTokenCredentialLabel": "웹 세션 토큰",

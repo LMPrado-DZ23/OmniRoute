@@ -6496,6 +6496,8 @@
     "bedrockModelPlaceholder": "anthropic.claude-sonnet-4-6",
     "addProviderSessionCookieTitle": "Thêm cookie phiên {provider}",
     "openWebProviderSite": "Mở {host}",
+    "getApiKeyAtHost": "Lấy khóa API của bạn tại {host}",
+    "openProviderSiteForApiKey": "Mở {host} để tìm khóa API của bạn",
     "addProviderWebTokenTitle": "Thêm token web {provider}",
     "addProviderConnectionTitle": "Thêm kết nối {provider}",
     "webTokenCredentialLabel": "Token phiên web",
