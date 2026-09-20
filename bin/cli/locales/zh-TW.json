@@ -461,20 +461,15 @@
     "createDescription": "建立隧道",
     "created": "隧道已建立：{url}",
     "stopped": "隧道已停止。",
-    "confirmStop": "停止隧道 {id}？",
     "stopDescription": "停止隧道",
     "statusDescription": "顯示隧道的詳細狀態",
-    "logsDescription": "顯示隧道日誌",
     "infoDescription": "顯示隧道的配置詳情",
-    "rotateDescription": "生成新的隧道 URL",
-    "tailOpt": "顯示的日誌行數",
     "typeRequired": "需要隧道型別。",
-    "noLogs": "沒有可用日誌。",
     "notAvailable": "隧道資訊不可用。",
     "noTunnels": "沒有活動隧道。",
     "infoTitle": "隧道資訊：{type}",
-    "rotated": "隧道 URL 已輪換：{url}",
-    "confirmRotate": "輪換隧道 {type}？（將生成新 URL）"
+    "authTokenOpt": "ngrok 驗證權杖（僅 ngrok）",
+    "createdPending": "{type} 通道已啟用；尚無公開 URL"
   },
   "stop": {
     "description": "停止 OmniRoute 伺服器",

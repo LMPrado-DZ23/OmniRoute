@@ -23,15 +23,7 @@ import { ROOT, matchRoute, relativeToRoot as rel, toApiPathname } from "./_helpe
 // Entries may only be REMOVED: fixing a command without deleting its entry
 // fails as stale, and a new mismatch fails outright.
 
-const KNOWN_BROKEN = new Set([
-  "bin/cli/commands/tunnel.mjs::DELETE /api/tunnels/{}",
-  "bin/cli/commands/tunnel.mjs::GET /api/tunnels",
-  "bin/cli/commands/tunnel.mjs::GET /api/tunnels/{}",
-  "bin/cli/commands/tunnel.mjs::GET /api/tunnels/{}/logs",
-  "bin/cli/commands/tunnel.mjs::GET /api/tunnels/{}/status",
-  "bin/cli/commands/tunnel.mjs::POST /api/tunnels",
-  "bin/cli/commands/tunnel.mjs::POST /api/tunnels/{}/rotate",
-]);
+const KNOWN_BROKEN = new Set([]);
 
 type Call = { file: string; method: string; apiPath: string };
 
