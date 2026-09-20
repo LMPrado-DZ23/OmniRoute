@@ -20,6 +20,11 @@ const {
   fullCiKindFor,
   ESLINT_TIMEOUT_MS,
   runSlowWave,
+  parseSlowGates,
+  parseShard,
+  mergeSlowReports,
+  flagValue,
+  SLOW_GATE_IDS,
 } = mod;
 
 const extract = extractCiGates as (
@@ -249,10 +254,16 @@ test("pre-flight runs the slow suites CONCURRENTLY (v3.8.45 perf — was ~1h ser
   // concurrent unless --serial-slow asks for the hosted-runner mode.
   assert.match(src, /async function main\(\)/, "main must be async to await the parallel wave");
   assert.match(src, /const execFileAsync = promisify\(execFile\)/, "async runner must exist");
+  // `selected` is `slow` filtered by --slow-gates (all of it when the flag is absent).
   assert.match(
     src,
-    /await runSlowWave\(\s*slow,\s*\(g\) => runAsync\(/,
+    /await runSlowWave\(\s*selected,\s*\(g\) =>\s*runAsync\(/,
     "slow suites must run as one wave over runAsync"
+  );
+  assert.match(
+    src,
+    /const selected = SLOW_GATES \? slow\.filter\(\(g\) => SLOW_GATES\.has\(g\.id\)\) : slow;/,
+    "the whole wave must run when no --slow-gates selection was made"
   );
   assert.match(
     src,
@@ -269,7 +280,11 @@ test("pre-flight runs the slow suites CONCURRENTLY (v3.8.45 perf — was ~1h ser
     assert.ok(src.includes(`id: "${id}"`), `slow gate ${id} must be in the parallel wave`);
   }
   // Each still saves its per-gate log for red diagnosis without a re-run.
-  assert.match(src, /slow\.forEach\([\s\S]*?saveGateLog\(g\.id/, "each slow gate persists its log");
+  assert.match(
+    src,
+    /selected\.forEach\([\s\S]*?saveGateLog\(gateId\(g\)/,
+    "each slow gate persists its log"
+  );
 });
 
 test("pre-flight runs tarball boot only after the package artifact builder completes", async () => {
@@ -571,4 +586,211 @@ test("runSlowWave serial mode still runs every gate after a failing one", async 
     results.map((r: { code: number }) => r.code),
     [0, 1, 0, 0]
   );
+});
+
+// ─── Sharding the sweep across CI jobs (#9533) ──────────────────────────────
+//
+// A GitHub-hosted runner stops at ~60 minutes and the slow suites sum to ~155 serial,
+// so the sweep runs as several jobs and the aggregator merges their reports. The whole
+// risk of that shape is a job reporting green while measuring nothing, which is why a
+// typo'd suite name throws and a missing report is a HARD failure rather than silence.
+
+const slowGates = parseSlowGates as (argv: string[]) => Set<string> | null;
+const shardOf = parseShard as (
+  argv: string[]
+) => { index: number; total: number; spec: string } | null;
+const merge = mergeSlowReports as (
+  reports: { name: string; json: unknown }[],
+  expected: string[]
+) => { id: string; kind: string; ok: boolean; detail: string }[];
+
+test("flagValue reads --name=value and returns null when the flag is absent", () => {
+  assert.equal(flagValue(["--json", "--shard=2/4"], "shard"), "2/4");
+  assert.equal(flagValue(["--json"], "shard"), null);
+  // An empty value is a value, not an absence — the caller decides what to do with it.
+  assert.equal(flagValue(["--slow-gates="], "slow-gates"), "");
+});
+
+test("parseSlowGates: absent means the whole wave, 'none' means no suites", () => {
+  assert.equal(slowGates(["--json"]), null);
+  assert.deepEqual([...(slowGates(["--slow-gates=none"]) as Set<string>)], []);
+});
+
+test("parseSlowGates selects the named suites", () => {
+  assert.deepEqual(
+    [...(slowGates(["--slow-gates=vitest,integration"]) as Set<string>)],
+    ["vitest", "integration"]
+  );
+  // whitespace around the commas is a human typing a matrix entry, not an error
+  assert.deepEqual(
+    [...(slowGates(["--slow-gates= unit , vitest "]) as Set<string>)],
+    ["unit", "vitest"]
+  );
+});
+
+test("parseSlowGates THROWS on an unknown suite instead of selecting nothing", () => {
+  // The failure this guards: `--slow-gates=unit-tests` silently matching no suite, the
+  // job running zero tests, and the aggregate reporting release-green on an unmeasured
+  // branch. Every id in the workflow matrix must exist or the run must not start.
+  assert.throws(() => slowGates(["--slow-gates=unit-tests"]), /unknown suite 'unit-tests'/);
+  assert.throws(() => slowGates(["--slow-gates=unit,typo"]), /unknown suite 'typo'/);
+  assert.throws(() => slowGates(["--slow-gates="]), /empty list/);
+});
+
+test("SLOW_GATE_IDS does not offer pack-boot — it follows pack-artifact", () => {
+  assert.deepEqual(SLOW_GATE_IDS, ["unit", "vitest", "integration", "pack-artifact"]);
+});
+
+test("parseShard reads i/N and rejects out-of-range or malformed specs", () => {
+  assert.deepEqual(shardOf(["--shard=2/4"]), { index: 2, total: 4, spec: "2/4" });
+  assert.equal(shardOf(["--json"]), null);
+  assert.throws(() => shardOf(["--shard=2"]), /expected <index>\/<total>/);
+  assert.throws(() => shardOf(["--shard=0/4"]), /out of range/);
+  assert.throws(() => shardOf(["--shard=5/4"]), /out of range/);
+});
+
+test("mergeSlowReports folds every shard's checks into one list", () => {
+  const merged = merge(
+    [
+      {
+        name: "unit-1.json",
+        json: { checks: [{ id: "unit#1/2", kind: "hard", ok: true, detail: "pass" }] },
+      },
+      {
+        name: "unit-2.json",
+        json: { checks: [{ id: "unit#2/2", kind: "hard", ok: true, detail: "pass" }] },
+      },
+    ],
+    ["unit"]
+  );
+  assert.deepEqual(
+    merged.map((c) => c.id),
+    ["unit#1/2", "unit#2/2"]
+  );
+  assert.ok(merged.every((c) => c.ok));
+});
+
+test("mergeSlowReports keeps a shard's red red", () => {
+  const merged = merge(
+    [
+      {
+        name: "i.json",
+        json: { checks: [{ id: "integration", kind: "hard", ok: false, detail: "3 failing" }] },
+      },
+    ],
+    ["integration"]
+  );
+  assert.equal(merged[0].ok, false);
+  assert.equal(merged[0].detail, "3 failing");
+});
+
+test("a suite with NO report is a HARD failure, not an absence of failures", () => {
+  // The core invariant. A cancelled shard, a matrix that produced no job, or an upload
+  // that silently dropped its artifact must not let the aggregate read as green.
+  const merged = merge(
+    [
+      {
+        name: "unit.json",
+        json: { checks: [{ id: "unit", kind: "hard", ok: true, detail: "pass" }] },
+      },
+    ],
+    ["unit", "integration"]
+  );
+  const missing = merged.find((c) => c.id === "slow-missing:integration");
+  assert.ok(missing, "expected a check standing in for the suite that never reported");
+  assert.equal(missing?.kind, "hard");
+  assert.equal(missing?.ok, false);
+  assert.match(missing?.detail ?? "", /did not run/);
+});
+
+test("a report that is not a valid gate report is a HARD failure", () => {
+  const merged = merge(
+    [{ name: "truncated.json", json: { parseError: "Unexpected end of JSON" } }],
+    []
+  );
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].kind, "hard");
+  assert.equal(merged[0].ok, false);
+  assert.match(merged[0].detail, /no `checks` array/);
+});
+
+test("merged drift stays drift so a shard's ratchet never flips the exit code", () => {
+  const merged = merge(
+    [
+      {
+        name: "u.json",
+        json: { checks: [{ id: "type-coverage", kind: "drift", ok: false, detail: "-0.2%" }] },
+      },
+    ],
+    []
+  );
+  assert.equal(merged[0].kind, "drift");
+  const { releaseGreen } = computeVerdict(merged) as { releaseGreen: boolean };
+  assert.equal(releaseGreen, true);
+});
+
+test("the aggregator expects EXACTLY the shard ids the matrix produces", async () => {
+  // The merge is only as honest as this list. `--expect-slow` is what turns a shard that
+  // produced no report into a HARD failure, so if the matrix and the list drift apart, a
+  // whole suite can disappear from a "release-green" verdict. Derive the ids from the
+  // matrix and compare — the workflow is the source of truth for both halves.
+  const fs = await import("node:fs");
+  const yaml = await import("yaml");
+  const wf = yaml.parse(
+    fs.readFileSync(
+      new URL("../../.github/workflows/nightly-release-green.yml", import.meta.url),
+      "utf8"
+    )
+  ) as {
+    jobs: Record<
+      string,
+      {
+        strategy?: { matrix?: { include?: { name: string; flags: string }[] } };
+        steps?: { run?: string }[];
+      }
+    >;
+  };
+
+  const include = wf.jobs["slow-suite"]?.strategy?.matrix?.include ?? [];
+  assert.ok(include.length > 0, "the slow-suite matrix must declare its shards");
+
+  const fromMatrix = include.map((m) => {
+    const suite = /--slow-gates=([\w-]+)/.exec(m.flags)?.[1];
+    const shard = /--shard=(\d+\/\d+)/.exec(m.flags)?.[1];
+    assert.ok(suite, `matrix entry ${m.name} must select a suite`);
+    return shard ? `${suite}#${shard}` : (suite as string);
+  });
+
+  const aggregatorRun = (wf.jobs["release-green"]?.steps ?? [])
+    .map((s) => s.run ?? "")
+    .find((r) => r.includes("--expect-slow="));
+  assert.ok(aggregatorRun, "the aggregator must pass --expect-slow");
+  const fromExpect = [...aggregatorRun.matchAll(/EXPECT="(?:\$EXPECT,)?([^"]+)"/g)]
+    .flatMap((m) => m[1].split(","))
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  assert.deepEqual([...fromExpect].sort(), [...fromMatrix].sort());
+});
+
+test("every slow-suite shard stays under the runner's ~60-minute ceiling", async () => {
+  // A shard budgeted at 60+ would be killed by the runner before its own timeout fires,
+  // which is exactly the opaque exit 143 this split exists to eliminate.
+  const fs = await import("node:fs");
+  const yaml = await import("yaml");
+  const wf = yaml.parse(
+    fs.readFileSync(
+      new URL("../../.github/workflows/nightly-release-green.yml", import.meta.url),
+      "utf8"
+    )
+  ) as { jobs: Record<string, { "timeout-minutes"?: number }> };
+
+  for (const job of ["slow-suite", "release-green"]) {
+    const budget = wf.jobs[job]?.["timeout-minutes"];
+    assert.equal(typeof budget, "number", `${job} must declare a timeout`);
+    assert.ok(
+      (budget as number) < 60,
+      `${job} is budgeted ${budget}min — the runner stops at ~60, so it would never report its own timeout`
+    );
+  }
 });

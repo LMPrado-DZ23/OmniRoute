@@ -59,46 +59,18 @@ env:
   OMNIROUTE_SKIP_SYSTEM_TRUST: "1"
 
 jobs:
-  release-green:
-    name: Validate active release branch
-    # On a push, only run for release/* pushes — a push to main is handled by the
-    # main-green job below. Schedule/dispatch always run (they validate the highest release).
+  # ─── One commit for the whole sweep ────────────────────────────────────────
+  # The sweep now runs as several jobs (below). They must all measure the SAME commit
+  # or the merged verdict belongs to no revision in particular: resolve the branch once
+  # here and hand every other job the exact SHA.
+  resolve:
+    name: Resolve target commit
     if: ${{ github.event_name != 'push' || startsWith(github.ref_name, 'release/') }}
-    # Dynamic runner: with USE_VPS_RUNNER=true (release window / on-demand pre-flight)
-    # this runs on the dedicated VPS runner — clean env (no operator OMNIROUTE_API_KEY,
-    # no local noauth CLIs => zero machine-specific false positives) and no contention.
-    # Nightly cron normally finds the var false (VM off) and falls back to hosted.
-    runs-on: ${{ (vars.USE_VPS_RUNNER == 'true' && fromJSON('["self-hosted","omni-build"]')) || 'ubuntu-latest' }}
-    # The full sweep runs the slow suites SERIALLY on a hosted runner, and it does not
-    # fit in an hour. Measured on run 35492256478: the static and drift gates all passed
-    # by 05:46:03, the four serial suites started, and the job was killed at 06:40:38 —
-    # 60m27s after it started, with no output from any of them. The unit gate's own label
-    # says "~30-50min idle, up to ~80min under load", so it alone can exceed what was
-    # left. Three earlier attempts died the same way.
-    #
-    # An explicit ceiling makes the budget a decision instead of an accident, and a
-    # sweep that overruns THIS says so as a timeout rather than as an opaque exit 143.
-    #
-    # It is NOT what kills the sweep. That was the theory when this line was added, and
-    # run 35496465106 disproved it: dispatched on 450d6586f, which already carried
-    # `timeout-minutes: 180`, and killed at 08:17:37 — 60m11s after the job started, the
-    # same mark as the three attempts before it. Every static and drift gate had passed
-    # by 07:23:23; the four serial suites then ran for 54 minutes with no output and the
-    # process took SIGTERM. Run 35468579833 recorded the reason in words: "The runner has
-    # received a shutdown signal".
-    #
-    # So the hosted runner stops at ~60 minutes, and the suites' own ceilings
-    # (80 + 15 + 40 + 20 = 155 min worst case, serial) cannot fit inside that. Two real
-    # options, neither of which a workflow edit can reach:
-    #   - set the USE_VPS_RUNNER repository variable for a release window, which this
-    #     workflow already honours and which moves the sweep off the hosted runner;
-    #   - shard the slow suites across jobs so no single job needs more than an hour.
-    # Raising this number again will not help; measure before trying.
-    timeout-minutes: 180
-    env:
-      JWT_SECRET: ci-nightly-secret-with-sufficient-length-for-validation
-      API_KEY_SECRET: ci-nightly-api-key-secret-long
-      DISABLE_SQLITE_AUTO_BACKUP: "true"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      target: ${{ steps.branch.outputs.target }}
+      sha: ${{ steps.branch.outputs.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -120,10 +92,7 @@ jobs:
             TARGET="$PUSHED_REF"
           else
             # highest release/vX.Y.Z by semver among remote branches
-            TARGET=$(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/release/v*' \
-              | sed 's#origin/##' \
-              | sort -t/ -k2 -V \
-              | tail -1)
+            TARGET=$(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/release/v*'               | sed 's#origin/##'               | sort -t/ -k2 -V               | tail -1)
           fi
           if [ -z "$TARGET" ]; then echo "No release/v* branch found"; exit 1; fi
           # Strict format guard — reject anything that isn't release/vX.Y.Z (blocks
@@ -131,16 +100,147 @@ jobs:
           if ! printf '%s' "$TARGET" | grep -qE '^release/v[0-9]+\.[0-9]+\.[0-9]+$'; then
             echo "Refusing non-canonical branch name: $TARGET"; exit 1
           fi
+          SHA=$(git rev-parse "origin/$TARGET")
           echo "target=$TARGET" >> "$GITHUB_OUTPUT"
-          echo "Active release branch: $TARGET"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "Active release branch: $TARGET @ $SHA"
 
-      - name: Checkout the release branch
+  # ─── The slow suites, one job each ─────────────────────────────────────────
+  # WHY THIS IS SPLIT: a runner on this repository stops at ~60 minutes, and the slow
+  # suites' own ceilings sum to ~155 minutes serial. Run 35496465106 — dispatched on
+  # 450d6586f, which already carried `timeout-minutes: 180` — was killed at 60m11s with
+  # every static and drift gate already green and the suites 54 minutes into silence.
+  # Run 35468579833 said it in words: "The runner has received a shutdown signal".
+  # No single hosted job can carry the sweep, so each suite gets its own.
+  #
+  # These jobs MEASURE; they do not judge. A red suite still exits 0 here so its report
+  # reaches the aggregator, which owns the verdict. A suite whose report never arrives is
+  # a HARD failure there (--expect-slow), so a shard that dies cannot read as "green".
+  slow-suite:
+    name: Slow suite ${{ matrix.name }}
+    needs: resolve
+    # --quick (push) runs no slow suites at all, so there is nothing to shard.
+    if: ${{ github.event_name != 'push' }}
+    runs-on: ${{ (vars.USE_VPS_RUNNER == 'true' && fromJSON('["self-hosted","omni-build"]')) || 'ubuntu-latest' }}
+    # Below the ~60-minute runner ceiling on purpose: a shard that overruns reports a
+    # timeout with its log instead of a silent exit 143.
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Unit is the long pole (~30-50min idle, up to ~80 under load) — 4 ways.
+          - name: unit-1
+            flags: --slow-gates=unit --shard=1/4
+          - name: unit-2
+            flags: --slow-gates=unit --shard=2/4
+          - name: unit-3
+            flags: --slow-gates=unit --shard=3/4
+          - name: unit-4
+            flags: --slow-gates=unit --shard=4/4
+          # Integration measured 22m08s serial on an idle 16-core box — 2 ways.
+          - name: integration-1
+            flags: --slow-gates=integration --shard=1/2
+          - name: integration-2
+            flags: --slow-gates=integration --shard=2/2
+          # Vitest is ~3-8min; splitting it would cost more in setup than it saves.
+          - name: vitest
+            flags: --slow-gates=vitest
+    env:
+      JWT_SECRET: ci-nightly-secret-with-sufficient-length-for-validation
+      API_KEY_SECRET: ci-nightly-api-key-secret-long
+      DISABLE_SQLITE_AUTO_BACKUP: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - uses: ./.github/actions/npm-ci-retry
+
+      - name: Run ${{ matrix.name }}
         env:
-          TARGET: ${{ steps.branch.outputs.target }}
+          SUITE_NAME: ${{ matrix.name }}
+          SUITE_FLAGS: ${{ matrix.flags }}
+        run: |
+          set +e
+          # --no-static: the aggregator runs every static and drift gate once. Repeating
+          # them in seven jobs would cost more than the suites they are attached to.
+          # SUITE_FLAGS is an intentional flag list, so word-splitting is wanted here
+          # shellcheck disable=SC2086
+          node scripts/quality/validate-release-green.mjs --json --hermetic             --no-static --serial-slow $SUITE_FLAGS             1> slow-report.json 2> >(tee "slow-$SUITE_NAME.log" >&2)
+          echo "[slow-suite] $SUITE_NAME finished with exit=$? (the verdict is the aggregator's)"
+
+      - name: Upload the suite report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: release-green-slow-${{ matrix.name }}
+          path: |
+            slow-report.json
+            slow-${{ matrix.name }}.log
+          retention-days: 14
+          if-no-files-found: warn
+
+  release-green:
+    name: Validate active release branch
+    needs: [resolve, slow-suite]
+    # On a push, only run for release/* pushes — a push to main is handled by the
+    # main-green job below. Schedule/dispatch always run (they validate the highest release).
+    #
+    # `!cancelled()` rather than the default `success()`: a slow-suite job that FAILED or
+    # was skipped must still reach this job, because this job is what turns a missing
+    # suite report into a stated HARD failure. Gating on success would turn a dead shard
+    # into an absent verdict instead of a red one — silence, which is the whole problem.
+    if: ${{ !cancelled() && (github.event_name != 'push' || startsWith(github.ref_name, 'release/')) }}
+    # Dynamic runner: with USE_VPS_RUNNER=true (release window / on-demand pre-flight)
+    # this runs on the dedicated VPS runner — clean env (no operator OMNIROUTE_API_KEY,
+    # no local noauth CLIs => zero machine-specific false positives) and no contention.
+    # Nightly cron normally finds the var false (VM off) and falls back to hosted.
+    runs-on: ${{ (vars.USE_VPS_RUNNER == 'true' && fromJSON('["self-hosted","omni-build"]')) || 'ubuntu-latest' }}
+    # This job no longer carries the slow suites — they run as `slow-suite` above and
+    # arrive here as reports. What is left is every static + drift + full-ci gate (all of
+    # them were already green at 07:23:23, ~6 minutes in, on run 35496465106) plus the
+    # package artifact and its boot smoke (~20min). 55 stays under the ~60-minute runner
+    # ceiling on purpose: an overrun then reports a timeout with its log, instead of the
+    # opaque exit 143 that four consecutive full sweeps died of.
+    timeout-minutes: 55
+    env:
+      JWT_SECRET: ci-nightly-secret-with-sufficient-length-for-validation
+      API_KEY_SECRET: ci-nightly-api-key-secret-long
+      DISABLE_SQLITE_AUTO_BACKUP: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # The branch was resolved once, in the `resolve` job, and the slow suites already
+      # ran against that exact SHA. Re-resolving here could pick up a push that landed in
+      # between and bind half of the merged report to a different commit.
+      - name: Take the resolved target
+        id: branch
+        env:
+          TARGET: ${{ needs.resolve.outputs.target }}
+          SHA: ${{ needs.resolve.outputs.sha }}
         run: |
           set -euo pipefail
-          git checkout "$TARGET"
+          echo "target=$TARGET" >> "$GITHUB_OUTPUT"
+          git checkout "$SHA"
           git log -1 --oneline
+          echo "Active release branch: $TARGET @ $SHA"
+
+      - name: Download the slow-suite reports
+        if: ${{ github.event_name != 'push' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          pattern: release-green-slow-*
+          path: slow-reports
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -167,7 +267,18 @@ jobs:
           if [ "$EVENT_NAME" = "push" ]; then
             MODE="--quick"
           else
-            MODE="--with-build --full-ci"
+            # unit / vitest / integration ran as their own jobs; this job runs every
+            # static + drift + full-ci gate, builds and boots the package artifact, and
+            # merges their reports. --expect-slow names the suites that MUST be present:
+            # a shard that produced no report is a HARD failure here, never silence.
+            MODE="--with-build --full-ci --slow-gates=pack-artifact"
+            # EVERY shard id from the slow-suite matrix, not just the suite names: with
+            # bare "unit" a single surviving shard would satisfy the expectation and the
+            # other three could vanish unnoticed. Keep this list and the matrix in step —
+            # it fails CLOSED, so a stale entry here goes red rather than quiet.
+            EXPECT="unit#1/4,unit#2/4,unit#3/4,unit#4/4"
+            EXPECT="$EXPECT,integration#1/2,integration#2/2,vitest"
+            MODE="$MODE --merge-slow=slow-reports --expect-slow=$EXPECT"
           fi
           # The concurrent slow-suite wave needs the dedicated build runner. On a 16 GB
           # GitHub-hosted runner unit + a full build + integration exhaust memory and the
