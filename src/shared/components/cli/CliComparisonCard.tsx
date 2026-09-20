@@ -46,7 +46,7 @@ export default function CliComparisonCard({ currentType }: CliComparisonCardProp
                   {t(`comparison.${type}.title`)}
                 </span>
                 {isCurrent ? (
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-primary/20 text-primary whitespace-nowrap">
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-primary/20 text-primary-on-tint whitespace-nowrap">
                     {t("comparison.thisPage")} ✓
                   </span>
                 ) : (

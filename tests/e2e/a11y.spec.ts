@@ -101,9 +101,16 @@ type Theme = (typeof THEMES)[number];
 // persist key the theme store rehydrates from on first paint.
 const THEME_STORAGE_KEY = "theme";
 
+// Surfaces added in 3.8.55.
+const CLI_CODE_PATH = "/dashboard/cli-code";
+const WORKSPACES_PATH = "/dashboard/costs/workspaces";
+
 const BLOCKING_IMPACTS = new Set(["critical", "serious"]);
 const RATCHET_WIDTH = VIEWPORTS.desktop.width;
 const A11Y_VIEWPORTS = [
+  // 375 was never swept, so nothing the dashboard does only at phone width was ever
+  // audited. The 3.8.55 audit found `select-name` violations that reproduce here.
+  VIEWPORTS.mobile,
   VIEWPORTS.tablet,
   VIEWPORTS.smallLaptop,
   VIEWPORTS.laptop,
@@ -263,9 +270,14 @@ test.describe("A11y — Dashboard key surfaces (@axe-core, nightly)", () => {
     ROUTE_TRACE_PATH,
     LOGS_PATH,
     ONBOARDING_PATH,
+    // Added in 3.8.55. Neither was audited when it shipped, and /dashboard/cli-code
+    // went out with two axe-critical `select-name` nodes and two serious
+    // `color-contrast` nodes in both themes — the gate's coverage was the defect.
+    CLI_CODE_PATH,
+    WORKSPACES_PATH,
   ]) {
     for (const theme of THEMES) {
-      test(`${path} [${theme}] — zero critical/serious violations at 768–1440px and total within baseline`, async ({
+      test(`${path} [${theme}] — zero critical/serious violations at 375–1440px and total within baseline`, async ({
         page,
       }) => {
         skipUnlessAxeRequired();

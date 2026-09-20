@@ -168,10 +168,14 @@ export default function CliCodePageClient({ machineId: _machineId }: CliCodePage
 
         {/* Detection filter */}
         <div className="flex flex-col gap-1 min-w-[150px]">
-          <label className="text-[11px] text-text-muted uppercase tracking-wide">
+          <label
+            htmlFor="cli-code-detection-filter"
+            className="text-[11px] text-text-muted uppercase tracking-wide"
+          >
             {t("filterDetectionLabel")}
           </label>
           <select
+            id="cli-code-detection-filter"
             value={detectionFilter}
             onChange={handleDetectionChange}
             className="h-8 px-2 text-sm rounded-lg border border-black/10 dark:border-white/10 bg-surface text-text-main focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -184,10 +188,14 @@ export default function CliCodePageClient({ machineId: _machineId }: CliCodePage
 
         {/* Base URL filter */}
         <div className="flex flex-col gap-1 min-w-[150px]">
-          <label className="text-[11px] text-text-muted uppercase tracking-wide">
+          <label
+            htmlFor="cli-code-base-url-filter"
+            className="text-[11px] text-text-muted uppercase tracking-wide"
+          >
             {t("filterBaseUrlLabel")}
           </label>
           <select
+            id="cli-code-base-url-filter"
             value={baseUrlFilter}
             onChange={handleBaseUrlChange}
             className="h-8 px-2 text-sm rounded-lg border border-black/10 dark:border-white/10 bg-surface text-text-main focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -204,7 +212,7 @@ export default function CliCodePageClient({ machineId: _machineId }: CliCodePage
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 flex items-start gap-3">
           <span className="material-symbols-outlined text-amber-500 flex-shrink-0">warning</span>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-400">
               {tCommon("detail.noActiveProviders")}
             </p>
             <p className="text-xs text-text-muted mt-0.5">
