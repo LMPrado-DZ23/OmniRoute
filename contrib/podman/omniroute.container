@@ -9,7 +9,7 @@ After=omniroute-redis.service
 # Use this image after building locally
 Image=localhost/omniroute:base
 # Or use the fully qualified published image (there is no published :base tag)
-# Image=ghcr.io/lmprado-dz23/omniroute:next
+# Image=ghcr.io/lmprado-dz23/omniroute:latest
 
 ContainerName=omniroute
 

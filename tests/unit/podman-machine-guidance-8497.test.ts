@@ -38,10 +38,13 @@ test("#8497 Podman guide separates local engines from Podman Machine", () => {
   assert.match(localGuidance, /podman unshare chown 1000:1000 \.\/data/);
   assert.doesNotMatch(machineGuidance, /podman unshare chown/);
   assert.match(machineGuidance, /remote client/);
-  // Fase 8: this fork ships its image on GHCR under its own owner. The channel is
-  // `:next` until a version is released — `:latest` is only promoted by a SemVer
-  // publish, so pinning it here documented a pull that returns "manifest unknown".
-  assert.match(machineGuidance, /ghcr\.io\/lmprado-dz23\/omniroute:next/);
+  // Fase 8 pinned `:next` here because `:latest` is only promoted by a SemVer
+  // publish, so at the time pinning it would have documented a pull returning
+  // "manifest unknown". v3.8.54 shipped on 2026-09-19 and `:latest` resolves
+  // (`docker manifest inspect ghcr.io/lmprado-dz23/omniroute:latest`), so the
+  // guidance must point at the published stable — `:next` is the pre-release
+  // channel the Docker guide states is not supported for production.
+  assert.match(machineGuidance, /ghcr\.io\/lmprado-dz23\/omniroute:latest/);
 });
 
 test("#8497 Quadlet is Linux/systemd-only and generated units are not enabled", () => {
@@ -97,7 +100,7 @@ test("#8497 pull example and environment hints stay topology-safe", () => {
   const envExample = read(".env.example");
   const envReference = read("docs/reference/ENVIRONMENT.md");
 
-  assert.match(quadlet, /Image=ghcr\.io\/lmprado-dz23\/omniroute:next/);
+  assert.match(quadlet, /Image=ghcr\.io\/lmprado-dz23\/omniroute:latest/);
   assert.doesNotMatch(quadlet, /lmprado-dz23\/omniroute:base/);
 
   for (const source of [envExample, envReference]) {
