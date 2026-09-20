@@ -132,6 +132,27 @@ matrix automatically, without any label.
 - [ ] Keep `## [Unreleased]` as the first changelog section for upcoming work
 - [ ] Update `docs/openapi.yaml` → `info.version` must equal `package.json` version
 
+### Claims the release makes stale
+
+Nothing regenerates the prose that describes *what exists*, so it rots silently one
+release at a time. Before the first release of a fork, and after any release that changes
+what is published, re-read and correct:
+
+- [ ] **"not published yet"** — `README.md` and `docs/getting-started/QUICK-START.md` say
+      whether the desktop installer and the Docker image exist. After the first Release
+      with assets, both sentences are false. Check with
+      `gh release view <tag> --json assets -q '.assets|length'`.
+- [ ] **Which tag the examples install** — runnable `docker run` / `docker pull` / compose
+      snippets must use `:latest` or an immutable `:X.Y.Z`, never `:next`. `:next` belongs
+      only in the prose that documents the pre-release channel, which says it is not
+      supported for production. Sweep with
+      `grep -rn "omniroute:next" README.md SECURITY.md docs/ contrib/ --include=*.md`.
+- [ ] **Pinned versions in examples** — any `omniroute:X.Y.Z` in the docs must be a tag
+      that actually resolves: `docker manifest inspect ghcr.io/<owner>/omniroute:X.Y.Z`.
+- [ ] **The 41 locales** — the same sentences live in `docs/i18n/<locale>/`. Tag
+      substitutions are mechanical and safe; changed prose needs a translation pass, and
+      an untranslated correction is a known gap worth recording, not worth machine-translating.
+
 ### Code Quality
 
 - [ ] `npm run lint` — 0 errors (warnings are pre-existing)
