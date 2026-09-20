@@ -341,3 +341,55 @@ test("CLI fails closed when an explicit base ref is unreadable", () => {
     rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 });
+
+// ─── The digest must not depend on who checked the file out ────────────────
+
+test("changelogSha256 is line-ending independent", async () => {
+  // The two sides of a reconciliation arrive differently: the base comes from
+  // `git show <ref>:CHANGELOG.md`, which is always the stored LF content, while the result
+  // is read from the WORKING TREE — CRLF on a Windows checkout with core.autocrlf=true.
+  // Hashing raw bytes made a record written on Windows verifiable only on Windows: it
+  // passed locally and failed in CI with no hint as to why. Measured on the real record:
+  // the same file hashed 774e2524… as CRLF and 66e20f2a… as LF.
+  const { changelogSha256 } = await import("../../scripts/check/check-changelog-integrity.mjs");
+  const lf = "## [1.0.0]\n\n- **fix:** a bullet\n- **feat:** another\n";
+  const crlf = lf.replace(/\n/g, "\r\n");
+
+  assert.equal(
+    changelogSha256(crlf),
+    changelogSha256(lf),
+    "a CRLF checkout must produce the same digest as the LF content git stores"
+  );
+  // Still a real digest of the content, not a constant: different text, different hash.
+  assert.notEqual(changelogSha256(lf), changelogSha256(lf.replace("a bullet", "a different")));
+});
+
+test("the ledgered reconciliations still bind the file they claim to", async () => {
+  // A record whose hashes no longer match anything is a record that stopped guarding.
+  const { changelogSha256 } = await import("../../scripts/check/check-changelog-integrity.mjs");
+  const ledger = JSON.parse(
+    readFileSync(
+      new URL("../../config/release/changelog-reconciliations.json", import.meta.url),
+      "utf8"
+    )
+  ) as {
+    reconciliations: { id: string; baseChangelogSha256: string; resultChangelogSha256: string }[];
+  };
+
+  assert.ok(ledger.reconciliations.length > 0, "the ledger must not be empty");
+  for (const record of ledger.reconciliations) {
+    for (const field of ["baseChangelogSha256", "resultChangelogSha256"] as const) {
+      assert.match(record[field], /^[0-9a-f]{64}$/, `${record.id}.${field} must be a sha256 hex`);
+    }
+  }
+
+  // The most recent record must bind THIS working tree's CHANGELOG.md, whatever the
+  // checkout's line endings — that is the property the normalisation exists for.
+  const head = readFileSync(new URL("../../CHANGELOG.md", import.meta.url), "utf8");
+  const latest = ledger.reconciliations[ledger.reconciliations.length - 1];
+  assert.equal(
+    changelogSha256(head),
+    latest.resultChangelogSha256,
+    `${latest.id} no longer matches CHANGELOG.md — the record and the file have diverged`
+  );
+});

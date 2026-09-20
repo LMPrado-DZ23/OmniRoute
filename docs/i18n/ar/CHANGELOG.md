@@ -13,7 +13,7 @@ _Follow-up to the 3.8.54 evolution release: the gaps that release documented as 
 ### ✨ New Features
 
 - **feat(workspaces):** the workspace → project → API key hierarchy that v3.8.54 designed in `docs/architecture/WORKSPACES_RBAC.md` §3.4 and deferred. Migration 178, membership-authorized CRUD under `/api/workspaces/**` with IDOR tests, budgets that roll up from key to project to workspace, and a `/dashboard/costs/workspaces` page in en / pt-BR / vi ([#52](https://github.com/LMPrado-DZ23/OmniRoute/pull/52))
-- **feat(providers):** the Add API Key dialog now links to the page that issues the key. It asked for a credential without saying where to get one — for API-key providers it offered no link at all, so the user left for a search engine ([#50](https://github.com/LMPrado-DZ23/OmniRoute/pull/50))
+- **feat(providers):** the Add API Key dialog now links to where the credential comes from. It asked for one without saying where to get it — for API-key providers it offered no link at all, so the user left for a search engine. For **16 of the 355** providers the link is the exact key-issuing page; for the rest it is the provider's own site, and the dialog says which of the two it is showing ([#50](https://github.com/LMPrado-DZ23/OmniRoute/pull/50))
 - **feat(cli-tools):** 11 more AI CLIs can be pointed at the gateway, taking the catalog from 36 to 47 entries. Each entry's mechanism was read from that tool's official documentation or source before being written, and the verification source is recorded above it in `src/shared/constants/cliToolsExtra.ts` so a reviewer can re-check a claim without redoing the research ([#57](https://github.com/LMPrado-DZ23/OmniRoute/pull/57))
 
 ### 🐛 Bug Fixes
