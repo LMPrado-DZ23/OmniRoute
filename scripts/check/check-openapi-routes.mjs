@@ -34,6 +34,32 @@ export function findSpecPathsWithoutRoute(specPaths, implPaths) {
 }
 
 /**
+ * Paths que só diferem no NOME da variável de template — pela OpenAPI 3.x são o
+ * MESMO endpoint e não podem coexistir ("Templated paths with the same hierarchy
+ * but different templated names MUST NOT exist"). Uma spec assim é inválida:
+ * `oasdiff` recusa a diff inteira com `duplicate endpoint`, então
+ * `check:openapi-breaking` deixa de medir qualquer coisa e passa como SKIP —
+ * um verde que não significa nada.
+ *
+ * Este gate era cego para isso justamente porque compara param-insensitive: as
+ * duas grafias resolvem para a mesma rota real, então ambas passavam.
+ *
+ * @param {string[]} specPaths
+ * @returns {Array<{ normalized: string, paths: string[] }>}
+ */
+export function findDuplicateNormalizedPaths(specPaths) {
+  const byNormalized = new Map();
+  for (const p of specPaths) {
+    const key = normalizeParams(p);
+    if (!byNormalized.has(key)) byNormalized.set(key, []);
+    byNormalized.get(key).push(p);
+  }
+  return [...byNormalized.entries()]
+    .filter(([, paths]) => paths.length > 1)
+    .map(([normalized, paths]) => ({ normalized, paths }));
+}
+
+/**
  * @param {{ root?: string, openapiPath?: string, implPaths?: string[] }} [opts]
  * @returns {{ ok: boolean, exitCode: number, message: string }}
  */
@@ -63,7 +89,24 @@ export function runOpenapiRoutesCheck(opts = {}) {
   const stale = reportStaleEntries(KNOWN_STALE_SPEC, liveOrphans, "openapi-routes");
   const orphans = liveOrphans.filter((p) => !KNOWN_STALE_SPEC.has(p));
 
+  const duplicates = findDuplicateNormalizedPaths(specPaths);
+
   const parts = [];
+  if (duplicates.length) {
+    parts.push(
+      `[openapi-routes] ${duplicates.length} endpoint(s) documentado(s) mais de uma vez ` +
+        `(mesmo path, nome de parâmetro diferente):\n` +
+        duplicates
+          .map(
+            ({ normalized, paths }) =>
+              `  ✗ ${normalized}\n` + paths.map((p) => `      ${p}`).join("\n")
+          )
+          .join("\n") +
+        `\n  → pela OpenAPI 3.x são o MESMO endpoint; oasdiff recusa a spec inteira` +
+        `\n    com "duplicate endpoint" e check:openapi-breaking para de medir.` +
+        `\n  → funda os blocos num só, usando o nome do parâmetro da rota real.`
+    );
+  }
   if (stale.length) {
     parts.push(
       `[openapi-routes] ${stale.length} entrada(s) obsoleta(s) na allowlist ` +
