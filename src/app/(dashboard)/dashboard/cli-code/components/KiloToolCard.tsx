@@ -241,7 +241,11 @@ export default function KiloToolCard({
                 }}
               />
             ) : (
-              <span className="material-symbols-outlined text-xl" style={{ color: tool.color }}>
+              <span
+                className="material-symbols-outlined text-xl"
+                style={{ color: tool.color }}
+                aria-hidden="true"
+              >
                 terminal
               </span>
             )}
@@ -260,6 +264,7 @@ export default function KiloToolCard({
         </div>
         <span
           className={`material-symbols-outlined text-text-muted text-[20px] transition-transform ${isExpanded ? "rotate-180" : ""}`}
+          aria-hidden="true"
         >
           expand_more
         </span>
@@ -269,7 +274,7 @@ export default function KiloToolCard({
         <div className="mt-6 pt-6 border-t border-border">
           {checkingKilo && (
             <div className="flex items-center gap-2 text-text-muted text-sm">
-              <span className="material-symbols-outlined animate-spin text-base">
+              <span className="material-symbols-outlined animate-spin text-base" aria-hidden="true">
                 progress_activity
               </span>
               <span>{t("checkingCli", { tool: "Kilo Code" })}</span>
@@ -282,6 +287,7 @@ export default function KiloToolCard({
               <div className="flex items-start gap-3 p-3 rounded-lg border bg-bg-secondary/50 border-border">
                 <span
                   className={`material-symbols-outlined text-lg ${cliReady ? "text-green-500" : "text-yellow-500"}`}
+                  aria-hidden="true"
                 >
                   {cliReady ? "check_circle" : "warning"}
                 </span>
@@ -317,7 +323,10 @@ export default function KiloToolCard({
                   {/* Current config info */}
                   {configStatus === "configured" && (
                     <div className="flex items-start gap-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                      <span className="material-symbols-outlined text-green-500 text-lg">
+                      <span
+                        className="material-symbols-outlined text-green-500 text-lg"
+                        aria-hidden="true"
+                      >
                         check_circle
                       </span>
                       <div className="flex flex-col gap-1">
@@ -356,7 +365,9 @@ export default function KiloToolCard({
                         size="sm"
                         onClick={() => setShowManualConfigModal(true)}
                       >
-                        <span className="material-symbols-outlined text-[16px]">edit</span>
+                        <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
+                          edit
+                        </span>
                       </Button>
                     </div>
                   </div>
@@ -392,12 +403,20 @@ export default function KiloToolCard({
                       disabled={!selectedModel}
                       loading={applying}
                     >
-                      <span className="material-symbols-outlined text-[14px] mr-1">save</span>
+                      <span
+                        className="material-symbols-outlined text-[14px] mr-1"
+                        aria-hidden="true"
+                      >
+                        save
+                      </span>
                       {configStatus === "configured" ? t("updateConfig") : t("applyConfig")}
                     </Button>
                     {configStatus === "configured" && (
                       <Button variant="outline" size="sm" onClick={handleReset} loading={restoring}>
-                        <span className="material-symbols-outlined text-[14px] mr-1">
+                        <span
+                          className="material-symbols-outlined text-[14px] mr-1"
+                          aria-hidden="true"
+                        >
                           restart_alt
                         </span>
                         {t("reset")}
@@ -410,7 +429,7 @@ export default function KiloToolCard({
                     <div
                       className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${message.type === "success" ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-600"}`}
                     >
-                      <span className="material-symbols-outlined text-[16px]">
+                      <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
                         {message.type === "success" ? "check_circle" : "error"}
                       </span>
                       <span>{message.text}</span>
@@ -425,10 +444,13 @@ export default function KiloToolCard({
                     >
                       <span
                         className={`material-symbols-outlined text-[16px] transition-transform ${showBackups ? "rotate-90" : ""}`}
+                        aria-hidden="true"
                       >
                         chevron_right
                       </span>
-                      <span className="material-symbols-outlined text-[16px]">backup</span>
+                      <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
+                        backup
+                      </span>
                       {t("backups")} {backups.length > 0 && `(${backups.length})`}
                     </button>
                     {showBackups && backups.length > 0 && (

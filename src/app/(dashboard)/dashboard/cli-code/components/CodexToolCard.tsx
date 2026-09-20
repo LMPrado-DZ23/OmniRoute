@@ -424,6 +424,7 @@ openai_base_url = "${getEffectiveBaseUrl()}"
         </div>
         <span
           className={`material-symbols-outlined text-text-muted text-[20px] transition-transform ${isExpanded ? "rotate-180" : ""}`}
+          aria-hidden="true"
         >
           expand_more
         </span>
@@ -433,7 +434,9 @@ openai_base_url = "${getEffectiveBaseUrl()}"
         <div className="mt-4 pt-4 border-t border-border flex flex-col gap-4">
           {checkingCodex && (
             <div className="flex items-center gap-2 text-text-muted">
-              <span className="material-symbols-outlined animate-spin">progress_activity</span>
+              <span className="material-symbols-outlined animate-spin" aria-hidden="true">
+                progress_activity
+              </span>
               <span>{t("checkingCli", { tool: "Codex" })}</span>
             </div>
           )}
@@ -441,7 +444,9 @@ openai_base_url = "${getEffectiveBaseUrl()}"
           {!checkingCodex && codexStatus && !cliReady && (
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-3 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                <span className="material-symbols-outlined text-yellow-500">warning</span>
+                <span className="material-symbols-outlined text-yellow-500" aria-hidden="true">
+                  warning
+                </span>
                 <div className="flex-1">
                   <p className="font-medium text-yellow-600 dark:text-yellow-400">
                     {codexStatus.installed
@@ -462,7 +467,7 @@ openai_base_url = "${getEffectiveBaseUrl()}"
                   size="sm"
                   onClick={() => setShowInstallGuide(!showInstallGuide)}
                 >
-                  <span className="material-symbols-outlined text-[18px] mr-1">
+                  <span className="material-symbols-outlined text-[18px] mr-1" aria-hidden="true">
                     {showInstallGuide ? "expand_less" : "help"}
                   </span>
                   {showInstallGuide ? t("hide") : t("howToInstall")}
@@ -515,7 +520,10 @@ openai_base_url = "${getEffectiveBaseUrl()}"
                         <span className="w-32 shrink-0 text-sm font-semibold text-text-main text-right">
                           {t("current")}
                         </span>
-                        <span className="material-symbols-outlined text-text-muted text-[14px]">
+                        <span
+                          className="material-symbols-outlined text-text-muted text-[14px]"
+                          aria-hidden="true"
+                        >
                           arrow_forward
                         </span>
                         <span className="flex-1 px-2 py-1.5 text-xs text-text-muted truncate">
@@ -530,7 +538,10 @@ openai_base_url = "${getEffectiveBaseUrl()}"
                   <span className="w-32 shrink-0 text-sm font-semibold text-text-main text-right">
                     {t("baseUrl")}
                   </span>
-                  <span className="material-symbols-outlined text-text-muted text-[14px]">
+                  <span
+                    className="material-symbols-outlined text-text-muted text-[14px]"
+                    aria-hidden="true"
+                  >
                     arrow_forward
                   </span>
                   <input
@@ -547,7 +558,9 @@ openai_base_url = "${getEffectiveBaseUrl()}"
                         className="p-1 text-text-muted hover:text-primary rounded transition-colors"
                         title={t("resetToDefault")}
                       >
-                        <span className="material-symbols-outlined text-[14px]">restart_alt</span>
+                        <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
+                          restart_alt
+                        </span>
                       </button>
                     )}
                 </div>
@@ -557,7 +570,10 @@ openai_base_url = "${getEffectiveBaseUrl()}"
                   <span className="w-32 shrink-0 text-sm font-semibold text-text-main text-right">
                     {t("apiKey")}
                   </span>
-                  <span className="material-symbols-outlined text-text-muted text-[14px]">
+                  <span
+                    className="material-symbols-outlined text-text-muted text-[14px]"
+                    aria-hidden="true"
+                  >
                     arrow_forward
                   </span>
                   {apiKeys.length > 0 ? (
@@ -584,7 +600,10 @@ openai_base_url = "${getEffectiveBaseUrl()}"
                   <span className="w-32 shrink-0 text-sm font-semibold text-text-main text-right">
                     {t("model")}
                   </span>
-                  <span className="material-symbols-outlined text-text-muted text-[14px]">
+                  <span
+                    className="material-symbols-outlined text-text-muted text-[14px]"
+                    aria-hidden="true"
+                  >
                     arrow_forward
                   </span>
                   <button
@@ -610,7 +629,9 @@ openai_base_url = "${getEffectiveBaseUrl()}"
                       className="p-1 text-text-muted hover:text-red-500 rounded transition-colors"
                       title={t("clear")}
                     >
-                      <span className="material-symbols-outlined text-[14px]">close</span>
+                      <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
+                        close
+                      </span>
                     </button>
                   )}
                 </div>
@@ -620,7 +641,10 @@ openai_base_url = "${getEffectiveBaseUrl()}"
                   <span className="w-32 shrink-0 text-sm font-semibold text-text-main text-right">
                     {t("reasoningEffort")}
                   </span>
-                  <span className="material-symbols-outlined text-text-muted text-[14px]">
+                  <span
+                    className="material-symbols-outlined text-text-muted text-[14px]"
+                    aria-hidden="true"
+                  >
                     arrow_forward
                   </span>
                   <select
@@ -643,7 +667,10 @@ openai_base_url = "${getEffectiveBaseUrl()}"
                   <span className="w-32 shrink-0 text-sm font-semibold text-text-main text-right">
                     {t("wireApi")}
                   </span>
-                  <span className="material-symbols-outlined text-text-muted text-[14px]">
+                  <span
+                    className="material-symbols-outlined text-text-muted text-[14px]"
+                    aria-hidden="true"
+                  >
                     arrow_forward
                   </span>
                   <select
@@ -666,7 +693,10 @@ openai_base_url = "${getEffectiveBaseUrl()}"
                     <span className="w-32 shrink-0 text-[11px] font-mono text-text-main text-right truncate opacity-70 group-hover:opacity-100 transition-opacity">
                       {defaultModel}
                     </span>
-                    <span className="material-symbols-outlined text-border group-hover:text-primary transition-colors text-[14px]">
+                    <span
+                      className="material-symbols-outlined text-border group-hover:text-primary transition-colors text-[14px]"
+                      aria-hidden="true"
+                    >
                       arrow_forward
                     </span>
                     <button
@@ -698,7 +728,9 @@ openai_base_url = "${getEffectiveBaseUrl()}"
                         className="p-1 text-text-muted hover:text-red-500 rounded transition-colors"
                         title={t("clear")}
                       >
-                        <span className="material-symbols-outlined text-[14px]">close</span>
+                        <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
+                          close
+                        </span>
                       </button>
                     )}
                   </div>
@@ -709,7 +741,7 @@ openai_base_url = "${getEffectiveBaseUrl()}"
                 <div
                   className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs ${message.type === "success" ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-600"}`}
                 >
-                  <span className="material-symbols-outlined text-[14px]">
+                  <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
                     {message.type === "success" ? "check_circle" : "error"}
                   </span>
                   <span>{message.text}</span>
@@ -729,7 +761,9 @@ openai_base_url = "${getEffectiveBaseUrl()}"
                   })}
                   loading={applying}
                 >
-                  <span className="material-symbols-outlined text-[14px] mr-1">save</span>
+                  <span className="material-symbols-outlined text-[14px] mr-1" aria-hidden="true">
+                    save
+                  </span>
                   {t("apply")}
                 </Button>
                 <Button
@@ -739,11 +773,15 @@ openai_base_url = "${getEffectiveBaseUrl()}"
                   disabled={isResetDisabled({ restoring })}
                   loading={restoring}
                 >
-                  <span className="material-symbols-outlined text-[14px] mr-1">restore</span>
+                  <span className="material-symbols-outlined text-[14px] mr-1" aria-hidden="true">
+                    restore
+                  </span>
                   {t("reset")}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setShowManualConfigModal(true)}>
-                  <span className="material-symbols-outlined text-[14px] mr-1">content_copy</span>
+                  <span className="material-symbols-outlined text-[14px] mr-1" aria-hidden="true">
+                    content_copy
+                  </span>
                   {t("manualConfig")}
                 </Button>
                 <div className="flex-1" />
@@ -755,7 +793,7 @@ openai_base_url = "${getEffectiveBaseUrl()}"
                     if (!showProfiles) fetchProfiles();
                   }}
                 >
-                  <span className="material-symbols-outlined text-[14px] mr-1">
+                  <span className="material-symbols-outlined text-[14px] mr-1" aria-hidden="true">
                     manage_accounts
                   </span>
                   {t("profiles")}
@@ -768,7 +806,9 @@ openai_base_url = "${getEffectiveBaseUrl()}"
                     if (!showBackups) fetchBackups();
                   }}
                 >
-                  <span className="material-symbols-outlined text-[14px] mr-1">history</span>
+                  <span className="material-symbols-outlined text-[14px] mr-1" aria-hidden="true">
+                    history
+                  </span>
                   {t("backups")}
                   {backups.length > 0 && ` (${backups.length})`}
                 </Button>
@@ -778,7 +818,9 @@ openai_base_url = "${getEffectiveBaseUrl()}"
               {showProfiles && (
                 <div className="mt-2 p-3 bg-surface border border-border rounded-lg">
                   <h4 className="text-xs font-semibold text-text-main mb-2 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[14px]">manage_accounts</span>
+                    <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
+                      manage_accounts
+                    </span>
                     {t("savedProfiles")}
                   </h4>
                   {profiles.length === 0 ? (
@@ -790,7 +832,10 @@ openai_base_url = "${getEffectiveBaseUrl()}"
                           key={p.id}
                           className="flex items-center gap-2 px-2 py-1.5 bg-black/5 dark:bg-white/5 rounded text-xs"
                         >
-                          <span className="material-symbols-outlined text-[14px] text-text-muted">
+                          <span
+                            className="material-symbols-outlined text-[14px] text-text-muted"
+                            aria-hidden="true"
+                          >
                             person
                           </span>
                           <span className="font-medium flex-1 truncate">{p.name}</span>
@@ -812,7 +857,12 @@ openai_base_url = "${getEffectiveBaseUrl()}"
                             className="p-0.5 text-text-muted hover:text-red-500 transition-colors"
                             title={t("deleteProfile")}
                           >
-                            <span className="material-symbols-outlined text-[14px]">delete</span>
+                            <span
+                              className="material-symbols-outlined text-[14px]"
+                              aria-hidden="true"
+                            >
+                              delete
+                            </span>
                           </button>
                         </div>
                       ))}
@@ -834,7 +884,12 @@ openai_base_url = "${getEffectiveBaseUrl()}"
                       disabled={!newProfileName.trim()}
                       loading={savingProfile}
                     >
-                      <span className="material-symbols-outlined text-[14px] mr-1">save</span>
+                      <span
+                        className="material-symbols-outlined text-[14px] mr-1"
+                        aria-hidden="true"
+                      >
+                        save
+                      </span>
                       {t("saveCurrent")}
                     </Button>
                   </div>
@@ -845,7 +900,9 @@ openai_base_url = "${getEffectiveBaseUrl()}"
               {showBackups && (
                 <div className="mt-2 p-3 bg-surface border border-border rounded-lg">
                   <h4 className="text-xs font-semibold text-text-main mb-2 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[14px]">history</span>
+                    <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
+                      history
+                    </span>
                     {t("configBackups")}
                   </h4>
                   {backups.length === 0 ? (
@@ -857,7 +914,10 @@ openai_base_url = "${getEffectiveBaseUrl()}"
                           key={b.id}
                           className="flex items-center gap-2 px-2 py-1.5 bg-black/5 dark:bg-white/5 rounded text-xs"
                         >
-                          <span className="material-symbols-outlined text-[14px] text-text-muted">
+                          <span
+                            className="material-symbols-outlined text-[14px] text-text-muted"
+                            aria-hidden="true"
+                          >
                             description
                           </span>
                           <span className="flex-1 truncate font-mono" title={b.id}>

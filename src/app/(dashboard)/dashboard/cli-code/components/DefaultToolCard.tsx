@@ -22,6 +22,10 @@ export default function DefaultToolCard({
   batchStatus,
 }) {
   const t = useTranslations("cliTools");
+  // The copy buttons below are icon-only. Hiding the ligature from the
+  // accessibility tree without naming the button would trade "announced as
+  // content_copy" for "announced as nothing", so each carries an aria-label.
+  const tCommon = useTranslations("common");
   const translateOrFallback = useCallback(
     (key, fallback, values = undefined) => {
       if (!t.has(key)) return fallback;
@@ -345,9 +349,10 @@ export default function DefaultToolCard({
               onClick={() => {
                 handleCopy(resolveApiKeyValue(), "apiKey");
               }}
+              aria-label={tCommon("copy")}
               className="shrink-0 px-3 py-2 bg-bg-secondary hover:bg-bg-tertiary rounded-lg border border-border transition-colors"
             >
-              <span className="material-symbols-outlined text-lg">
+              <span className="material-symbols-outlined text-lg" aria-hidden="true">
                 {copiedField === "apiKey" ? "check" : "content_copy"}
               </span>
             </button>
@@ -399,9 +404,10 @@ export default function DefaultToolCard({
           <>
             <button
               onClick={() => handleCopy(displayValue, "model")}
+              aria-label={tCommon("copy")}
               className="shrink-0 px-3 py-2 bg-bg-secondary hover:bg-bg-tertiary rounded-lg border border-border transition-colors"
             >
-              <span className="material-symbols-outlined text-lg">
+              <span className="material-symbols-outlined text-lg" aria-hidden="true">
                 {copiedField === "model" ? "check" : "content_copy"}
               </span>
             </button>
@@ -412,7 +418,9 @@ export default function DefaultToolCard({
               className="p-2 text-text-muted hover:text-red-500 rounded transition-colors"
               title={t("clear")}
             >
-              <span className="material-symbols-outlined text-lg">close</span>
+              <span className="material-symbols-outlined text-lg" aria-hidden="true">
+                close
+              </span>
             </button>
           </>
         )}
@@ -450,7 +458,9 @@ export default function DefaultToolCard({
 
           return (
             <div key={index} className={`flex items-start gap-3 p-3 rounded-lg border ${bgClass}`}>
-              <span className={`material-symbols-outlined text-lg ${iconClass}`}>{icon}</span>
+              <span className={`material-symbols-outlined text-lg ${iconClass}`} aria-hidden="true">
+                {icon}
+              </span>
               <p className={`text-sm ${textClass}`}>
                 {translateOrFallback(`guides.${toolId}.notes.${index}`, note.text)}
               </p>
@@ -473,7 +483,7 @@ export default function DefaultToolCard({
       <div className="flex flex-col gap-4">
         {checkingRuntime && (
           <div className="flex items-center gap-2 text-text-muted text-sm">
-            <span className="material-symbols-outlined animate-spin text-base">
+            <span className="material-symbols-outlined animate-spin text-base" aria-hidden="true">
               progress_activity
             </span>
             <span>{t("checkingRuntime")}</span>
@@ -481,7 +491,7 @@ export default function DefaultToolCard({
         )}
         {!checkingRuntime && runtimeStatus && !runtimeStatus.error && (
           <div className="flex items-start gap-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-            <span className="material-symbols-outlined text-blue-500 text-lg">
+            <span className="material-symbols-outlined text-blue-500 text-lg" aria-hidden="true">
               {runtimeStatus.reason === "not_required"
                 ? "info"
                 : runtimeStatus.installed && runtimeStatus.runnable
@@ -521,7 +531,9 @@ export default function DefaultToolCard({
         )}
         {!checkingRuntime && runtimeStatus?.error && (
           <div className="flex items-start gap-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-            <span className="material-symbols-outlined text-red-500 text-lg">error</span>
+            <span className="material-symbols-outlined text-red-500 text-lg" aria-hidden="true">
+              error
+            </span>
             <p className="text-sm text-red-600 dark:text-red-400">
               {t("failedCheckRuntimeStatus")}
             </p>
@@ -558,9 +570,10 @@ export default function DefaultToolCard({
                     {item.copyable && (
                       <button
                         onClick={() => handleCopy(item.value, `${item.step}-${item.title}`)}
+                        aria-label={tCommon("copy")}
                         className="shrink-0 px-3 py-2 bg-bg-secondary hover:bg-bg-tertiary rounded-lg border border-border transition-colors"
                       >
-                        <span className="material-symbols-outlined text-lg">
+                        <span className="material-symbols-outlined text-lg" aria-hidden="true">
                           {copiedField === `${item.step}-${item.title}` ? "check" : "content_copy"}
                         </span>
                       </button>
@@ -581,7 +594,7 @@ export default function DefaultToolCard({
                 onClick={() => handleCopy(getRenderedCodeBlock(), "codeblock")}
                 className="flex items-center gap-1 px-2 py-1 text-xs bg-bg-secondary hover:bg-bg-tertiary rounded border border-border transition-colors"
               >
-                <span className="material-symbols-outlined text-sm">
+                <span className="material-symbols-outlined text-sm" aria-hidden="true">
                   {copiedField === "codeblock" ? "check" : "content_copy"}
                 </span>
                 {copiedField === "codeblock" ? t("copied") : t("copy")}
@@ -600,7 +613,7 @@ export default function DefaultToolCard({
               <div
                 className={`flex gap-2 px-2 py-1.5 rounded text-xs mb-2 ${message.containerEphemeralTarget ? "items-start" : "items-center"} ${message.type === "success" ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-600"}`}
               >
-                <span className="material-symbols-outlined text-[14px]">
+                <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
                   {message.type === "success" ? "check_circle" : "error"}
                 </span>
                 {/* The container refusal is a multi-line runbook — keep its line
@@ -619,7 +632,9 @@ export default function DefaultToolCard({
                   disabled={isMultiModelTool ? getSelectedModels().length === 0 : !modelValue}
                   loading={saving}
                 >
-                  <span className="material-symbols-outlined text-[14px] mr-1">save</span>
+                  <span className="material-symbols-outlined text-[14px] mr-1" aria-hidden="true">
+                    save
+                  </span>
                   {t("saveConfig")}
                 </Button>
               )}
@@ -629,7 +644,7 @@ export default function DefaultToolCard({
                   size="sm"
                   onClick={() => handleCopy(getRenderedCodeBlock(), "codeblock")}
                 >
-                  <span className="material-symbols-outlined text-[14px] mr-1">
+                  <span className="material-symbols-outlined text-[14px] mr-1" aria-hidden="true">
                     {copiedField === "codeblock" ? "check" : "content_copy"}
                   </span>
                   {copiedField === "codeblock" ? t("copied") : t("copyConfig")}
@@ -637,7 +652,10 @@ export default function DefaultToolCard({
               )}
               {(isMultiModelTool ? getSelectedModels().length > 0 : !!modelValue) && (
                 <span className="text-xs text-text-muted flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px] text-green-500">
+                  <span
+                    className="material-symbols-outlined text-[14px] text-green-500"
+                    aria-hidden="true"
+                  >
                     check_circle
                   </span>
                   {t("selectionSaved")}
@@ -680,7 +698,11 @@ export default function DefaultToolCard({
     }
     if (tool.icon) {
       return (
-        <span className="material-symbols-outlined text-xl" style={{ color: tool.color }}>
+        <span
+          className="material-symbols-outlined text-xl"
+          style={{ color: tool.color }}
+          aria-hidden="true"
+        >
           {tool.icon}
         </span>
       );
@@ -748,6 +770,7 @@ export default function DefaultToolCard({
         </div>
         <span
           className={`material-symbols-outlined text-text-muted text-[20px] transition-transform ${isExpanded ? "rotate-180" : ""}`}
+          aria-hidden="true"
         >
           expand_more
         </span>

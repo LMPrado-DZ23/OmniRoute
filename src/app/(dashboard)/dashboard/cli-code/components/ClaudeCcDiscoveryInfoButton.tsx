@@ -26,7 +26,9 @@ export default function ClaudeCcDiscoveryInfoButton() {
         title={t("ccDiscoveryInfoTooltip")}
         className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-transparent px-2.5 py-1 text-[12px] text-text-main hover:border-primary/40 transition-colors"
       >
-        <span className="material-symbols-outlined text-[16px]">help</span>
+        <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
+          help
+        </span>
         {t("ccDiscoveryInfoButton")}
       </button>
 

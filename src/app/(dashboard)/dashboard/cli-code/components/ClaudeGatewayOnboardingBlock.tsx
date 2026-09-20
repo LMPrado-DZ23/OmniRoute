@@ -42,7 +42,7 @@ export default function ClaudeGatewayOnboardingBlock({ baseUrl }: { baseUrl: str
           onClick={handleCopy}
           className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-main hover:border-primary/40 transition-colors"
         >
-          <span className="material-symbols-outlined text-[14px]">
+          <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
             {copied ? "check" : "content_copy"}
           </span>
           {copied ? t("ccOnboardingCopied") : t("ccOnboardingCopy")}
