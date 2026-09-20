@@ -93,11 +93,14 @@ function parsePatterns(name) {
     throw new Error(`openapi-security-tiers: could not locate ${name} in routeGuard.ts`);
   const out = [];
   for (const raw of body.split("\n")) {
-    const t = raw
-      .replace(/\/\/.*$/, "")
-      .trim()
-      .replace(/,\s*$/, "")
-      .trim();
+    // `stripLineComments` rather than /\/\/.*$/ — `.` does not match `\r` and `$`
+    // without /m anchors at end-of-string, so on a CRLF checkout (core.autocrlf=true
+    // on Windows) the comment survived, the token no longer ended in `/`, and the
+    // entry was silently dropped. The only LOCAL_ONLY_API_PATTERNS entry carrying a
+    // trailing comment is the volcengine-plan one, so the gate reported six
+    // "has x-loopback-only but is NOT covered" mismatches that do not exist, and
+    // could not be run on Windows at all. parsePrefixes above was always immune.
+    const t = stripLineComments(raw).trim().replace(/,\s*$/, "").trim();
     if (t.length > 2 && t.startsWith("/") && t.endsWith("/")) out.push(new RegExp(t.slice(1, -1)));
   }
   return out;
