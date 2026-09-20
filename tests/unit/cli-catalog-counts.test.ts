@@ -216,3 +216,34 @@ test("catalog ids, names and colors are unique and well-formed", () => {
     names.set(entry.name.toLowerCase(), key);
   }
 });
+
+test("a placeholder inside a guideStep desc needs an i18n guide key to be substituted", async () => {
+  // DefaultToolCard runs replaceVars over codeBlock.code and step.value, but a
+  // step's `desc` only goes through translateOrFallback, which returns the raw
+  // fallback when no key exists. A {{...}} left in an untranslated desc renders
+  // literally to the user. Only a few guides carry ICU keys today.
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+  const en = JSON.parse(
+    fs.readFileSync(path.join(process.cwd(), "src/i18n/messages/en.json"), "utf8")
+  ) as Record<string, unknown>;
+  const guides =
+    ((en.cliTools as Record<string, unknown> | undefined)?.guides as
+      Record<string, { steps?: Record<string, { desc?: string }> }> | undefined) ?? {};
+
+  const offenders: string[] = [];
+  for (const [id, entry] of Object.entries(CLI_TOOLS)) {
+    for (const step of entry.guideSteps ?? []) {
+      if (!step.desc?.includes("{{")) continue;
+      if (!guides[id]?.steps?.[String(step.step)]?.desc) {
+        offenders.push(`${id} step ${step.step}: ${step.desc}`);
+      }
+    }
+  }
+
+  assert.deepEqual(
+    offenders,
+    [],
+    "these descs carry a {{placeholder}} that will render literally — move it to the step's `value` or the codeBlock, or add the ICU guide key"
+  );
+});
