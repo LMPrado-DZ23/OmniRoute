@@ -19,11 +19,12 @@ import { ROOT, matchRoute, relativeToRoot as rel, toApiPathname } from "./_helpe
 // exports that HTTP method. Calls whose path or method is computed at runtime
 // are out of reach of a static scan and are skipped.
 //
-// KNOWN_BROKEN freezes the mismatches that pre-date this test (2026-09-19).
-// Entries may only be REMOVED: fixing a command without deleting its entry
-// fails as stale, and a new mismatch fails outright.
+// KNOWN_BROKEN froze the 39 mismatches that pre-dated this test (2026-09-19).
+// All of them have been fixed, so the list is empty and stays that way: a new
+// mismatch fails outright, and an entry that no longer reproduces fails as
+// stale. Do not add to it — fix the command, or remove it.
 
-const KNOWN_BROKEN = new Set([]);
+const KNOWN_BROKEN = new Set<string>([]);
 
 type Call = { file: string; method: string; apiPath: string };
 
