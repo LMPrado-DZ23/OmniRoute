@@ -61,6 +61,30 @@ node scripts/quality/validate-release-green.mjs --quick  # skips unit+vitest (dr
 node scripts/quality/validate-release-green.mjs --with-build  # includes package-artifact (slow)
 ```
 
+### Running it across several CI jobs
+
+A runner on this repository stops at **~60 minutes** and the slow suites' own ceilings are
+80 + 15 + 40 + 20 = **155 minutes serial**, so `nightly-release-green.yml` cannot sweep in one
+job — four consecutive attempts were killed at exit 143. It now splits the run and merges the
+pieces, which these flags exist for:
+
+```bash
+# a shard job: only the suite it owns, no static gates (the aggregator runs those once)
+node scripts/quality/validate-release-green.mjs --json --hermetic   --no-static --serial-slow --slow-gates=unit --shard=2/4
+
+# the aggregator: every static/drift/full-ci gate + the package artifact, then the shards
+node scripts/quality/validate-release-green.mjs --json --hermetic --with-build --full-ci   --serial-slow --slow-gates=pack-artifact   --merge-slow=slow-reports --expect-slow=unit#1/4,unit#2/4,vitest
+```
+
+A split verdict can be wrong in one new way — a job reporting green while measuring nothing —
+so three things refuse rather than shrug:
+
+- `--expect-slow` names every shard id that must appear in the merged reports. One with no
+  report is a **HARD failure** reading _"it did not run, so it is NOT green"_; it is required
+  whenever `--merge-slow` is used.
+- an unknown `--slow-gates` id **throws**, instead of selecting no suite and passing.
+- a run that records **zero gates** is a HARD failure for that reason alone.
+
 Diagnoses and **reports** only (no auto-fix). The fix-to-green orchestration lives in
 `/green-prs` and `/review-prs`.
 
