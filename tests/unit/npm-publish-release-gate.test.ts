@@ -114,3 +114,44 @@ test("the release trigger is the one the gate is there to catch", () => {
       "if that trigger is removed, revisit whether the gate is still the right shape"
   );
 });
+
+test("only a deliberate dispatch is exempt; a tag push and a release are not", () => {
+  const workflow = loadWorkflow();
+  const decide = workflow.jobs?.gate?.steps?.find((step) => step.id === "decide");
+  const script = decide?.run ?? "";
+
+  assert.ok(script, "the gate must still decide in a script step");
+
+  // `workflow_call` used to be exempt on the reasoning that its only caller gates it.
+  // It does — but then the entire brake is one `if:` in another file, and a second
+  // caller or one edit opens a provenance-signed publish with NPM_TOKEN in scope.
+  assert.doesNotMatch(
+    script,
+    /\[\s*"\$EVENT_NAME"\s*!=\s*"release"\s*\]/,
+    'a "not a release" test waves through every other event, including the tag push ' +
+      "that electron-release.yml arrives with"
+  );
+  assert.match(
+    script,
+    /\[\s*"\$EVENT_NAME"\s*=\s*"workflow_dispatch"\s*\]\s*\|\|\s*\[\s*"\$ENABLED"\s*=\s*"true"\s*\]/,
+    "everything except a deliberate dispatch must require ENABLE_NPM_PUBLISH"
+  );
+});
+
+test("the caller still carries its own guard — this is defence in depth, not a move", () => {
+  const caller = parse(
+    readFileSync(WORKFLOW.replace("npm-publish.yml", "electron-release.yml"), "utf-8")
+  ) as Workflow;
+
+  const publishJob = Object.values(caller.jobs ?? {}).find((job) =>
+    String((job as { uses?: string }).uses ?? "").includes("npm-publish.yml")
+  ) as { if?: string } | undefined;
+
+  assert.ok(publishJob, "electron-release.yml must still be the caller this reasoning is about");
+  assert.match(
+    String(publishJob?.if ?? ""),
+    /vars\.ENABLE_NPM_PUBLISH\s*==\s*'true'/,
+    "removing the caller's guard would leave only the callee's — the mirror of the " +
+      "situation this PR fixes"
+  );
+});

@@ -69,9 +69,23 @@ jobs:
   # `workflow_call` path INTO this workflow. A GitHub Release published by hand, or by
   # any other workflow, enters through `release:` and never meets it.
   #
-  # So the same variable now gates the `release` path here. `workflow_dispatch` is left
+  # So the same variable now gates every path except `workflow_dispatch`, which is left
   # alone: it is already a deliberate human action, and it is the emergency route if the
-  # variable is ever wrong. `workflow_call` is left alone too — its only caller gates it.
+  # variable is ever wrong.
+  #
+  # `workflow_call` used to be exempt here, on the reasoning that its only caller gates
+  # it. That caller does — electron-release.yml's job carries the same
+  # `vars.ENABLE_NPM_PUBLISH == 'true'` condition — but then the whole brake lives in one
+  # `if:` in another file. A second caller, or one edit to that line, would open a full
+  # provenance-signed publish with NPM_TOKEN in scope, and nothing here would object.
+  # Gating both sides costs nothing (the caller already requires the variable, so today's
+  # behaviour is unchanged) and removes the single point of failure.
+  #
+  # Note what `github.event_name` is inside a reusable workflow: the CALLER's event, never
+  # the string "workflow_call". electron-release.yml triggers on `push: tags`, so a tag
+  # push arrives here as `push` — which the old `!= "release"` test waved through and this
+  # one does not. A dispatch of either workflow still arrives as `workflow_dispatch` and
+  # stays exempt, which is the emergency route working as intended.
   #
   # To publish to npm from a release, set repository variable ENABLE_NPM_PUBLISH=true.
   gate:
@@ -86,12 +100,12 @@ jobs:
           ENABLED: ${{ vars.ENABLE_NPM_PUBLISH }}
         run: |
           set -euo pipefail
-          if [ "$EVENT_NAME" != "release" ] || [ "$ENABLED" = "true" ]; then
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] || [ "$ENABLED" = "true" ]; then
             echo "allowed=true" >> "$GITHUB_OUTPUT"
             echo "✅ npm publishing allowed (event=$EVENT_NAME, ENABLE_NPM_PUBLISH=${ENABLED:-<unset>})."
           else
             echo "allowed=false" >> "$GITHUB_OUTPUT"
-            echo "⛔ npm publishing is NOT authorised for a release trigger."
+            echo "⛔ npm publishing is NOT authorised for a $EVENT_NAME trigger."
             echo "   This fork does not own the 'omniroute' name on npm; upstream publishes it."
             echo "   Set repository variable ENABLE_NPM_PUBLISH=true to allow it."
           fi
