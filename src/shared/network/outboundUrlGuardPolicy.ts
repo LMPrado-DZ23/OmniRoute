@@ -22,9 +22,23 @@ export const PRIVATE_PROVIDER_URLS_ENV = "OMNIROUTE_ALLOW_PRIVATE_PROVIDER_URLS"
 // who only use public providers can disable it to restore strict SSRF blocking.
 export const LOCAL_PROVIDER_URLS_ENV = "OMNIROUTE_ALLOW_LOCAL_PROVIDER_URLS";
 
+// The one switch that re-opens cloud metadata (169.254.169.254 and friends). It exists so
+// nothing becomes impossible, but it is deliberately separate from
+// OMNIROUTE_ALLOW_PRIVATE_PROVIDER_URLS: that toggle is labelled "Allow Private Provider
+// URLs" in the dashboard, and it used to disable the metadata block as a side effect —
+// reopening the SSRF→IMDS credential pivot on any cloud VPS, from a switch whose label
+// says nothing about it. Env-only and undocumented in the UI, because reaching an instance
+// metadata endpoint through a PROVIDER base URL is not a thing an operator does by accident.
+export const CLOUD_METADATA_URLS_ENV = "OMNIROUTE_ALLOW_CLOUD_METADATA_URLS";
+
 function isTrueValue(raw: unknown): boolean {
   if (typeof raw !== "string") return false;
   return TRUE_ENV_VALUES.has(raw.trim().toLowerCase());
+}
+
+/** True only when the operator opted in to metadata egress by name. Env-only, no DB toggle. */
+export function areCloudMetadataUrlsAllowed(): boolean {
+  return isTrueValue(process.env[CLOUD_METADATA_URLS_ENV]);
 }
 
 export function arePrivateProviderUrlsAllowed() {
@@ -60,12 +74,16 @@ export function arePrivateProviderUrlsAllowed() {
  * Guard mode for the provider OUTBOUND path (search-provider connection validation, image
  * generation, remote image fetch, model discovery — anything that does not go through the
  * chat validation path). Precedence — mirrors `getProviderValidationGuard()` (#9123):
- *  1. explicit full opt-in (`arePrivateProviderUrlsAllowed`) → "none" (no checks; power users).
+ *  1. explicit full opt-in (`arePrivateProviderUrlsAllowed`) → "block-metadata": LAN and
+ *     private hosts allowed, cloud metadata still blocked. Only the separate, by-name
+ *     `OMNIROUTE_ALLOW_CLOUD_METADATA_URLS` reaches "none" (no checks at all).
  *  2. local-first default (`areLocalProviderUrlsAllowed`) → "block-metadata" (allow LAN, block IMDS).
  *  3. otherwise → "public-only" (strict).
  */
 export function getProviderOutboundGuard(): OutboundUrlGuardMode {
-  if (arePrivateProviderUrlsAllowed()) return "none";
+  if (arePrivateProviderUrlsAllowed()) {
+    return areCloudMetadataUrlsAllowed() ? "none" : "block-metadata";
+  }
   if (areLocalProviderUrlsAllowed()) return "block-metadata";
   return "public-only";
 }
@@ -102,12 +120,16 @@ export function areLocalProviderUrlsAllowed(): boolean {
 
 /**
  * Guard mode for the provider VALIDATION/use path (not webhooks or remote images). Precedence:
- *  1. explicit full opt-in (`arePrivateProviderUrlsAllowed`) → "none" (no checks; power users).
+ *  1. explicit full opt-in (`arePrivateProviderUrlsAllowed`) → "block-metadata": LAN and
+ *     private hosts allowed, cloud metadata still blocked. Only the separate, by-name
+ *     `OMNIROUTE_ALLOW_CLOUD_METADATA_URLS` reaches "none" (no checks at all).
  *  2. local-first default (`areLocalProviderUrlsAllowed`) → "block-metadata" (allow LAN, block IMDS).
  *  3. otherwise → "public-only" (strict).
  */
 export function getProviderValidationGuard(): OutboundUrlGuardMode {
-  if (arePrivateProviderUrlsAllowed()) return "none";
+  if (arePrivateProviderUrlsAllowed()) {
+    return areCloudMetadataUrlsAllowed() ? "none" : "block-metadata";
+  }
   if (areLocalProviderUrlsAllowed()) return "block-metadata";
   return "public-only";
 }

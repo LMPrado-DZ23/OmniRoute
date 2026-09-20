@@ -23,9 +23,8 @@ function withEnv(overrides: Record<string, string | undefined>, fn: () => void) 
 }
 
 test("#9123: setting ONLY OMNIROUTE_ALLOW_LOCAL_PROVIDER_URLS=true should relax the guard used for search-provider outbound calls (currently does not)", async () => {
-  const { areLocalProviderUrlsAllowed, getProviderOutboundGuard } = await import(
-    "../../src/shared/network/outboundUrlGuardPolicy.ts"
-  );
+  const { areLocalProviderUrlsAllowed, getProviderOutboundGuard } =
+    await import("../../src/shared/network/outboundUrlGuardPolicy.ts");
 
   withEnv({ OMNIROUTE_ALLOW_LOCAL_PROVIDER_URLS: "true" }, () => {
     assert.equal(areLocalProviderUrlsAllowed(), true);
@@ -40,10 +39,14 @@ test("#9123: setting ONLY OMNIROUTE_ALLOW_LOCAL_PROVIDER_URLS=true should relax 
 });
 
 test("#9123 control: OMNIROUTE_ALLOW_PRIVATE_PROVIDER_URLS=true DOES relax the same guard", async () => {
-  const { getProviderOutboundGuard } = await import(
-    "../../src/shared/network/outboundUrlGuardPolicy.ts"
-  );
+  const { getProviderOutboundGuard } =
+    await import("../../src/shared/network/outboundUrlGuardPolicy.ts");
   withEnv({ OMNIROUTE_ALLOW_PRIVATE_PROVIDER_URLS: "true" }, () => {
-    assert.equal(getProviderOutboundGuard(), "none");
+    // This control exists to show the flag relaxes the guard, and it still does —
+    // "public-only" -> "block-metadata". It used to assert "none", which ALSO unblocked
+    // cloud metadata from a toggle labelled "Allow Private Provider URLs"; reopening the
+    // SSRF -> IMDS pivot is now behind OMNIROUTE_ALLOW_CLOUD_METADATA_URLS, by name.
+    assert.notEqual(getProviderOutboundGuard(), "public-only");
+    assert.equal(getProviderOutboundGuard(), "block-metadata");
   });
 });
