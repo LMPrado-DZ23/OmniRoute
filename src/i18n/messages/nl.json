@@ -6359,6 +6359,8 @@
     "bedrockModelPlaceholder": "antropisch.claude-sonnet-4-6",
     "addProviderSessionCookieTitle": "Voeg {provider} sessiecookie toe",
     "openWebProviderSite": "Open {host}",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "Voeg {provider} webtoken toe",
     "addProviderConnectionTitle": "Voeg {provider}-verbinding toe",
     "webTokenCredentialLabel": "Token voor websessie",

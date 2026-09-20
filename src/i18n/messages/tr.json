@@ -6359,6 +6359,8 @@
     "bedrockModelPlaceholder": "antropik.claude-sonnet-4-6",
     "addProviderSessionCookieTitle": "{provider} oturum çerezi ekle",
     "openWebProviderSite": "{host} Aç",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "{provider} web jetonunu ekle",
     "addProviderConnectionTitle": "{provider} bağlantısını ekle",
     "webTokenCredentialLabel": "Web oturumu jetonu",

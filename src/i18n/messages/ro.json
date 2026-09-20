@@ -6359,6 +6359,8 @@
     "bedrockModelPlaceholder": "antropic.claude-sonet-4-6",
     "addProviderSessionCookieTitle": "Adăugați {provider} cookie de sesiune",
     "openWebProviderSite": "Deschideți {host}",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "Adăugați {provider} indicativ web",
     "addProviderConnectionTitle": "Adăugați conexiunea {provider}",
     "webTokenCredentialLabel": "Indicativ de sesiune web",

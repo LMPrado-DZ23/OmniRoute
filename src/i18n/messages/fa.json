@@ -6359,6 +6359,8 @@
     "bedrockModelPlaceholder": "anthropic.claude-sonnet-4-6",
     "addProviderSessionCookieTitle": "کوکی جلسه {provider} را اضافه کنید",
     "openWebProviderSite": "باز کردن {host}",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "کد وب {provider} را اضافه کنید",
     "addProviderConnectionTitle": "اتصال {provider} را اضافه کنید",
     "webTokenCredentialLabel": "نشانه جلسه وب",

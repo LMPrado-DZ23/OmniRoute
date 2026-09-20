@@ -6359,6 +6359,8 @@
     "bedrockModelPlaceholder": "anthropic.Claudesonnet-4-6",
     "addProviderSessionCookieTitle": "添加 {provider} 会话 cookie",
     "openWebProviderSite": "打开 {host}",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "添加 {provider} 网络令牌",
     "addProviderConnectionTitle": "添加 {provider} 连接",
     "webTokenCredentialLabel": "网络会话令牌",

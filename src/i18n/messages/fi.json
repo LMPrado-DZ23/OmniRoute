@@ -6359,6 +6359,8 @@
     "bedrockModelPlaceholder": "antrooppinen.claude-sonnet-4-6",
     "addProviderSessionCookieTitle": "Lisää {provider} istuntoeväste",
     "openWebProviderSite": "Avaa {host}",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "Lisää {provider} verkkotunnus",
     "addProviderConnectionTitle": "Lisää {provider}-yhteys",
     "webTokenCredentialLabel": "Verkkoistunnon tunnus",

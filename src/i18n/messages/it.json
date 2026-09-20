@@ -6359,6 +6359,8 @@
     "bedrockModelPlaceholder": "antropico.claude-sonetto-4-6",
     "addProviderSessionCookieTitle": "Aggiungi {provider} cookie di sessione",
     "openWebProviderSite": "Apri {host}",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "Aggiungi {provider} token web",
     "addProviderConnectionTitle": "Aggiungi la connessione {provider}",
     "webTokenCredentialLabel": "Token di sessione Web",

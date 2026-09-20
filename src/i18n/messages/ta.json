@@ -6359,6 +6359,8 @@
     "bedrockModelPlaceholder": "anthropic.claude-sonnet-4-6",
     "addProviderSessionCookieTitle": "{provider} அமர்வு குக்கீயைச் சேர்க்கவும்",
     "openWebProviderSite": "{host}-ஐத் திறக்கவும்",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "{provider} இணைய டோக்கனைச் சேர்க்கவும்",
     "addProviderConnectionTitle": "{provider} இணைப்பைச் சேர்க்கவும்",
     "webTokenCredentialLabel": "வலை அமர்வு டோக்கன்",

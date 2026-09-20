@@ -6359,6 +6359,8 @@
     "bedrockModelPlaceholder": "anthropic.claude-sonnet-4-6",
     "addProviderSessionCookieTitle": "เพิ่มคุกกี้เซสชัน {provider}",
     "openWebProviderSite": "เปิด {host}",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "เพิ่ม {provider} เว็บโทเค็น",
     "addProviderConnectionTitle": "เพิ่มการเชื่อมต่อ {provider}",
     "webTokenCredentialLabel": "โทเค็นเซสชันเว็บ",

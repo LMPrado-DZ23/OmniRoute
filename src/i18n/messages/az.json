@@ -6359,6 +6359,8 @@
     "bedrockModelPlaceholder": "antropik.claude-sonnet-4-6",
     "addProviderSessionCookieTitle": "{provider} sessiya kukisini əlavə edin",
     "openWebProviderSite": "Open {host}",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "{provider} veb nişanı əlavə edin",
     "addProviderConnectionTitle": "{provider} əlaqə əlavə edin",
     "webTokenCredentialLabel": "Veb sessiya nişanı",

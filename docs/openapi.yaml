@@ -686,6 +686,14 @@ paths:
       tags:
         - Memory
       summary: Create a memory entry
+      description: >-
+        Creates a memory entry and answers `200` with `{ success: true, id }`.
+        NOTE: despite its name, `id` holds the FULL created MemoryEntry, not an
+        identifier string — read the new entry's identifier from `id.id`. This
+        shape is consumed by the dashboard and the CLI and is kept for
+        compatibility; it is known design debt that blocks promoting this
+        operation to `stable` (a later release can add a correctly named field
+        alongside and deprecate `id` before removing it at a major).
       security:
         - ManagementSessionAuth: []
       requestBody:
@@ -725,16 +733,32 @@ paths:
                   format: date-time
                   nullable: true
       responses:
-        "201":
-          description: Created memory entry
+        "200":
+          description: >-
+            Memory entry created. `id` carries the full created MemoryEntry (not an
+            identifier string); see the operation description.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MemoryEntry"
+                type: object
+                required:
+                  - success
+                  - id
+                properties:
+                  success:
+                    type: boolean
+                    enum:
+                      - true
+                  id:
+                    $ref: "#/components/schemas/MemoryEntry"
         "400":
-          description: Validation error
+          description: >-
+            Validation error (body is `{ message, details: [{ field, message }] }`), or
+            a storage failure (body is `{ error: { message } }`).
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: API key lacks the manage scope
   /api/memory/{id}:
     parameters:
       - name: id
@@ -2413,22 +2437,6 @@ paths:
           description: OK
 
   /api/models/alias:
-    post:
-      x-stability: internal
-      x-owner: "@LMPrado-DZ23"
-      x-since: "3.8.53"
-      x-rate-limit: none
-      tags: [Models]
-      summary: Create or update a model alias
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        "200":
-          description: Alias created/updated
     get:
       x-stability: internal
       x-owner: "@LMPrado-DZ23"
@@ -2747,18 +2755,6 @@ paths:
           description: Created node
 
   /api/provider-nodes/{id}:
-    patch:
-      x-stability: internal
-      x-owner: "@LMPrado-DZ23"
-      x-since: "3.8.53"
-      x-rate-limit: none
-      tags: [Provider Nodes]
-      summary: Update provider node
-      parameters:
-        - $ref: "#/components/parameters/ResourceId"
-      responses:
-        "200":
-          description: Updated node
     delete:
       x-stability: internal
       x-owner: "@LMPrado-DZ23"
@@ -3632,16 +3628,6 @@ paths:
       responses:
         "200":
           description: Current proxy settings
-    patch:
-      x-stability: internal
-      x-owner: "@LMPrado-DZ23"
-      x-since: "3.8.53"
-      x-rate-limit: none
-      tags: [Settings]
-      summary: Update proxy settings
-      responses:
-        "200":
-          description: Updated proxy settings
     put:
       x-stability: internal
       x-owner: "@LMPrado-DZ23"
@@ -4991,16 +4977,6 @@ paths:
       responses:
         "200":
           description: Current pricing configuration
-    post:
-      x-stability: internal
-      x-owner: "@LMPrado-DZ23"
-      x-since: "3.8.53"
-      x-rate-limit: none
-      tags: [Pricing]
-      summary: Set model pricing
-      responses:
-        "200":
-          description: Updated pricing
     patch:
       x-stability: internal
       x-owner: "@LMPrado-DZ23"
@@ -7178,16 +7154,6 @@ paths:
           description: Import result
 
   /api/oauth/kiro/import:
-    get:
-      x-stability: experimental
-      x-owner: "@LMPrado-DZ23"
-      x-since: "3.8.53"
-      x-rate-limit: none
-      tags: [OAuth]
-      summary: Get Kiro import status
-      responses:
-        "200":
-          description: Current import status
     post:
       x-stability: experimental
       x-owner: "@LMPrado-DZ23"
@@ -8572,10 +8538,23 @@ paths:
       x-rate-limit: none
       tags: [Telemetry]
       summary: Get telemetry summary
-      description: Returns aggregated telemetry data including request metrics and performance stats.
+      description: >-
+        Returns aggregated telemetry data including request metrics and performance stats.
+        Management-scoped. When login is required, an anonymous caller gets 401 and a
+        key without the manage scope gets 403 (enforced by the central middleware and,
+        as defence in depth, by the handler). With requireLogin disabled — the
+        documented local-only mode, where the whole management surface is open — the
+        route answers anonymous callers, so the dashboard telemetry card works on
+        keyless installs. Unlike /api/metrics it is intentionally not always-protected.
+      security:
+        - BearerAuth: []
       responses:
         "200":
           description: Telemetry summary data
+        "401":
+          description: Management authentication required
+        "403":
+          description: API key lacks the manage scope
 
   /api/token-health:
     get:
@@ -8645,17 +8624,17 @@ paths:
       x-since: "3.8.53"
       x-rate-limit: none
       tags: [System]
-      summary: List routing policies
+      summary: List login identifiers currently locked out
       responses:
         "200":
-          description: Policy list
+          description: Locked login identifiers ({ lockedIdentifiers })
     post:
       x-stability: internal
       x-owner: "@LMPrado-DZ23"
       x-since: "3.8.53"
       x-rate-limit: none
       tags: [System]
-      summary: Create routing policy
+      summary: Force-unlock a locked login identifier ({ action unlock, identifier })
       requestBody:
         required: true
         content:
@@ -8664,17 +8643,7 @@ paths:
               type: object
       responses:
         "201":
-          description: Created policy
-    delete:
-      x-stability: internal
-      x-owner: "@LMPrado-DZ23"
-      x-since: "3.8.53"
-      x-rate-limit: none
-      tags: [System]
-      summary: Delete routing policy
-      responses:
-        "200":
-          description: Policy deleted
+          description: Unlock result
 
   /api/compliance/audit-log:
     get:
@@ -9280,22 +9249,6 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AgentBridgeBypassRow"
-    put:
-      x-stability: internal
-      x-owner: "@LMPrado-DZ23"
-      x-since: "3.8.53"
-      x-rate-limit: none
-      tags: [AgentBridge]
-      summary: Update user bypass patterns
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AgentBridgeBypassUpsert"
-      responses:
-        "200":
-          description: Patterns updated
     post:
       x-stability: internal
       x-owner: "@LMPrado-DZ23"
@@ -19052,8 +19005,10 @@ paths:
         - Webhooks
       summary: "POST webhooks"
       responses:
-        "200":
-          description: OK
+        "201":
+          description: Webhook created. Body is `{ webhook }`, the stored row.
+        "400":
+          description: Invalid body (unknown event, blocked private URL, or telegram without storage encryption).
   /api/webhooks/{id}:
     delete:
       x-stability: internal

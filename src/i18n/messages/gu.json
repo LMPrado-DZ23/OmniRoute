@@ -6359,6 +6359,8 @@
     "bedrockModelPlaceholder": "anthropic.claude-sonnet-4-6",
     "addProviderSessionCookieTitle": "{provider} સત્ર કૂકી ઉમેરો",
     "openWebProviderSite": "{host} ખોલો",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "{provider} વેબ ટોકન ઉમેરો",
     "addProviderConnectionTitle": "{provider} કનેક્શન ઉમેરો",
     "webTokenCredentialLabel": "વેબ સત્ર ટોકન",

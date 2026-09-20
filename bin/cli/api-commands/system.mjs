@@ -254,7 +254,7 @@ export function register_system(parent) {
       emit(data, gOpts);
     });
   tag.command("get-api-policies")
-    .description("List routing policies")
+    .description("List login identifiers currently locked out")
     .action(async (opts, cmd) => {
       const gOpts = cmd.optsWithGlobals();
       let url = "/api/policies";
@@ -263,7 +263,7 @@ export function register_system(parent) {
       emit(data, gOpts);
     });
   tag.command("post-api-policies")
-    .description("Create routing policy")
+    .description("Force-unlock a locked login identifier ({ action unlock, identifier })")
     .option("--body <jsonOrPath>", "JSON body or @path/to/file.json")
     .action(async (opts, cmd) => {
       const gOpts = cmd.optsWithGlobals();
@@ -275,15 +275,6 @@ export function register_system(parent) {
           : JSON.parse(opts.body);
       }
       const res = await apiFetch(url, { method: "POST", body, baseUrl: gOpts.baseUrl, apiKey: gOpts.apiKey });
-      const data = res.ok ? await res.json() : await res.text();
-      emit(data, gOpts);
-    });
-  tag.command("delete-api-policies")
-    .description("Delete routing policy")
-    .action(async (opts, cmd) => {
-      const gOpts = cmd.optsWithGlobals();
-      let url = "/api/policies";
-      const res = await apiFetch(url, { method: "DELETE", baseUrl: gOpts.baseUrl, apiKey: gOpts.apiKey });
       const data = res.ok ? await res.json() : await res.text();
       emit(data, gOpts);
     });

@@ -6359,6 +6359,8 @@
     "bedrockModelPlaceholder": "антропичен.claude-sonnet-4-6",
     "addProviderSessionCookieTitle": "Добавяне на сесийна бисквитка {provider}",
     "openWebProviderSite": "Отваряне на {host}",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "Добавете {provider} уеб маркер",
     "addProviderConnectionTitle": "Добавяне на {provider} връзка",
     "webTokenCredentialLabel": "Токен за уеб сесия",

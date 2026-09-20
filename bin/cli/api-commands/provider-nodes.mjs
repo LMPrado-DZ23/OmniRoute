@@ -23,15 +23,6 @@ export function register_provider_nodes(parent) {
       const data = res.ok ? await res.json() : await res.text();
       emit(data, gOpts);
     });
-  tag.command("patch-api-provider-nodes-id-")
-    .description("Update provider node")
-    .action(async (opts, cmd) => {
-      const gOpts = cmd.optsWithGlobals();
-      let url = "/api/provider-nodes/{id}";
-      const res = await apiFetch(url, { method: "PATCH", baseUrl: gOpts.baseUrl, apiKey: gOpts.apiKey });
-      const data = res.ok ? await res.json() : await res.text();
-      emit(data, gOpts);
-    });
   tag.command("delete-api-provider-nodes-id-")
     .description("Delete provider node")
     .action(async (opts, cmd) => {
