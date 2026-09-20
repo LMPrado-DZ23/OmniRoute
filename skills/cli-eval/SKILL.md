@@ -175,16 +175,13 @@ omniroute eval get $RUN_ID
 omniroute eval list                              # List all eval runs
 omniroute eval list --json
 
-omniroute eval get <runId>                       # Run details (status, model, score)
-omniroute eval results <runId>                   # Per-sample results
-omniroute eval scorecard <runId>                 # Full scorecard with pass/fail per sample
-omniroute eval cancel <runId>                    # Cancel a running eval
+omniroute eval scorecard                         # Scorecard history across runs
 ```
 
 ## Scorecard output
 
 ```bash
-omniroute eval scorecard <runId> --output json
+omniroute eval scorecard --output json
 ```
 
 Response fields per sample:

@@ -235,10 +235,7 @@ omniroute keys add <provider> [apiKey]               # Add an API key for a prov
 omniroute keys remove <provider>                     # Remove an API key
 omniroute keys regenerate <id>                       # Regenerate (rotate) a key
 omniroute keys revoke <id>                           # Revoke a key (disables it)
-omniroute keys reveal <id>                           # Show the full key value
-omniroute keys usage <id>                            # Show usage stats for a key
-
-omniroute keys rotate <id>                           # Rotate + revoke old key atomically
+omniroute keys usage <id>                            # Show request history for a key
 omniroute keys expiration list                       # List key expiration times
 ```
 

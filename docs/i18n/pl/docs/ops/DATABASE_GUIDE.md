@@ -509,7 +509,7 @@ mv recovered.db ~/.omniroute/storage.sqlite
 Przywróć z kopii zapasowej:
 
 ```bash
-omniroute sync pull --merge   # or: omniroute backup restore <backup-id>
+omniroute backup restore <backup-id>   # or: omniroute sync import <bundle.tar.gz>
 ```
 
 ### Scenariusz 3: Utracony klucz szyfrowania
