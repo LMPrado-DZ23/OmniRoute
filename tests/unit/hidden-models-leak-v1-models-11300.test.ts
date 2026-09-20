@@ -34,12 +34,9 @@ const modelsDb = await import("../../src/lib/db/models.ts");
 const { mergeModelCompatOverride } = await import("@/lib/db/models");
 const v1ModelsCatalog = await import("../../src/app/api/v1/models/catalog.ts");
 
-// Hermetic outbound layer — installed AFTER every import, because
-// open-sse/utils/proxyFetch.ts replaces globalThis.fetch at import time and would
-// discard a stub installed before it. Production code under test makes best-effort
-// calls (catalog polls, egress probes) that must never leave the machine.
-const { installOfflineOutbound } = await import("./_helpers/offlineOutbound.ts");
-await installOfflineOutbound();
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
 
 async function resetStorage() {
   core.resetDbInstance();

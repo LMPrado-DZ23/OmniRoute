@@ -84,6 +84,11 @@ export interface OfflineOutboundOptions {
    * executors need it — their transport is a native binding, not globalThis.fetch.
    */
   interceptTlsClient?: boolean;
+  /**
+   * Refuse proxyFetch's own undici dispatchers for non-loopback hosts (default: on).
+   * Turn it off only for a suite that drives proxyFetch against a real dispatcher.
+   */
+  interceptProxyDispatchers?: boolean;
 }
 
 export async function installOfflineOutbound(
@@ -104,6 +109,45 @@ export async function installOfflineOutbound(
     restores.push(() => egress._setEgressProbeForTests(null));
   } catch {
     // The module is optional for the caller's graph.
+  }
+
+  // proxyFetch's direct (no-proxy) path does NOT go through globalThis.fetch: it calls
+  // undici's fetch with a dispatcher of its own, taken from open-sse/utils/proxyDispatcherCache
+  // (symbol-keyed globals). A caller holding the proxyFetch export therefore opens a socket
+  // before any fetch stub is consulted. Seeding those globals with a MockAgent that refuses
+  // everything except loopback closes that path in-process — the request fails before connect,
+  // and proxyFetch's fallback to globalThis.fetch lands on the stub below.
+  if (options.interceptProxyDispatchers !== false) {
+    const { MockAgent, getGlobalDispatcher, setGlobalDispatcher } = await import("undici");
+    const mock = new MockAgent();
+    mock.disableNetConnect();
+    mock.enableNetConnect((host: string) => isLoopbackHost(host.replace(/:\d+$/, "")));
+    // Anything that calls undici without an explicit dispatcher uses the global one.
+    const previousGlobal = getGlobalDispatcher();
+    setGlobalDispatcher(mock);
+    restores.push(() => setGlobalDispatcher(previousGlobal));
+    const scope: Record<symbol, unknown> = globalThis;
+    const keys = [
+      Symbol.for("omniroute.proxyDispatcher.default"),
+      Symbol.for("omniroute.proxyDispatcher.retry"),
+      Symbol.for("omniroute.proxyDispatcher.cache"),
+    ];
+    const previous = keys.map((key) => scope[key]);
+    scope[keys[0]] = mock;
+    scope[keys[1]] = mock;
+    // Per-proxy dispatchers are looked up in this Map and created on a miss; always
+    // answering with the mock keeps proxied egress in-process too.
+    scope[keys[2]] = new Map<string, unknown>([]) as unknown;
+    const cache = scope[keys[2]];
+    if (cache instanceof Map) {
+      Object.defineProperty(cache, "get", { value: () => mock, configurable: true });
+    }
+    restores.push(() => {
+      keys.forEach((key, index) => {
+        scope[key] = previous[index];
+      });
+      void mock.close();
+    });
   }
 
   const attempts: string[] = [];
@@ -135,6 +179,20 @@ export async function installOfflineOutbound(
         for (const restore of restores.reverse()) restore();
       },
     };
+  }
+
+  // A route imported LATER (inside a test) pulls proxyFetch, whose module body assigns
+  // globalThis.fetch — that would drop this stub silently. proxyFetch guards that
+  // assignment with the `isPatched` flag of its symbol-keyed global state, so claiming the
+  // flag keeps later instances off globalThis.fetch. Tests that install a stub of their own
+  // still win: this is a plain assignment, not an accessor.
+  const patchState = Reflect.get(globalThis, Symbol.for("omniroute.proxyFetch.state"));
+  if (typeof patchState === "object" && patchState !== null && "isPatched" in patchState) {
+    const wasPatched: unknown = Reflect.get(patchState, "isPatched");
+    Reflect.set(patchState, "isPatched", true);
+    restores.push(() => {
+      Reflect.set(patchState, "isPatched", wasPatched);
+    });
   }
 
   const stub: typeof globalThis.fetch = async (input, init) => {

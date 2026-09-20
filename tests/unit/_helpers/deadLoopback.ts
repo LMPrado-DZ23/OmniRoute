@@ -23,8 +23,3 @@ export async function reserveDeadLoopbackPort(): Promise<number> {
   await new Promise<void>((resolve) => server.close(() => resolve()));
   return port;
 }
-
-/** `127.0.0.1:<closed port>` as a host/port pair. */
-export async function reserveDeadLoopbackTarget(): Promise<{ host: string; port: number }> {
-  return { host: "127.0.0.1", port: await reserveDeadLoopbackPort() };
-}

@@ -9,12 +9,9 @@ const { BaseExecutor, buildRequest, combosDb, handleChat, resetStorage, waitFor,
 const providersDb = await import("../../src/lib/db/providers.ts");
 const handoffDb = await import("../../src/lib/db/contextHandoffs.ts");
 
-// Hermetic outbound layer — installed AFTER every import, because
-// open-sse/utils/proxyFetch.ts replaces globalThis.fetch at import time and would
-// discard a stub installed before it. Production code under test makes best-effort
-// calls (catalog polls, egress probes) that must never leave the machine.
-const { installOfflineOutbound } = await import("./_helpers/offlineOutbound.ts");
-await installOfflineOutbound();
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
 
 function buildResponsesResponse(text = "ok", model = "gpt-5.6-sol") {
   return new Response(
