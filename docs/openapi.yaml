@@ -17151,7 +17151,6 @@ paths:
       tags:
         - System
       summary: "GET system › version"
-      x-loopback-only: true
       responses:
         "200":
           description: OK
@@ -17379,7 +17378,6 @@ paths:
       tags:
         - Tunnels
       summary: "GET tunnels › cloudflared"
-      x-loopback-only: true
       responses:
         "200":
           description: OK
