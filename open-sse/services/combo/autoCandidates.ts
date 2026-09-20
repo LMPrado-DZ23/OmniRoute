@@ -190,6 +190,15 @@ interface LatencyProfile {
   p95LatencyMs: number;
   latencyStdDev: number;
   errorRate: number;
+  /**
+   * True when `p95LatencyMs` came from the per-model bootstrap table rather than from
+   * measurement — no 24h history above `MIN_HISTORY_SAMPLES` and no usable live metric.
+   *
+   * Scoring is happy to rank on a guess; a request's latency budget is not. Refusing a
+   * candidate on a hardcoded default would reject a model that might well be fast, and the
+   * traffic that would prove it can only happen if the candidate is allowed through.
+   */
+  latencyIsEstimated: boolean;
   /** TTFT / end-to-end / tokens-per-second telemetry, present only with enough history (#6875). */
   speedTelemetry: ReturnType<typeof deriveSpeedTelemetry> | undefined;
 }
@@ -236,12 +245,14 @@ function resolveLatencyProfile(
 ): LatencyProfile {
   const historicalTotal = Number(historicalMetric?.totalRequests);
   const hasHistory = Number.isFinite(historicalTotal) && historicalTotal >= MIN_HISTORY_SAMPLES;
-  const p95LatencyMs = resolveP95LatencyMs(
-    hasHistory,
-    Number(historicalMetric?.p95LatencyMs),
-    Number(liveMetric?.avgLatencyMs),
-    model
-  );
+  const historicalP95 = Number(historicalMetric?.p95LatencyMs);
+  const liveAvg = Number(liveMetric?.avgLatencyMs);
+  const p95LatencyMs = resolveP95LatencyMs(hasHistory, historicalP95, liveAvg, model);
+  // Mirrors resolveP95LatencyMs's own fallbacks: anything that does not come from the
+  // historical p95 or the live average is the bootstrap guess.
+  const latencyIsEstimated = hasHistory
+    ? !(Number.isFinite(historicalP95) && historicalP95 > 0)
+    : !(Number.isFinite(liveAvg) && liveAvg > 0);
   const historicalStdDev = Number(historicalMetric?.latencyStdDev);
   const latencyStdDev =
     hasHistory && Number.isFinite(historicalStdDev) && historicalStdDev > 0
@@ -250,6 +261,7 @@ function resolveLatencyProfile(
   return {
     p95LatencyMs,
     latencyStdDev,
+    latencyIsEstimated,
     errorRate: resolveErrorRate(
       hasHistory,
       Number(historicalMetric?.successRate),
@@ -390,7 +402,11 @@ interface CandidateContext {
  * (the quota-share and session-availability paths read it), so the builder's own return type says
  * so rather than dropping the field or widening the shared contract.
  */
-type BuiltAutoCandidate = AutoProviderCandidate & { authType: string | null };
+type BuiltAutoCandidate = AutoProviderCandidate & {
+  authType: string | null;
+  /** True when `p95LatencyMs` is the bootstrap guess, not a measurement (see LatencyProfile). */
+  latencyIsEstimated: boolean;
+};
 
 async function buildCandidate(
   target: ResolvedComboTarget,
@@ -434,6 +450,7 @@ async function buildCandidate(
     costPer1MTokens,
     p95LatencyMs: latency.p95LatencyMs,
     latencyStdDev: latency.latencyStdDev,
+    latencyIsEstimated: latency.latencyIsEstimated,
     errorRate: latency.errorRate,
     ...latency.speedTelemetry,
     accountTier: "standard" as const,

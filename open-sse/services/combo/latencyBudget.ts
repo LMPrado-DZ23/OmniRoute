@@ -20,16 +20,36 @@ import { exceedsLatencyBudget } from "../routing/attemptPolicy.ts";
 interface LatencyScoredCandidate {
   executionKey: string;
   p95LatencyMs: number;
+  latencyIsEstimated?: boolean;
 }
 
-/** Candidates whose estimated latency fits `maxLatencyMs`. Undefined budget keeps every one. */
-export function candidatesWithinLatencyBudget<T extends { p95LatencyMs: number }>(
-  candidates: T[],
-  maxLatencyMs: number | undefined
-): T[] {
+/**
+ * Whether this candidate's latency is a measurement rather than the per-model bootstrap
+ * guess. `buildAutoCandidates` sets `latencyIsEstimated` when nothing was measured; a
+ * candidate that predates the flag, or one built by a caller that does not set it, is taken
+ * at face value so behaviour is unchanged for everything that was already measuring.
+ */
+function latencyIsMeasured(candidate: { latencyIsEstimated?: boolean }): boolean {
+  return candidate.latencyIsEstimated !== true;
+}
+
+/**
+ * Candidates whose estimated latency fits `maxLatencyMs`. Undefined budget keeps every one.
+ *
+ * A candidate whose latency was never measured is kept regardless of the budget. Every
+ * candidate carries a number — `resolveP95LatencyMs` falls back to a hardcoded per-model
+ * default — so without this distinction "unknown" is indistinguishable from "measured", and
+ * a fresh install would permanently refuse every model under its bootstrap value on no
+ * evidence at all. Worse, it is self-sealing: the traffic that would replace the guess with
+ * a measurement can only happen if the candidate is allowed through.
+ */
+export function candidatesWithinLatencyBudget<
+  T extends { p95LatencyMs: number; latencyIsEstimated?: boolean },
+>(candidates: T[], maxLatencyMs: number | undefined): T[] {
   if (maxLatencyMs === undefined) return candidates;
   return candidates.filter(
-    (candidate) => !exceedsLatencyBudget(candidate.p95LatencyMs, maxLatencyMs)
+    (candidate) =>
+      !latencyIsMeasured(candidate) || !exceedsLatencyBudget(candidate.p95LatencyMs, maxLatencyMs)
   );
 }
 
@@ -44,7 +64,11 @@ export function dropTargetsOverLatencyBudget<T extends { executionKey: string }>
   maxLatencyMs: number | undefined
 ): T[] {
   if (maxLatencyMs === undefined) return targets;
-  const latencyByKey = new Map(candidates.map((c) => [c.executionKey, c.p95LatencyMs]));
+  // Only measured latencies are indexed: an unmeasured candidate is treated exactly like a
+  // target with no candidate row at all — no estimate, so no evidence of a breach.
+  const latencyByKey = new Map(
+    candidates.filter(latencyIsMeasured).map((c) => [c.executionKey, c.p95LatencyMs])
+  );
   return targets.filter(
     (target) => !exceedsLatencyBudget(latencyByKey.get(target.executionKey), maxLatencyMs)
   );

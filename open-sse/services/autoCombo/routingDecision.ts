@@ -42,6 +42,13 @@ export interface DecisionCandidateInput extends ProviderCandidate {
   modelAvailable?: boolean;
   /** Capabilities the model supports (tools, vision, ...). Undeclared means not checked. */
   capabilities?: readonly string[];
+  /**
+   * True when `p95LatencyMs` is the per-model bootstrap guess rather than a measurement.
+   * The latency budget does not exclude on a guess, so neither may this reason — a decision
+   * that reports `latency_over_budget` for a candidate selection actually kept would make
+   * the recorded explanation disagree with what happened.
+   */
+  latencyIsEstimated?: boolean;
 }
 
 export interface RoutingDecisionClock {
@@ -99,7 +106,10 @@ export function hardExclusionReasons(
   if (maxCost !== undefined && estimateAutoRequestCostUsd(candidate.costPer1MTokens) > maxCost) {
     reasons.push("cost_over_budget");
   }
-  if (exceedsLatencyBudget(candidate.p95LatencyMs, request.budget?.maxLatencyMs)) {
+  if (
+    candidate.latencyIsEstimated !== true &&
+    exceedsLatencyBudget(candidate.p95LatencyMs, request.budget?.maxLatencyMs)
+  ) {
     reasons.push("latency_over_budget");
   }
   return reasons;
