@@ -235,21 +235,6 @@ omniroute sync
 omniroute sync push
 ```
 
-### `sync pull`
-
-**Flags:**
-
-- `--source <s>`
-- `--merge`
-- `--replace`
-- `--dry-run`
-
-**Example:**
-
-```bash
-omniroute sync pull
-```
-
 ### `sync diff`
 
 **Flags:**

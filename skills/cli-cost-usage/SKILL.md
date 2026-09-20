@@ -93,21 +93,6 @@ omniroute pricing defaults
 omniroute pricing show
 ```
 
-### `pricing set`
-
-**Flags:**
-
-- `--input <p>`
-- `--output <p>`
-- `--cache-read <p>`
-- `--cache-write <p>`
-
-**Example:**
-
-```bash
-omniroute pricing set
-```
-
 ### `pricing diff`
 
 **Flags:**
@@ -157,33 +142,36 @@ omniroute usage budget
 omniroute usage list
 ```
 
-### `usage get [scope]`
+### `usage get <apiKeyId>`
 
 **Example:**
 
 ```bash
-omniroute usage get [scope]
+omniroute usage get <apiKeyId>
 ```
 
-### `usage set <amount>`
+### `usage set <apiKeyId>`
 
 **Flags:**
 
-- `--scope <s>`
-- `--period <p>`
+- `--daily <usd>`
+- `--weekly <usd>`
+- `--monthly <usd>`
+- `--warning-threshold <ratio>`
+- `--reset-interval <p>`
 
 **Example:**
 
 ```bash
-omniroute usage set <amount>
+omniroute usage set <apiKeyId>
 ```
 
-### `usage reset [scope]`
+### `usage clear <apiKeyId>`
 
 **Example:**
 
 ```bash
-omniroute usage reset [scope]
+omniroute usage clear <apiKeyId>
 ```
 
 ### `usage quota`

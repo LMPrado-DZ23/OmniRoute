@@ -67,9 +67,8 @@ omniroute eval create
 
 - `-m, --model <id>`
 - `--combo <name>`
-- `--concurrency <n>`
-- `--tag <tag>`
-- `--watch`
+- `--compare-model <id>`
+- `--api-key-id <id>`
 
 **Example:**
 
@@ -82,9 +81,6 @@ omniroute eval run <suiteId>
 **Flags:**
 
 - `--suite <id>`
-- `--status <s>`
-- `--since <ts>`
-- `--limit <n>`
 
 **Example:**
 
@@ -92,44 +88,12 @@ omniroute eval run <suiteId>
 omniroute eval list
 ```
 
-### `eval get <runId>`
+### `eval scorecard`
 
 **Example:**
 
 ```bash
-omniroute eval get <runId>
-```
-
-### `eval results <runId>`
-
-**Flags:**
-
-- `--failed`
-
-**Example:**
-
-```bash
-omniroute eval results <runId>
-```
-
-### `eval cancel <runId>`
-
-**Flags:**
-
-- `--yes`
-
-**Example:**
-
-```bash
-omniroute eval cancel <runId>
-```
-
-### `eval scorecard <runId>`
-
-**Example:**
-
-```bash
-omniroute eval scorecard <runId>
+omniroute eval scorecard
 ```
 
 ### `simulate [prompt]`

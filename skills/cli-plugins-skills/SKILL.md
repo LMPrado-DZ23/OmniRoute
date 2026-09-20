@@ -45,6 +45,7 @@ omniroute memory search <query>
 **Flags:**
 
 - `--content <text>`
+- `--key <key>`
 - `--file <path>`
 - `--type <type>`
 - `--metadata <json>`
@@ -266,10 +267,11 @@ omniroute skills skills
 
 **Flags:**
 
-- `--type <type>`
+- `--query <text>`
+- `--source <source>`
 - `--enabled`
 - `--disabled`
-- `--api-key <key>`
+- `--limit <n>`
 
 **Example:**
 

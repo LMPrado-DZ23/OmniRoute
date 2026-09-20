@@ -39,6 +39,10 @@ omniroute tunnel list
 
 ### `tunnel create`
 
+**Flags:**
+
+- `--auth-token <token>`
+
 **Example:**
 
 ```bash
@@ -69,18 +73,6 @@ omniroute tunnel stop <type>
 omniroute tunnel status <type>
 ```
 
-### `tunnel logs <type>`
-
-**Flags:**
-
-- `--tail <n>`
-
-**Example:**
-
-```bash
-omniroute tunnel logs <type>
-```
-
 ### `tunnel info <type>`
 
 **Flags:**
@@ -91,16 +83,4 @@ omniroute tunnel logs <type>
 
 ```bash
 omniroute tunnel info <type>
-```
-
-### `tunnel rotate <type>`
-
-**Flags:**
-
-- `--yes`
-
-**Example:**
-
-```bash
-omniroute tunnel rotate <type>
 ```
