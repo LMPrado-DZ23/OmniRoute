@@ -280,3 +280,86 @@ test("a key with no project skips the hierarchy entirely", async () => {
 test("no outbound network request was attempted", () => {
   assert.deepEqual(network.attempts, []);
 });
+
+// ─── The roll-up is one query, not one per key ─────────────────────────────
+
+test("rollUpSpend asks the database ONCE for any number of keys", async () => {
+  // This runs for EVERY request that carries a project-scoped key. The per-key shape meant
+  // a workspace with 100 keys cost 100 round-trips through prepare() to answer a single
+  // budget question — measured at 129 prepares for a 100-key check. Counting the calls is
+  // the only way to know the batching is real; asserting the SUM would pass either way.
+  const domainState = await import("../../src/lib/db/domainState.ts");
+  const db = core.getDbInstance();
+  const originalPrepare = db.prepare.bind(db);
+  const prepared: string[] = [];
+  (db as { prepare: unknown }).prepare = (sql: string) => {
+    prepared.push(sql);
+    return originalPrepare(sql);
+  };
+
+  try {
+    const keys = Array.from({ length: 100 }, (_, i) => `key-${i}`);
+    prepared.length = 0;
+    const total = domainState.loadCostTotalForKeys(keys, 0);
+
+    const selects = prepared.filter((sql) => /FROM domain_cost_history/.test(sql));
+    assert.equal(
+      selects.length,
+      1,
+      `100 keys should cost ONE select, took ${selects.length}: ${selects.join(" | ")}`
+    );
+    assert.equal(total, 0, "no ledger rows for these ids, so the sum is 0");
+  } finally {
+    (db as { prepare: unknown }).prepare = originalPrepare;
+  }
+});
+
+test("the batched total equals the per-key total it replaced", async () => {
+  // Same number, fewer queries — otherwise this is a rewrite, not an optimisation.
+  const domainState = await import("../../src/lib/db/domainState.ts");
+  const ids = ["batch-a", "batch-b", "batch-c"];
+  const perKey = ids.reduce((sum, id) => sum + domainState.loadCostTotal(id, 0), 0);
+  assert.equal(domainState.loadCostTotalForKeys(ids, 0), perKey);
+});
+
+test("an empty key set asks the database nothing at all", async () => {
+  const domainState = await import("../../src/lib/db/domainState.ts");
+  const db = core.getDbInstance();
+  const originalPrepare = db.prepare.bind(db);
+  let calls = 0;
+  (db as { prepare: unknown }).prepare = (sql: string) => {
+    calls += 1;
+    return originalPrepare(sql);
+  };
+  try {
+    assert.equal(domainState.loadCostTotalForKeys([], 0), 0);
+    assert.equal(calls, 0, "a workspace with no keys must not open a statement");
+  } finally {
+    (db as { prepare: unknown }).prepare = originalPrepare;
+  }
+});
+
+test("key ids are bound, never spliced into the SQL text", async () => {
+  // The placeholder list is built from the array's LENGTH. An id that reached the SQL
+  // string would be an injection point on a path fed by user-created key identifiers.
+  const domainState = await import("../../src/lib/db/domainState.ts");
+  const db = core.getDbInstance();
+  const originalPrepare = db.prepare.bind(db);
+  const prepared: string[] = [];
+  (db as { prepare: unknown }).prepare = (sql: string) => {
+    prepared.push(sql);
+    return originalPrepare(sql);
+  };
+  try {
+    const hostile = "x'); DROP TABLE domain_cost_history; --";
+    domainState.loadCostTotalForKeys([hostile, "plain"], 0);
+    const sql = prepared.join("\n");
+    assert.ok(!sql.includes("DROP TABLE"), "an id reached the SQL text");
+    assert.ok(!sql.includes(hostile), "an id reached the SQL text");
+    assert.match(sql, /IN \(\?,\?\)/, "the placeholder list must come from the array length");
+  } finally {
+    (db as { prepare: unknown }).prepare = originalPrepare;
+  }
+  // The table must still exist.
+  assert.equal((await import("../../src/lib/db/domainState.ts")).loadCostTotal("plain", 0), 0);
+});

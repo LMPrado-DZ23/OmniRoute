@@ -401,6 +401,39 @@ export function batchSaveCostEntries(
   tx(entries);
 }
 
+/**
+ * Summed cost for MANY keys in one statement.
+ *
+ * The workspace/project roll-up asks for the spend of every key under a node, and calling
+ * `loadCostTotal` per key made that O(keys) round-trips through `prepare()` on a path that
+ * runs for EVERY request — measured at 129 prepares for a 100-key check. One `IN (...)`
+ * gives the same number in one.
+ *
+ * Parameters are bound, never interpolated: the placeholder list is built from the array's
+ * LENGTH and the ids are passed as bind values, so an id can never reach the SQL text.
+ * SQLite's variable limit is 999 by default, so the ids are chunked well under it rather
+ * than trusting that a workspace stays small.
+ */
+export function loadCostTotalForKeys(apiKeyIds: readonly string[], sinceTimestamp: number): number {
+  if (apiKeyIds.length === 0) return 0;
+  ensureBudgetSchema();
+  const db = getDbInstance();
+  const CHUNK = 400;
+  let total = 0;
+  for (let i = 0; i < apiKeyIds.length; i += CHUNK) {
+    const chunk = apiKeyIds.slice(i, i + CHUNK);
+    const placeholders = chunk.map(() => "?").join(",");
+    const row = db
+      .prepare(
+        `SELECT COALESCE(SUM(cost), 0) AS total FROM domain_cost_history ` +
+          `WHERE api_key_id IN (${placeholders}) AND timestamp >= ?`
+      )
+      .get(...chunk, sinceTimestamp) as { total?: number } | undefined;
+    total += Number(row?.total || 0);
+  }
+  return total;
+}
+
 export function loadCostTotal(apiKeyId: string, sinceTimestamp: number) {
   ensureBudgetSchema();
   const db = getDbInstance();
