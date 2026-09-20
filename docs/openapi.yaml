@@ -9159,17 +9159,18 @@ paths:
         "409":
           description: Port 443 conflict
 
-  /api/tools/agent-bridge/agents/{agentId}/dns:
+  /api/tools/agent-bridge/agents/{id}/dns:
     post:
       x-stability: internal
       x-owner: "@LMPrado-DZ23"
       x-since: "3.8.53"
       x-rate-limit: none
+      x-loopback-only: true
       tags: [AgentBridge]
       summary: Enable or disable DNS for one agent
       description: Adds or removes /etc/hosts entries for the agent's host list. SPAWN_CAPABLE.
       parameters:
-        - name: agentId
+        - name: id
           in: path
           required: true
           schema:
@@ -9186,16 +9187,17 @@ paths:
         "400":
           description: Validation error
 
-  /api/tools/agent-bridge/agents/{agentId}/mappings:
+  /api/tools/agent-bridge/agents/{id}/mappings:
     get:
       x-stability: internal
       x-owner: "@LMPrado-DZ23"
       x-since: "3.8.53"
       x-rate-limit: none
+      x-loopback-only: true
       tags: [AgentBridge]
       summary: Get model mappings for one agent
       parameters:
-        - name: agentId
+        - name: id
           in: path
           required: true
           schema:
@@ -9214,10 +9216,11 @@ paths:
       x-owner: "@LMPrado-DZ23"
       x-since: "3.8.53"
       x-rate-limit: none
+      x-loopback-only: true
       tags: [AgentBridge]
       summary: Update model mappings for one agent
       parameters:
-        - name: agentId
+        - name: id
           in: path
           required: true
           schema:
@@ -19112,44 +19115,6 @@ paths:
       tags:
         - Memory
       summary: "GET memory › rerank providers"
-      responses:
-        "200":
-          description: OK
-  /api/tools/agent-bridge/agents/{id}/dns:
-    post:
-      x-stability: internal
-      x-owner: "@LMPrado-DZ23"
-      x-since: "3.8.53"
-      x-rate-limit: none
-      tags:
-        - Tools
-      summary: "POST tools › agent bridge › agents › <id> › dns"
-      x-loopback-only: true
-      responses:
-        "200":
-          description: OK
-  /api/tools/agent-bridge/agents/{id}/mappings:
-    get:
-      x-stability: internal
-      x-owner: "@LMPrado-DZ23"
-      x-since: "3.8.53"
-      x-rate-limit: none
-      tags:
-        - Tools
-      summary: "GET tools › agent bridge › agents › <id> › mappings"
-      x-loopback-only: true
-      responses:
-        "200":
-          description: OK
-    put:
-      x-stability: internal
-      x-owner: "@LMPrado-DZ23"
-      x-since: "3.8.53"
-      x-rate-limit: none
-      tags:
-        - Tools
-      summary: "PUT tools › agent bridge › agents › <id> › mappings"
-      x-loopback-only: true
       responses:
         "200":
           description: OK
