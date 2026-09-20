@@ -176,6 +176,10 @@ jobs:
           node scripts/quality/validate-release-green.mjs --json --hermetic             --no-static --serial-slow $SUITE_FLAGS             1> slow-report.json 2> >(tee "slow-$SUITE_NAME.log" >&2)
           echo "[slow-suite] $SUITE_NAME finished with exit=$? (the verdict is the aggregator's)"
 
+      # The per-gate logs go up too. Without them a red shard reports only its FIRST
+      # failure line — "✖ tests/integration/api-keys.test.ts" — and the actual assertion
+      # lives in _artifacts/release-green/<gate>.log on a runner that is already gone.
+      # Both reds from run 35501782210 had to be reproduced locally to be read at all.
       - name: Upload the suite report
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -184,6 +188,7 @@ jobs:
           path: |
             slow-report.json
             slow-${{ matrix.name }}.log
+            _artifacts/release-green/
           retention-days: 14
           if-no-files-found: warn
 
