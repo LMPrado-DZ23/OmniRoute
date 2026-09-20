@@ -291,7 +291,9 @@ export default function ToolDetailClient({ toolId, category }: ToolDetailClientP
           href={backCategory}
           className="inline-flex items-center gap-1.5 text-sm text-text-muted hover:text-primary transition-colors"
         >
-          <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+          <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
+            arrow_back
+          </span>
           {category === "code" ? t("concept.code.title") : t("concept.agent.title")}
         </Link>
         <span className="text-text-muted">/</span>
@@ -310,7 +312,9 @@ export default function ToolDetailClient({ toolId, category }: ToolDetailClientP
         </span>
         {tool.baseUrlSupport && tool.baseUrlSupport !== "none" && (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400">
-            <span className="material-symbols-outlined text-[12px]">link</span>
+            <span className="material-symbols-outlined text-[12px]" aria-hidden="true">
+              link
+            </span>
             {tool.baseUrlSupport === "full" ? t("card.baseUrlFull") : t("card.baseUrlPartial")}
           </span>
         )}

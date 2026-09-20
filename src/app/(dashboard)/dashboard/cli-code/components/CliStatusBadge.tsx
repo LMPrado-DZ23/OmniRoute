@@ -90,12 +90,16 @@ export default function CliStatusBadge({
           className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] text-text-muted"
           title={t("lastSavedAt", { date: new Date(lastConfiguredAt).toLocaleString(locale) })}
         >
-          <span className="material-symbols-outlined text-[12px]">schedule</span>
+          <span className="material-symbols-outlined text-[12px]" aria-hidden="true">
+            schedule
+          </span>
           {formatRelativeTime(lastConfiguredAt, t)}
         </span>
       ) : status && status !== "not_installed" ? (
         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] text-text-muted">
-          <span className="material-symbols-outlined text-[12px]">schedule</span>
+          <span className="material-symbols-outlined text-[12px]" aria-hidden="true">
+            schedule
+          </span>
           {t("never")}
         </span>
       ) : null}

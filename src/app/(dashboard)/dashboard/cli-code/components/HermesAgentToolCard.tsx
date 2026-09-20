@@ -346,7 +346,12 @@ export default function HermesAgentToolCard({
       >
         <div className="flex items-center gap-3">
           <div className="size-8 flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-[22px] text-text-muted">terminal</span>
+            <span
+              className="material-symbols-outlined text-[22px] text-text-muted"
+              aria-hidden="true"
+            >
+              terminal
+            </span>
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -359,7 +364,9 @@ export default function HermesAgentToolCard({
                       date: new Date(firstSetupAt).toLocaleDateString(),
                     })}
                   >
-                    <span className="material-symbols-outlined text-[11px]">schedule</span>
+                    <span className="material-symbols-outlined text-[11px]" aria-hidden="true">
+                      schedule
+                    </span>
                     {t("hermesSinceSetup", { time: formatTimeSince(firstSetupAt) })}
                   </span>
                 )}
@@ -378,6 +385,7 @@ export default function HermesAgentToolCard({
         </div>
         <span
           className={`material-symbols-outlined text-text-muted text-[20px] transition-transform ${isExpanded ? "rotate-180" : ""}`}
+          aria-hidden="true"
         >
           expand_more
         </span>
@@ -394,7 +402,9 @@ export default function HermesAgentToolCard({
               disabled={isLoading}
               loading={isLoading}
             >
-              <span className="material-symbols-outlined text-[14px] mr-1">refresh</span>
+              <span className="material-symbols-outlined text-[14px] mr-1" aria-hidden="true">
+                refresh
+              </span>
               {t("refreshAll")}
             </Button>
           </div>
@@ -532,7 +542,9 @@ export default function HermesAgentToolCard({
           {/* Message (standard colored info bar like other cards) */}
           {message && (
             <div className="flex items-center gap-2 px-2 py-1.5 rounded text-xs bg-green-500/10 text-green-600">
-              <span className="material-symbols-outlined text-[14px]">check_circle</span>
+              <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
+                check_circle
+              </span>
               <span>{message}</span>
             </div>
           )}
@@ -546,7 +558,9 @@ export default function HermesAgentToolCard({
               size="sm"
               loading={isSaving}
             >
-              <span className="material-symbols-outlined text-[14px] mr-1">save</span>
+              <span className="material-symbols-outlined text-[14px] mr-1" aria-hidden="true">
+                save
+              </span>
               {t("hermesApply")}
             </Button>
 
@@ -561,7 +575,9 @@ export default function HermesAgentToolCard({
               }
               loading={isPreviewLoading}
             >
-              <span className="material-symbols-outlined text-[14px] mr-1">visibility</span>
+              <span className="material-symbols-outlined text-[14px] mr-1" aria-hidden="true">
+                visibility
+              </span>
               {t("preview")}
             </Button>
 

@@ -200,6 +200,7 @@ export default function CopilotToolCard({
         </div>
         <span
           className={`material-symbols-outlined text-text-muted text-[20px] transition-transform ${isExpanded ? "rotate-180" : ""}`}
+          aria-hidden="true"
         >
           expand_more
         </span>
@@ -211,7 +212,9 @@ export default function CopilotToolCard({
           <div className="flex flex-col gap-5">
             {/* Info box */}
             <div className="flex items-start gap-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-              <span className="material-symbols-outlined text-blue-500 text-lg">info</span>
+              <span className="material-symbols-outlined text-blue-500 text-lg" aria-hidden="true">
+                info
+              </span>
               <div className="text-sm text-blue-700 dark:text-blue-300">
                 <p className="font-medium">{t("copilotConfigGenerator")}</p>
                 <p className="mt-1 text-xs opacity-80">
@@ -226,7 +229,12 @@ export default function CopilotToolCard({
 
             {/* Version compatibility warning */}
             <div className="flex items-start gap-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-              <span className="material-symbols-outlined text-yellow-500 text-lg">warning</span>
+              <span
+                className="material-symbols-outlined text-yellow-500 text-lg"
+                aria-hidden="true"
+              >
+                warning
+              </span>
               <p className="text-xs text-yellow-600 dark:text-yellow-400">
                 {t.rich("copilotCompatibilityWarning", {
                   vscode: (chunks) => <strong>{chunks}</strong>,
@@ -307,14 +315,22 @@ export default function CopilotToolCard({
 
               {!modelsLoaded && allModels.length === 0 ? (
                 <div className="flex items-center gap-2 p-3 text-text-muted text-sm">
-                  <span className="material-symbols-outlined animate-spin text-base">
+                  <span
+                    className="material-symbols-outlined animate-spin text-base"
+                    aria-hidden="true"
+                  >
                     progress_activity
                   </span>
                   <span>{t("loadingModels")}</span>
                 </div>
               ) : availableModels.length === 0 && allModels.length === 0 ? (
                 <div className="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                  <span className="material-symbols-outlined text-yellow-500 text-lg">warning</span>
+                  <span
+                    className="material-symbols-outlined text-yellow-500 text-lg"
+                    aria-hidden="true"
+                  >
+                    warning
+                  </span>
                   <p className="text-sm text-yellow-600 dark:text-yellow-400">
                     {t("noActiveProviders")}
                   </p>
@@ -342,7 +358,10 @@ export default function CopilotToolCard({
             {/* Step 4: Advanced options (collapsible) */}
             <details className="group">
               <summary className="flex items-center gap-2 cursor-pointer text-sm text-text-muted hover:text-text-main transition-colors">
-                <span className="material-symbols-outlined text-base group-open:rotate-90 transition-transform">
+                <span
+                  className="material-symbols-outlined text-base group-open:rotate-90 transition-transform"
+                  aria-hidden="true"
+                >
                   chevron_right
                 </span>
                 {t("advancedOptions")}
@@ -411,7 +430,7 @@ export default function CopilotToolCard({
                     size="sm"
                     onClick={() => handleCopy(generateConfig(), "config")}
                   >
-                    <span className="material-symbols-outlined text-[14px] mr-1">
+                    <span className="material-symbols-outlined text-[14px] mr-1" aria-hidden="true">
                       {copiedField === "config" ? "check" : "content_copy"}
                     </span>
                     {copiedField === "config" ? t("copied") : t("copyConfig")}

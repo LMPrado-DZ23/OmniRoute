@@ -122,7 +122,9 @@ export default function CustomCliCard({
       <div className="flex items-center justify-between hover:cursor-pointer" onClick={onToggle}>
         <div className="flex items-center gap-3">
           <div className="size-8 rounded-lg flex items-center justify-center shrink-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <span className="material-symbols-outlined text-xl">{tool.icon || "terminal"}</span>
+            <span className="material-symbols-outlined text-xl" aria-hidden="true">
+              {tool.icon || "terminal"}
+            </span>
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -137,6 +139,7 @@ export default function CustomCliCard({
         </div>
         <span
           className={`material-symbols-outlined text-text-muted text-[20px] transition-transform ${isExpanded ? "rotate-180" : ""}`}
+          aria-hidden="true"
         >
           expand_more
         </span>
@@ -145,7 +148,7 @@ export default function CustomCliCard({
       {isExpanded && (
         <div className="mt-6 pt-6 border-t border-border space-y-5">
           <div className="flex items-start gap-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
-            <span className="material-symbols-outlined text-emerald-500 text-lg">
+            <span className="material-symbols-outlined text-emerald-500 text-lg" aria-hidden="true">
               tips_and_updates
             </span>
             <div className="text-sm text-emerald-700 dark:text-emerald-300">
@@ -163,7 +166,12 @@ export default function CustomCliCard({
 
           {!hasActiveProviders && (
             <div className="flex items-start gap-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-              <span className="material-symbols-outlined text-yellow-500 text-lg">warning</span>
+              <span
+                className="material-symbols-outlined text-yellow-500 text-lg"
+                aria-hidden="true"
+              >
+                warning
+              </span>
               <div>
                 <p className="text-sm font-medium text-yellow-700 dark:text-yellow-300">
                   {translateOrFallback("noActiveProviders", "No active providers")}
@@ -264,7 +272,9 @@ export default function CustomCliCard({
                   </p>
                 </div>
                 <Button variant="outline" size="sm" onClick={handleAddMapping}>
-                  <span className="material-symbols-outlined text-[14px] mr-1">add</span>
+                  <span className="material-symbols-outlined text-[14px] mr-1" aria-hidden="true">
+                    add
+                  </span>
                   {translateOrFallback("customCliAddAlias", "Add alias")}
                 </Button>
               </div>
@@ -313,7 +323,9 @@ export default function CustomCliCard({
                         size="sm"
                         onClick={() => handleRemoveMapping(mapping.id)}
                       >
-                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                        <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
+                          delete
+                        </span>
                       </Button>
                     </div>
                   ))}
@@ -342,7 +354,7 @@ export default function CustomCliCard({
                   {translateOrFallback("customCliEnvBlockTitle", "Env / shell snippet")}
                 </h4>
                 <Button variant="outline" size="sm" onClick={() => handleCopy(envScript, "env")}>
-                  <span className="material-symbols-outlined text-[14px] mr-1">
+                  <span className="material-symbols-outlined text-[14px] mr-1" aria-hidden="true">
                     {copiedField === "env" ? "check" : "content_copy"}
                   </span>
                   {translateOrFallback("copy", "Copy")}
@@ -357,7 +369,7 @@ export default function CustomCliCard({
                   {translateOrFallback("customCliJsonBlockTitle", "Provider JSON block")}
                 </h4>
                 <Button variant="outline" size="sm" onClick={() => handleCopy(jsonConfig, "json")}>
-                  <span className="material-symbols-outlined text-[14px] mr-1">
+                  <span className="material-symbols-outlined text-[14px] mr-1" aria-hidden="true">
                     {copiedField === "json" ? "check" : "content_copy"}
                   </span>
                   {translateOrFallback("copy", "Copy")}

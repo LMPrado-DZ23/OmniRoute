@@ -325,6 +325,7 @@ export default function DroidToolCard({
         </div>
         <span
           className={`material-symbols-outlined text-text-muted text-[20px] transition-transform ${isExpanded ? "rotate-180" : ""}`}
+          aria-hidden="true"
         >
           expand_more
         </span>
@@ -334,14 +335,18 @@ export default function DroidToolCard({
         <div className="mt-4 pt-4 border-t border-border flex flex-col gap-4">
           {checkingDroid && (
             <div className="flex items-center gap-2 text-text-muted">
-              <span className="material-symbols-outlined animate-spin">progress_activity</span>
+              <span className="material-symbols-outlined animate-spin" aria-hidden="true">
+                progress_activity
+              </span>
               <span>{t("checkingCli", { tool: "Factory Droid" })}</span>
             </div>
           )}
 
           {!checkingDroid && droidStatus && !cliReady && (
             <div className="flex items-center gap-3 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-              <span className="material-symbols-outlined text-yellow-500">warning</span>
+              <span className="material-symbols-outlined text-yellow-500" aria-hidden="true">
+                warning
+              </span>
               <div className="flex-1">
                 <p className="font-medium text-yellow-600 dark:text-yellow-400">
                   {droidStatus.installed
@@ -369,7 +374,10 @@ export default function DroidToolCard({
                     <span className="w-32 shrink-0 text-sm font-semibold text-text-main text-right">
                       {t("current")}
                     </span>
-                    <span className="material-symbols-outlined text-text-muted text-[14px]">
+                    <span
+                      className="material-symbols-outlined text-text-muted text-[14px]"
+                      aria-hidden="true"
+                    >
                       arrow_forward
                     </span>
                     <span className="flex-1 px-2 py-1.5 text-xs text-text-muted truncate">
@@ -383,7 +391,10 @@ export default function DroidToolCard({
                   <span className="w-32 shrink-0 text-sm font-semibold text-text-main text-right">
                     {t("baseUrl")}
                   </span>
-                  <span className="material-symbols-outlined text-text-muted text-[14px]">
+                  <span
+                    className="material-symbols-outlined text-text-muted text-[14px]"
+                    aria-hidden="true"
+                  >
                     arrow_forward
                   </span>
                   <input
@@ -399,7 +410,9 @@ export default function DroidToolCard({
                       className="p-1 text-text-muted hover:text-primary rounded transition-colors"
                       title={t("resetToDefault")}
                     >
-                      <span className="material-symbols-outlined text-[14px]">restart_alt</span>
+                      <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
+                        restart_alt
+                      </span>
                     </button>
                   )}
                 </div>
@@ -409,7 +422,10 @@ export default function DroidToolCard({
                   <span className="w-32 shrink-0 text-sm font-semibold text-text-main text-right">
                     {t("apiKey")}
                   </span>
-                  <span className="material-symbols-outlined text-text-muted text-[14px]">
+                  <span
+                    className="material-symbols-outlined text-text-muted text-[14px]"
+                    aria-hidden="true"
+                  >
                     arrow_forward
                   </span>
                   {apiKeys.length > 0 ? (
@@ -439,7 +455,10 @@ export default function DroidToolCard({
                       <span className="text-primary"> ({modelList.length})</span>
                     )}
                   </span>
-                  <span className="material-symbols-outlined text-text-muted text-[14px] pt-2">
+                  <span
+                    className="material-symbols-outlined text-text-muted text-[14px] pt-2"
+                    aria-hidden="true"
+                  >
                     arrow_forward
                   </span>
                   <div className="flex-1 flex flex-col gap-1">
@@ -456,7 +475,12 @@ export default function DroidToolCard({
                               className="text-text-muted hover:text-red-500 transition-colors shrink-0"
                               title={t("clear")}
                             >
-                              <span className="material-symbols-outlined text-[12px]">close</span>
+                              <span
+                                className="material-symbols-outlined text-[12px]"
+                                aria-hidden="true"
+                              >
+                                close
+                              </span>
                             </button>
                           </div>
                         ))}
@@ -489,7 +513,9 @@ export default function DroidToolCard({
                         className="px-2 py-1.5 rounded border bg-surface border-border hover:border-primary text-xs shrink-0 disabled:opacity-50"
                         title={t("addModel")}
                       >
-                        <span className="material-symbols-outlined text-[14px]">add</span>
+                        <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
+                          add
+                        </span>
                       </button>
                     </div>
                   </div>
@@ -500,7 +526,7 @@ export default function DroidToolCard({
                 <div
                   className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs ${message.type === "success" ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-600"}`}
                 >
-                  <span className="material-symbols-outlined text-[14px]">
+                  <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
                     {message.type === "success" ? "check_circle" : "error"}
                   </span>
                   <span>{message.text}</span>
@@ -515,7 +541,9 @@ export default function DroidToolCard({
                   disabled={modelList.length === 0}
                   loading={applying}
                 >
-                  <span className="material-symbols-outlined text-[14px] mr-1">save</span>
+                  <span className="material-symbols-outlined text-[14px] mr-1" aria-hidden="true">
+                    save
+                  </span>
                   {t("apply")}
                 </Button>
                 <Button
@@ -525,11 +553,15 @@ export default function DroidToolCard({
                   disabled={!droidStatus?.hasOmniRoute}
                   loading={restoring}
                 >
-                  <span className="material-symbols-outlined text-[14px] mr-1">restore</span>
+                  <span className="material-symbols-outlined text-[14px] mr-1" aria-hidden="true">
+                    restore
+                  </span>
                   {t("reset")}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setShowManualConfigModal(true)}>
-                  <span className="material-symbols-outlined text-[14px] mr-1">content_copy</span>
+                  <span className="material-symbols-outlined text-[14px] mr-1" aria-hidden="true">
+                    content_copy
+                  </span>
                   {t("manualConfig")}
                 </Button>
                 <div className="flex-1" />
@@ -541,7 +573,9 @@ export default function DroidToolCard({
                     if (!showBackups) fetchBackups();
                   }}
                 >
-                  <span className="material-symbols-outlined text-[14px] mr-1">history</span>
+                  <span className="material-symbols-outlined text-[14px] mr-1" aria-hidden="true">
+                    history
+                  </span>
                   {t("backups")}
                   {backups.length > 0 && ` (${backups.length})`}
                 </Button>
@@ -550,7 +584,9 @@ export default function DroidToolCard({
               {showBackups && (
                 <div className="mt-2 p-3 bg-surface border border-border rounded-lg">
                   <h4 className="text-xs font-semibold text-text-main mb-2 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[14px]">history</span>
+                    <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
+                      history
+                    </span>
                     {t("configBackups")}
                   </h4>
                   {backups.length === 0 ? (
@@ -562,7 +598,10 @@ export default function DroidToolCard({
                           key={b.id}
                           className="flex items-center gap-2 px-2 py-1.5 bg-black/5 dark:bg-white/5 rounded text-xs"
                         >
-                          <span className="material-symbols-outlined text-[14px] text-text-muted">
+                          <span
+                            className="material-symbols-outlined text-[14px] text-text-muted"
+                            aria-hidden="true"
+                          >
                             description
                           </span>
                           <span className="flex-1 truncate font-mono" title={b.id}>
