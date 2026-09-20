@@ -3,6 +3,190 @@
 Registro das auditorias por linha de release, da mais recente para a mais antiga. Cada seção guarda
 os vereditos, os achados classificados e onde cada um foi corrigido.
 
+## v3.8.55 — auditoria de três agentes (2026-09-20)
+
+Linha `release/v3.8.55` do fork `LMPrado-DZ23/OmniRoute`. Uma rodada, três auditores em paralelo,
+cada um em seu próprio worktree, sem acesso às conclusões dos outros. Cada um foi obrigado a
+`git fetch` e **reverificar todo achado contra a ponta atual** antes de reportar — a árvore avançou
+durante a auditoria (#53, #56, #64, #65, #66 entraram), e os três confirmaram por diff quais dos seus
+achados sobreviveram.
+
+Regras que valeram para os três: todo comando rodou com `DATA_DIR`, `HOME`, `USERPROFILE` e `APPDATA`
+isolados; `git stash` foi proibido (é compartilhado entre worktrees e já tinha destruído trabalho duas
+vezes naquele dia); nenhum segredo foi impresso.
+
+**Uma ressalva honesta, declarada pelo próprio auditor B:** uma sonda anônima contra a instância local
+dele foi _roteada_, e o OmniRoute fez chamadas reais às pontas gratuitas do opencode (402/403 de
+volta). Nenhuma credencial foi configurada ou exposta, e nada fora daquela máquina foi atacado. Esse
+resultado inesperado **é** o achado principal da auditoria.
+
+### Vereditos
+
+| Auditor | Lane                     | CRITICAL | HIGH |
+| ------- | ------------------------ | -------- | ---- |
+| A       | Arquitetura e engenharia | 0        | 1    |
+| B       | Segurança e DevSecOps    | 1        | 1    |
+| C       | Produto, QA e UX         | 0        | 1    |
+
+### CRITICAL
+
+**B-C1 — toda a superfície `/v1/**` respondia a chamadas anônimas da internet.**
+`requireLogin` governa `/api/**`; `/v1/**` é governado por `REQUIRE_API_KEY`, que sai de fábrica
+`false`. Numa instância com senha de painel configurada e todas as rotas de gestão devolvendo 401, um
+`POST /v1/chat/completions` **sem credencial nenhuma** foi aceito, roteado e executado — 502 depois de
+seis tentativas upstream reais, não 401. Num domínio público isso é um relay de LLM aberto, cobrado
+nas credenciais e na cota do operador, com prompts arbitrários indo para `call_logs`.
+
+Pior: as receitas de deploy discordavam entre si, e a do domínio público era a errada —
+`docs/ops/VM_DEPLOYMENT_GUIDE.md` imprimia `REQUIRE_API_KEY=false` duas linhas abaixo de
+`AUTH_COOKIE_SECURE=true`, sem aviso algum.
+
+O smoke test que eu mesmo tinha feito na 3.8.54 não pegou: sondei `/api/**` e `GET /v1/models` — que é
+gateado por _outra_ chave e devolve 401 — e concluí que a instância estava fechada.
+
+Corrigido em **[#69](https://github.com/LMPrado-DZ23/OmniRoute/pull/69)**: `clientApiPolicy` agora
+exige que o chamador seja de fato local (`isLoopbackRequest || isPrivateLanRequest`, ambos cientes de
+proxy reverso e falhando fechado), o guia e os compose files passam a exigir a chave, e
+`route-origin-auth-matrix.test.ts` — que **codificava a falha como contrato esperado**, afirmando
+`ALLOW` para origem `public` — foi corrigido.
+
+### HIGH
+
+**A-H1 — não existe veredito de CI completo para esta linha, em commit nenhum.**
+`ci.yml` dispara só em `main`, então sua placa inteira nunca rodou em nenhum dos PRs; `quality.yml`, que
+é a placa real dos PRs de release, não carrega `test:integration:ci`, `test:security`,
+`test:protocols:e2e`, `test:coverage`, `check:pack-boot` e mais uma dúzia. A varredura Release-Green
+existe para cobrir isso, mas em `push` roda `--quick`, que pula as suítes.
+
+Três disparos completos morreram idênticos: `exit 143`, aos 60 minutos, **sem nenhuma saída** — o passo
+redirecionava o log para arquivo e só o imprimia com um `cat` final que nunca era alcançado.
+**[#70](https://github.com/LMPrado-DZ23/OmniRoute/pull/70)** faz o log sair ao vivo; isso não conserta a
+morte, conserta a cegueira. **Este HIGH permanece em aberto** e é o único item que separa esta linha do
+portão CRITICAL 0 / HIGH 0.
+
+**B-H1 — PR de fork executava no runner LAN persistente do mantenedor.**
+`quality.yml:553` selecionava o pool `self-hosted` sem a cláusula de origem própria que `ci.yml:650`
+tem, rodando `npm ci` — sem `--ignore-scripts` — contra o lockfile do fork. Execução arbitrária de
+código numa máquina que guarda estado entre jobs, e a linha seguinte marca `continue-on-error` para
+forks, então ia verde. O próprio arquivo enuncia a regra nos comentários. Corrigido em **#69**, com
+`workflows-self-hosted-fork-guard.test.ts` comparando todo `runs-on` self-hosted de workflow de PR
+contra a guarda.
+
+**C-H1 — `/dashboard/cli-code` reprovava na própria régua do projeto, sem nunca ter sido auditada.**
+Medido no build de produção com axe-core 4.13.0: `select-name` **crítico ×2** e `color-contrast`
+**sério ×2**, nos dois temas, em 1280 e 375. Os dois selects de filtro não tinham nome acessível
+algum e suas `<label>` visíveis não tinham `htmlFor` — um leitor de tela anunciava duas caixas sem
+nome, ambas dizendo "All". O pior nó era o aviso âmbar "sem provedores ativos" a **2,92:1**, a linha
+que um usuário de primeira viagem mais precisa ler.
+
+A causa de ninguém ter visto é que `tests/e2e/a11y.spec.ts` auditava sete caminhos — **nenhuma das duas
+superfícies novas desta release** — e `A11Y_VIEWPORTS` começava em 768, então 375 nunca era varrido.
+Corrigido em **[#71](https://github.com/LMPrado-DZ23/OmniRoute/pull/71)**, que também coloca as duas
+páginas e a largura de celular no gate.
+
+> O auditor C revisou o próprio relatório: tinha classificado isso como MEDIUM com evidência só de
+> jsdom, achando que o build de produção não tinha completado. Rodou de novo, viu que tinha, mediu ao
+> vivo e subiu para HIGH. Registrado porque uma auditoria que corrige a si mesma vale mais do que uma
+> que acerta de primeira por sorte.
+
+### MEDIUM corrigidos nesta linha
+
+| Achado                                                                                                                                                                                                      | Onde                                                     |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| A — o orçamento de latência recusava candidatos sobre um palpite, nunca sobre "desconhecido"; numa instalação nova um orçamento baixo excluía permanentemente todo modelo não medido, e era autossustentado | [#68](https://github.com/LMPrado-DZ23/OmniRoute/pull/68) |
+| A — dois gates saíam 0 no Windows sem executar nada (`file://C:\…` nunca casa com `file:///C:/…`); corrigida a guarda, `check:env-doc-sync` rodou e achou **0** variáveis, porque chamava `grep` pelo shell | [#67](https://github.com/LMPrado-DZ23/OmniRoute/pull/67) |
+| C — o assistente de primeira execução declarava a instância "pronta para rotear" uma etapa depois de reportar que não havia provedor                                                                        | [#73](https://github.com/LMPrado-DZ23/OmniRoute/pull/73) |
+| C — `COST_TRACKING.md` documentava quatro comandos que a #54 removeu ou mudou; `check:fabricated-docs` valida só o comando de primeiro nível                                                                | [#72](https://github.com/LMPrado-DZ23/OmniRoute/pull/72) |
+
+### MEDIUM e LOW que seguem abertos
+
+Nenhum é bloqueador de release, e todos estão registrados aqui para não se perderem.
+
+**Segurança**
+
+- **B-M1** — o bloqueio de login é chaveado pelo salto do proxy reverso, então **atrás de nginx/Caddy/
+  cloudflared qualquer um na internet tranca o dono fora do próprio painel**, indefinidamente: 5 senhas
+  erradas a cada 15 minutos bastam. A guarda não é falsificável por `X-Forwarded-For` (bom), mas todas
+  as conexões compartilham o IP do proxy (ruim). **Deliberadamente não corrigido às pressas:** trocar a
+  chave para o IP do cliente troca um DoS garantido por um possível furo de força bruta, e a resposta
+  certa provavelmente é manter as duas contagens com tetos diferentes.
+- **B-M2** — `x-loopback-only: true` em dois GETs que o guard isenta, e o gate é estruturalmente cego
+  para isso (`coveredByLocalOnly()` não conhece `LOCAL_ONLY_API_GET_EXEMPTIONS` nem métodos).
+- **B-M3** — `check-openapi-security-tiers` é irrodável no Windows: `parsePatterns` usa `$` sem `/m`,
+  então num checkout CRLF a entrada com comentário é descartada e o gate reprova com 6 falsos.
+- **B-M4** — o botão "Allow Private Provider URLs" também desliga o bloqueio de metadados de nuvem
+  (devolve o modo `"none"`, não `"block-metadata"`), reabrindo o pivô SSRF→IMDS num VPS.
+- **B-M5** — no `npm-publish.yml`, `workflow_call` fica fora do portão, e os dois jobs de plugin rodam
+  `npm install` sem `--ignore-scripts` antes de um `npm publish --provenance`.
+- **B-L3** — um admin de workspace pode reivindicar qualquer chave **não atribuída** da instância;
+  hoje sem escalada, porque quem cria workspace já é admin, mas é o furo do dia em que workspaces
+  virarem fronteira de tenancy real.
+
+**Arquitetura**
+
+- **A-M5** — o roll-up da hierarquia é O(chaves) em SQL por requisição (129 `prepare()` para uma
+  checagem com 100 chaves), com um `UPDATE` por requisição depois do limiar de aviso.
+- **A-M6** — `src/lib/db/core.ts` é risco de manutenção, não só arquivo grande: `getDbInstance()`
+  ocupa 424 linhas (24% do arquivo) e é construtor do singleton **e** caminho de recuperação, sem
+  costura para testar um ramo isolado. O vermelho do `check-file-size` é pré-existente e idêntico à
+  v3.8.54 (1769 linhas nas duas).
+- **A-L8** — `ci.yml:438` passa `BASE_REF` cru enquanto os outros dois sítios passam `origin/{0}`.
+
+**Produto**
+
+- **C-M2** — o botão primário do tema claro cai a **3,96:1** na ponta violeta de `--grad-brand`; axe
+  reporta gradiente como _incomplete_, então a varredura nunca viu. É decisão de token de marca,
+  válida para todo botão primário do produto.
+- **C-M5** — todo erro da página Workspaces é inglês fixo no código, inclusive para pt-BR e vi, que
+  ganharam tradução de verdade. Os `code` existem justamente para permitir traduzir.
+- **C-M6** — um carregamento que falha na página Workspaces é indistinguível de "você não tem
+  nenhum": o toast some em 8 s e sobra o estado vazio simpático.
+- **C-M8** — a página cli-code é a única superfície de base URL que ignora `OMNIROUTE_BASE_PATH`
+  (usa `window.location.origin` em vez de `useDisplayBaseUrl()`) — só leitura de código, não
+  reproduzido num deploy em subcaminho.
+- **C-M9** — "link para a página que emite a chave" vale para **16 de 355** provedores; os demais
+  caem no site institucional. O componente é honesto sobre qual dos dois mostra; o exagero estava na
+  nota de release.
+- **C-M10** — 169 ligaduras de ícone na superfície cli-code, nenhuma com `aria-hidden`: dois botões
+  cujo nome acessível inteiro é a string `content_copy`. `button-name` **passa**, então ferramenta
+  nenhuma pega.
+- **C-M11** — o modo escuro serve o diagrama de tiers claro (`TierFlowDiagram` importa `useTheme` de
+  `next-themes`, o único uso dessa lib em `src/`, sem `ThemeProvider` — `resolvedTheme` é sempre
+  `undefined`), e o texto alternativo diz "3-tier" enquanto o SVG entregue diz "4-tier".
+- **C-M4** — uma senha recusada mostra "Invalid request" e manda o usuário ler uma mensagem que não
+  explica nada; a regra real do servidor chega em `error.details[0].message` e é descartada.
+
+### Verificado e limpo (o espaço negativo, porque ele também é resultado)
+
+- `npm audit --omit=dev`: **0 vulnerabilidades** em 890 dependências de produção.
+- IDOR de workspace atacado de vários ângulos sem furo: workspace e projeto alheios devolvem o 404
+  byte a byte idêntico ao inexistente; **314/314** testes de authz passam.
+- Deleções destrutivas guardadas: workspace com projetos → 409; projeto com chaves → 409.
+- Migração 178 é aditiva e sobrevive a banco populado; 19/19 testes de workspace passam.
+- Falsificação de `Host` não muda nada; normalização de caminho (`/api/%64b-backups`, `/API/…`,
+  `//`, barra final) não contorna o tier `ALWAYS_PROTECTED`.
+- `guardedFetch`/`hardenedWebhookFetch`: checagem pré-I/O, todo endereço resolvido validado,
+  dispatcher preso ao IP validado contra DNS rebinding, redirects nunca seguidos.
+- `#60` está genuinamente correto: `{{baseOrigin}}` resolve sem `/v1`, exatamente 3 entradas o usam
+  (`gemini`, `goose`, `5dive`), e os 42 locales têm a chave com chave simples correta.
+- Contagem do catálogo consistente: `CLI_TOOLS` = 48 (32 code / 16 agent); a página filtra para **27**,
+  batendo com `EXPECTED_CODE_COUNT`.
+- `errorSanitization.ts` foi examinado e considerado sólido; nenhum vazamento de chave em log, corpo
+  de erro ou contexto do modelo.
+
+### Não testável nesta rodada — dito sem arredondar
+
+- **Conexão real de provedor não foi feita.** Exigiria credencial real ou aceitar um consentimento de
+  terceiros. Tudo a jusante — rotear uma requisição viva, o estado _detectado_ dos cartões de CLI, o
+  roll-up de gasto com gasto real — segue sem teste.
+- **`/dashboard/costs/workspaces` não renderizou no navegador do auditor C.** Ele deliberadamente
+  **não** reportou como achado, porque a irmã `/dashboard/costs/budget` — que esta release não toca —
+  trava igual, enquanto `/dashboard/cli-code` monta na mesma aba. O padrão aponta para o ambiente
+  dele. **O dono deve confirmar que essa página abre num navegador normal**; se não abrir, é
+  bloqueador, e a cobertura só-jsdom não teria pego.
+- `check:openapi-breaking` não pôde ser confirmado localmente: o binário `oasdiff` não existe nesta
+  máquina e o gate sai 0 mesmo com `--ratchet`.
+
 ## v3.8.54 — evolução em 13 fases (2026-09-19)
 
 Linha `release/v3.8.54` do fork `LMPrado-DZ23/OmniRoute`, criada de `release/v3.8.53` (`2560ec3a4`).
