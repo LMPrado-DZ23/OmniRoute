@@ -6357,6 +6357,8 @@
     "bedrockModelPlaceholder": "एंथ्रोपिक.क्लाउड-सॉनेट-4-6",
     "addProviderSessionCookieTitle": "{provider} सत्र कुकी जोड़ें",
     "openWebProviderSite": "{host} खोलें",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "{provider} वेब टोकन जोड़ें",
     "addProviderConnectionTitle": "{provider} कनेक्शन जोड़ें",
     "webTokenCredentialLabel": "वेब सत्र टोकन",

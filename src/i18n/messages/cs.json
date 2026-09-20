@@ -6357,6 +6357,8 @@
     "bedrockModelPlaceholder": "antropický.claude-sonnet-4-6",
     "addProviderSessionCookieTitle": "Přidat soubor cookie relace {provider}",
     "openWebProviderSite": "Otevřít {host}",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "Přidat {provider} webový token",
     "addProviderConnectionTitle": "Přidat připojení {provider}",
     "webTokenCredentialLabel": "Token webové relace",

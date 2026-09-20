@@ -6357,6 +6357,8 @@
     "bedrockModelPlaceholder": "антропный.клод-сонет-4-6",
     "addProviderSessionCookieTitle": "Добавьте файл cookie сеанса {provider}.",
     "openWebProviderSite": "Открыть {host}",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "Добавьте веб-токен {provider}",
     "addProviderConnectionTitle": "Добавить соединение {provider}",
     "webTokenCredentialLabel": "Токен веб-сессии",
