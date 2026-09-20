@@ -40,9 +40,14 @@ test("globals.css adds the shared identity tokens", () => {
   assert.match(globalsCss, /--surface-2:\s*#f5f5fa/); // light
   assert.match(globalsCss, /--surface-2:\s*#1c2230/); // dark
   assert.match(globalsCss, /--radius:\s*14px/);
+  // The violet end is --color-accent-on-primary, not --color-accent-light: white on the
+  // brand violet measured 3.96:1, under AA, and the button paints text on this fill.
+  // The light theme darkens it to 5.16:1; the dark theme, which writes black, points
+  // --color-accent-on-primary straight back at the brand accent. Whether either end is
+  // actually readable is measured in tests/unit/ui/primary-button-gradient-contrast.test.ts.
   assert.match(
     globalsCss,
-    /--grad-brand:\s*linear-gradient\(135deg,\s*var\(--color-primary\),\s*var\(--color-accent-light\)\)/
+    /--grad-brand:\s*linear-gradient\(135deg,\s*var\(--color-primary\),\s*var\(--color-accent-on-primary\)\)/
   );
   // exposed to Tailwind as bg-surface-2 for later phases
   assert.match(globalsCss, /--color-surface-2:\s*var\(--surface-2\)/);
