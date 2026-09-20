@@ -12,7 +12,22 @@ type WorkspacesState = ReturnType<typeof useWorkspaces>;
 
 function WorkspaceList({ state }: { state: WorkspacesState }) {
   const t = useTranslations("workspaces");
+  const tCommon = useTranslations("common");
   if (state.workspaces.length === 0) {
+    // A list that could not be fetched is NOT an empty account. The toast that
+    // announced the failure auto-dismisses after 8s, and what remained said the
+    // user has no workspaces — which is a different, and wrong, fact.
+    if (state.loadFailed) {
+      return (
+        <EmptyState
+          icon="error"
+          title={t("loadError")}
+          description={t("emptyDescription")}
+          actionLabel={tCommon("retry")}
+          onAction={() => void state.retryLoad()}
+        />
+      );
+    }
     return (
       <EmptyState icon="workspaces" title={t("emptyTitle")} description={t("emptyDescription")} />
     );

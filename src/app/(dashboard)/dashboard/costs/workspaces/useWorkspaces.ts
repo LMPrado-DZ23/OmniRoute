@@ -13,13 +13,20 @@ function useWorkspaceData(selectedId: string | null, notifyError: Notify, loadEr
   const [apiKeys, setApiKeys] = useState<api.ApiKeyOption[]>([]);
   const [detail, setDetail] = useState<api.WorkspaceDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  // A failed load used to leave `workspaces` at [] with only a toast, and toasts
+  // auto-dismiss after 8s — after which the page asserted, cheerfully, that the
+  // account has no workspaces. "We could not reach the server" and "you have none"
+  // are different facts and must not render the same.
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const reloadList = useCallback(async () => {
     try {
       const [list, keys] = await Promise.all([api.listWorkspaces(), api.listApiKeys()]);
       setWorkspaces(list);
       setApiKeys(keys);
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       notifyError(loadErrorText);
     } finally {
       setLoading(false);
@@ -54,7 +61,7 @@ function useWorkspaceData(selectedId: string | null, notifyError: Notify, loadEr
     })();
   }, [reloadDetail, selectedId]);
 
-  return { workspaces, apiKeys, detail, loading, reloadList, reloadDetail };
+  return { workspaces, apiKeys, detail, loading, loadFailed, reloadList, reloadDetail };
 }
 
 interface RunnerDeps {
@@ -116,6 +123,8 @@ export function useWorkspaces() {
     apiKeys: data.apiKeys,
     detail: data.detail,
     loading: data.loading,
+    loadFailed: data.loadFailed,
+    retryLoad: data.reloadList,
     selectedId,
     setSelectedId,
     busy,
