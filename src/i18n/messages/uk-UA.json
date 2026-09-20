@@ -2949,6 +2949,17 @@
       "custom": "Використовуйте для реалізації спеціальних інструментів або загальних конфігурацій, сумісних з OpenAI."
     },
     "toolDescriptions": {
+      "aichat": "AIChat — універсальний LLM CLI з власним базовим URL",
+      "shell-gpt": "ShellGPT — помічник командного рядка з власним базовим URL",
+      "mods": "Mods — ШІ для командного рядка від Charm",
+      "llm": "llm CLI Саймона Віллісона з власним базовим URL",
+      "fabric": "Fabric — CLI для промптів і шаблонів з власним базовим URL",
+      "openhands": "OpenHands — автономний агент розробки програмного забезпечення",
+      "plandex": "Plandex — агент кодування для тривалих завдань (самостійний хостинг)",
+      "gptme": "gptme — агент термінала з інструментами оболонки та файлів",
+      "trae": "Trae Agent — CLI для кодування від ByteDance",
+      "octofriend": "Octofriend — агент кодування в терміналі",
+      "raaid": "RA.Aid — агент кодування, який досліджує та впроваджує",
       "antigravity": "Google Antigravity IDE з MITM",
       "claude": "Антропний код Клода CLI",
       "codex": "OpenAI Codex CLI",

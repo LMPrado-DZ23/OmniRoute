@@ -2949,6 +2949,17 @@
       "custom": "Verwendung für benutzerdefinierte Tool-Implementierungen oder generische OpenAI-kompatible Konfigurationen."
     },
     "toolDescriptions": {
+      "aichat": "AIChat All-in-One-LLM-CLI mit benutzerdefinierter Basis-URL",
+      "shell-gpt": "ShellGPT-Kommandozeilenassistent mit benutzerdefinierter Basis-URL",
+      "mods": "Mods, KI für die Kommandozeile, von Charm",
+      "llm": "llm-CLI von Simon Willison mit benutzerdefinierter Basis-URL",
+      "fabric": "Fabric-CLI für Prompts und Muster mit benutzerdefinierter Basis-URL",
+      "openhands": "OpenHands, autonomer Software-Engineering-Agent",
+      "plandex": "Plandex, Coding-Agent für lange Aufgaben (selbst gehostet)",
+      "gptme": "gptme, Terminal-Agent mit Shell- und Datei-Werkzeugen",
+      "trae": "Trae Agent, Coding-CLI von ByteDance",
+      "octofriend": "Octofriend, Coding-Agent für das Terminal",
+      "raaid": "RA.Aid, Coding-Agent, der recherchiert und implementiert",
       "antigravity": "Google Antigravity IDE mit MITM",
       "claude": "Anthropic Claude Code CLI",
       "codex": "OpenAI Codex-CLI",

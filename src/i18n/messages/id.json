@@ -2949,6 +2949,17 @@
       "custom": "Gunakan untuk implementasi alat khusus atau konfigurasi umum yang kompatibel dengan OpenAI."
     },
     "toolDescriptions": {
+      "aichat": "AIChat, CLI LLM serbaguna dengan URL dasar kustom",
+      "shell-gpt": "ShellGPT, asisten baris perintah dengan URL dasar kustom",
+      "mods": "Mods, AI untuk baris perintah dari Charm",
+      "llm": "CLI llm dari Simon Willison dengan URL dasar kustom",
+      "fabric": "Fabric, CLI prompt dan pola dengan URL dasar kustom",
+      "openhands": "OpenHands, agen rekayasa perangkat lunak otonom",
+      "plandex": "Plandex, agen pemrograman untuk tugas panjang (swakelola)",
+      "gptme": "gptme, agen terminal dengan alat shell dan berkas",
+      "trae": "Trae Agent, CLI pemrograman dari ByteDance",
+      "octofriend": "Octofriend, agen pemrograman di terminal",
+      "raaid": "RA.Aid, agen pemrograman yang meneliti dan menerapkan",
       "antigravity": "IDE Antigravitasi Google dengan MITM",
       "claude": "CLI Kode Claude Antropis",
       "codex": "CLI Codex OpenAI",

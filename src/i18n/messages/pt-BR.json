@@ -2993,6 +2993,17 @@
       "custom": "Use quando seu CLI ou SDK não estiver hardcoded no OmniRoute, mas ainda aceitar base URL, chave de API e model string compatíveis com OpenAI."
     },
     "toolDescriptions": {
+      "aichat": "CLI de LLM tudo-em-um AIChat com URL base personalizada",
+      "shell-gpt": "Assistente de linha de comando ShellGPT com URL base personalizada",
+      "mods": "Mods, IA para a linha de comando, da Charm",
+      "llm": "CLI llm de Simon Willison com URL base personalizada",
+      "fabric": "CLI de prompts e padrões Fabric com URL base personalizada",
+      "openhands": "OpenHands, agente autônomo de engenharia de software",
+      "plandex": "Plandex, agente de codificação de longo alcance (auto-hospedado)",
+      "gptme": "gptme, agente de terminal com ferramentas de shell e arquivos",
+      "trae": "Trae Agent, CLI de codificação da ByteDance",
+      "octofriend": "Octofriend, agente de codificação no terminal",
+      "raaid": "RA.Aid, agente de codificação que pesquisa e implementa",
       "antigravity": "Google Antigravity IDE com MITM",
       "claude": "CLI Claude Code da Anthropic",
       "codex": "CLI Codex da OpenAI",

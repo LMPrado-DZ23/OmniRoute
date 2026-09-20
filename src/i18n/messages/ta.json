@@ -2949,6 +2949,17 @@
       "custom": "Use for custom tool implementations or generic OpenAI-compatible configurations."
     },
     "toolDescriptions": {
+      "aichat": "AIChat, தனிப்பயன் அடிப்படை URL உடன் அனைத்தும் ஒன்றாக LLM CLI",
+      "shell-gpt": "ShellGPT, தனிப்பயன் அடிப்படை URL உடன் கட்டளை வரி உதவியாளர்",
+      "mods": "Mods, Charm நிறுவனத்தின் கட்டளை வரி AI",
+      "llm": "Simon Willison இன் llm CLI, தனிப்பயன் அடிப்படை URL உடன்",
+      "fabric": "Fabric, தனிப்பயன் அடிப்படை URL உடன் தூண்டுதல் மற்றும் வடிவ CLI",
+      "openhands": "OpenHands, தன்னாட்சி மென்பொருள் பொறியியல் முகவர்",
+      "plandex": "Plandex, நீண்ட பணிகளுக்கான குறியீட்டு முகவர் (சுய-ஹோஸ்ட்)",
+      "gptme": "gptme, ஷெல் மற்றும் கோப்புக் கருவிகளுடன் முனைய முகவர்",
+      "trae": "Trae Agent, ByteDance இன் குறியீட்டு CLI",
+      "octofriend": "Octofriend, முனைய குறியீட்டு முகவர்",
+      "raaid": "RA.Aid, ஆராய்ந்து செயல்படுத்தும் குறியீட்டு முகவர்",
       "antigravity": "Google Antigravity IDE with MITM",
       "claude": "Anthropic Claude Code CLI",
       "codex": "OpenAI Codex CLI",

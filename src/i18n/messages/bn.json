@@ -2949,6 +2949,17 @@
       "custom": "Use for custom tool implementations or generic OpenAI-compatible configurations."
     },
     "toolDescriptions": {
+      "aichat": "AIChat, কাস্টম বেস URL সহ অল-ইন-ওয়ান LLM CLI",
+      "shell-gpt": "ShellGPT, কাস্টম বেস URL সহ কমান্ড-লাইন সহকারী",
+      "mods": "Mods, Charm-এর কমান্ড লাইনের জন্য AI",
+      "llm": "Simon Willison-এর llm CLI, কাস্টম বেস URL সহ",
+      "fabric": "Fabric, কাস্টম বেস URL সহ প্রম্পট ও প্যাটার্ন CLI",
+      "openhands": "OpenHands, স্বয়ংক্রিয় সফটওয়্যার ইঞ্জিনিয়ারিং এজেন্ট",
+      "plandex": "Plandex, দীর্ঘ কাজের জন্য কোডিং এজেন্ট (সেলফ-হোস্টেড)",
+      "gptme": "gptme, শেল ও ফাইল টুল সহ টার্মিনাল এজেন্ট",
+      "trae": "Trae Agent, ByteDance-এর কোডিং CLI",
+      "octofriend": "Octofriend, টার্মিনাল কোডিং এজেন্ট",
+      "raaid": "RA.Aid, গবেষণা ও বাস্তবায়নকারী কোডিং এজেন্ট",
       "antigravity": "Google Antigravity IDE with MITM",
       "claude": "Anthropic Claude Code CLI",
       "codex": "OpenAI Codex CLI",

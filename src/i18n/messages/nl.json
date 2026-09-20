@@ -2949,6 +2949,17 @@
       "custom": "Gebruik voor aangepaste toolimplementaties of generieke OpenAI-compatibele configuraties."
     },
     "toolDescriptions": {
+      "aichat": "AIChat alles-in-één LLM-CLI met aangepaste basis-URL",
+      "shell-gpt": "ShellGPT-opdrachtregelassistent met aangepaste basis-URL",
+      "mods": "Mods, AI voor de opdrachtregel, van Charm",
+      "llm": "llm-CLI van Simon Willison met aangepaste basis-URL",
+      "fabric": "Fabric-CLI voor prompts en patronen met aangepaste basis-URL",
+      "openhands": "OpenHands, autonome software-engineeringagent",
+      "plandex": "Plandex, codeeragent voor langlopende taken (zelf gehost)",
+      "gptme": "gptme, terminalagent met shell- en bestandstools",
+      "trae": "Trae Agent, codeer-CLI van ByteDance",
+      "octofriend": "Octofriend, codeeragent voor de terminal",
+      "raaid": "RA.Aid, codeeragent die onderzoekt en implementeert",
       "antigravity": "Google Antigravity IDE met MITM",
       "claude": "Antropische Claude Code CLI",
       "codex": "OpenAI Codex-CLI",

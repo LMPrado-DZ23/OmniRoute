@@ -2949,6 +2949,17 @@
       "custom": "השתמש עבור הטמעת כלים מותאמים אישית או תצורות כלליות תואמות OpenAI."
     },
     "toolDescriptions": {
+      "aichat": "‏AIChat, ממשק שורת פקודה כולל למודלי שפה עם כתובת בסיס מותאמת",
+      "shell-gpt": "‏ShellGPT, עוזר שורת פקודה עם כתובת בסיס מותאמת",
+      "mods": "‏Mods, בינה מלאכותית לשורת הפקודה מבית Charm",
+      "llm": "‏ממשק llm של Simon Willison עם כתובת בסיס מותאמת",
+      "fabric": "‏Fabric, ממשק שורת פקודה לפרומפטים ותבניות עם כתובת בסיס מותאמת",
+      "openhands": "‏OpenHands, סוכן אוטונומי להנדסת תוכנה",
+      "plandex": "‏Plandex, סוכן קוד למשימות ארוכות (אירוח עצמי)",
+      "gptme": "‏gptme, סוכן טרמינל עם כלי מעטפת וקבצים",
+      "trae": "‏Trae Agent, ממשק שורת פקודה לקוד מבית ByteDance",
+      "octofriend": "‏Octofriend, סוכן קוד בטרמינל",
+      "raaid": "‏RA.Aid, סוכן קוד שחוקר ומיישם",
       "antigravity": "Google Antigravity IDE עם MITM",
       "claude": "קלוד האנתרופי קוד CLI",
       "codex": "OpenAI Codex CLI",

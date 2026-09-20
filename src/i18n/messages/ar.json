@@ -2949,6 +2949,17 @@
       "custom": "يستخدم لتطبيقات الأدوات المخصصة أو التكوينات العامة المتوافقة مع OpenAI."
     },
     "toolDescriptions": {
+      "aichat": "‏AIChat، واجهة سطر أوامر شاملة لنماذج اللغة مع عنوان أساسي مخصص",
+      "shell-gpt": "‏ShellGPT، مساعد سطر الأوامر مع عنوان أساسي مخصص",
+      "mods": "‏Mods، ذكاء اصطناعي لسطر الأوامر من Charm",
+      "llm": "‏واجهة llm من Simon Willison مع عنوان أساسي مخصص",
+      "fabric": "‏Fabric، واجهة سطر أوامر للمطالبات والأنماط مع عنوان أساسي مخصص",
+      "openhands": "‏OpenHands، وكيل مستقل لهندسة البرمجيات",
+      "plandex": "‏Plandex، وكيل برمجة للمهام الطويلة (استضافة ذاتية)",
+      "gptme": "‏gptme، وكيل طرفية بأدوات الصدفة والملفات",
+      "trae": "‏Trae Agent، واجهة سطر أوامر للبرمجة من ByteDance",
+      "octofriend": "‏Octofriend، وكيل برمجة في الطرفية",
+      "raaid": "‏RA.Aid، وكيل برمجة يبحث وينفّذ",
       "antigravity": "Google Antigravity IDE مع MITM",
       "claude": "Anthropic Claude code CLI",
       "codex": "واجهة OpenAI Codex لسطر الأوامر",

@@ -2949,6 +2949,17 @@
       "custom": "कस्टम टूल कार्यान्वयन या सामान्य OpenAI-संगत कॉन्फ़िगरेशन के लिए उपयोग करें।"
     },
     "toolDescriptions": {
+      "aichat": "AIChat, कस्टम बेस URL के साथ ऑल-इन-वन LLM CLI",
+      "shell-gpt": "ShellGPT, कस्टम बेस URL के साथ कमांड-लाइन सहायक",
+      "mods": "Mods, Charm द्वारा कमांड लाइन के लिए AI",
+      "llm": "Simon Willison का llm CLI, कस्टम बेस URL के साथ",
+      "fabric": "Fabric, कस्टम बेस URL के साथ प्रॉम्प्ट और पैटर्न CLI",
+      "openhands": "OpenHands, स्वायत्त सॉफ़्टवेयर इंजीनियरिंग एजेंट",
+      "plandex": "Plandex, लंबे कार्यों के लिए कोडिंग एजेंट (स्व-होस्टेड)",
+      "gptme": "gptme, शेल और फ़ाइल टूल के साथ टर्मिनल एजेंट",
+      "trae": "Trae Agent, ByteDance का कोडिंग CLI",
+      "octofriend": "Octofriend, टर्मिनल कोडिंग एजेंट",
+      "raaid": "RA.Aid, शोध और कार्यान्वयन करने वाला कोडिंग एजेंट",
       "antigravity": "एमआईटीएम के साथ गूगल एंटीग्रेविटी आईडीई",
       "claude": "एंथ्रोपिक क्लाउड कोड सीएलआई",
       "codex": "ओपनएआई कोडेक्स सीएलआई",

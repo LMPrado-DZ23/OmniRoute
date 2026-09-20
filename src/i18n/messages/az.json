@@ -2949,6 +2949,17 @@
       "custom": "Use for custom tool implementations or generic OpenAI-compatible configurations."
     },
     "toolDescriptions": {
+      "aichat": "AIChat hamısı bir arada LLM CLI, fərdi baza URL dəstəyi ilə",
+      "shell-gpt": "ShellGPT komanda sətri köməkçisi, fərdi baza URL dəstəyi ilə",
+      "mods": "Mods, Charm-dan komanda sətri üçün süni intellekt",
+      "llm": "Simon Willison-un llm CLI-si, fərdi baza URL dəstəyi ilə",
+      "fabric": "Fabric prompt və şablon CLI-si, fərdi baza URL dəstəyi ilə",
+      "openhands": "OpenHands, avtonom proqram mühəndisliyi agenti",
+      "plandex": "Plandex, uzunmüddətli kodlaşdırma agenti (öz serverinizdə)",
+      "gptme": "gptme, shell və fayl alətləri olan terminal agenti",
+      "trae": "Trae Agent, ByteDance-in kodlaşdırma CLI-si",
+      "octofriend": "Octofriend, terminal kodlaşdırma agenti",
+      "raaid": "RA.Aid, araşdıran və tətbiq edən kodlaşdırma agenti",
       "antigravity": "Google Antigravity IDE with MITM",
       "claude": "Anthropic Claude Code CLI",
       "codex": "OpenAI Codex CLI",

@@ -2949,6 +2949,17 @@
       "custom": "Utilizați pentru implementări de instrumente personalizate sau configurații generice compatibile cu OpenAI."
     },
     "toolDescriptions": {
+      "aichat": "AIChat, CLI LLM all-in-one cu URL de bază personalizat",
+      "shell-gpt": "ShellGPT, asistent pentru linia de comandă cu URL de bază personalizat",
+      "mods": "Mods, IA pentru linia de comandă, de la Charm",
+      "llm": "CLI-ul llm al lui Simon Willison cu URL de bază personalizat",
+      "fabric": "Fabric, CLI pentru prompturi și modele cu URL de bază personalizat",
+      "openhands": "OpenHands, agent autonom de inginerie software",
+      "plandex": "Plandex, agent de codare pentru sarcini lungi (auto-găzduit)",
+      "gptme": "gptme, agent de terminal cu instrumente shell și de fișiere",
+      "trae": "Trae Agent, CLI de codare de la ByteDance",
+      "octofriend": "Octofriend, agent de codare în terminal",
+      "raaid": "RA.Aid, agent de codare care cercetează și implementează",
       "antigravity": "Google Antigravity IDE cu MITM",
       "claude": "Codul antropic Claude CLI",
       "codex": "OpenAI Codex CLI",

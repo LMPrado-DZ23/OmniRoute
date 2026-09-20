@@ -2949,6 +2949,17 @@
       "custom": "Käytä mukautettuihin työkalutoteutuksiin tai yleisiin OpenAI-yhteensopiviin kokoonpanoihin."
     },
     "toolDescriptions": {
+      "aichat": "AIChat, kaikki yhdessä -LLM-CLI mukautetulla perus-URL-osoitteella",
+      "shell-gpt": "ShellGPT-komentoriviavustaja mukautetulla perus-URL-osoitteella",
+      "mods": "Mods, tekoäly komentoriville, Charmilta",
+      "llm": "Simon Willisonin llm-CLI mukautetulla perus-URL-osoitteella",
+      "fabric": "Fabric-CLI kehotteille ja malleille mukautetulla perus-URL-osoitteella",
+      "openhands": "OpenHands, itsenäinen ohjelmistokehitysagentti",
+      "plandex": "Plandex, pitkäkestoisten tehtävien koodiagentti (itse isännöity)",
+      "gptme": "gptme, pääteagentti shell- ja tiedostotyökaluilla",
+      "trae": "Trae Agent, ByteDancen koodaus-CLI",
+      "octofriend": "Octofriend, päätteen koodiagentti",
+      "raaid": "RA.Aid, koodiagentti joka tutkii ja toteuttaa",
       "antigravity": "Google Antigravity IDE ja MITM",
       "claude": "Antrooppinen Claude Code CLI",
       "codex": "OpenAI Codex CLI",
