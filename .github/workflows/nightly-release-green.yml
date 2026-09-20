@@ -69,6 +69,17 @@ jobs:
     # no local noauth CLIs => zero machine-specific false positives) and no contention.
     # Nightly cron normally finds the var false (VM off) and falls back to hosted.
     runs-on: ${{ (vars.USE_VPS_RUNNER == 'true' && fromJSON('["self-hosted","omni-build"]')) || 'ubuntu-latest' }}
+    # The full sweep runs the slow suites SERIALLY on a hosted runner, and it does not
+    # fit in an hour. Measured on run 35492256478: the static and drift gates all passed
+    # by 05:46:03, the four serial suites started, and the job was killed at 06:40:38 —
+    # 60m27s after it started, with no output from any of them. The unit gate's own label
+    # says "~30-50min idle, up to ~80min under load", so it alone can exceed what was
+    # left. Three earlier attempts died the same way.
+    #
+    # The job declared no budget, so it inherited one. An explicit ceiling makes the
+    # budget a decision instead of an accident, and a sweep that overruns THIS says so
+    # as a timeout rather than as an opaque exit 143.
+    timeout-minutes: 180
     env:
       JWT_SECRET: ci-nightly-secret-with-sufficient-length-for-validation
       API_KEY_SECRET: ci-nightly-api-key-secret-long
@@ -275,6 +286,17 @@ jobs:
     # repository variable VALIDATE_MAIN_BRANCH=true to sweep it anyway.
     if: ${{ (github.event_name == 'push' && github.ref_name == 'main') || (github.event_name != 'push' && vars.VALIDATE_MAIN_BRANCH == 'true') }}
     runs-on: ${{ (vars.USE_VPS_RUNNER == 'true' && fromJSON('["self-hosted","omni-build"]')) || 'ubuntu-latest' }}
+    # The full sweep runs the slow suites SERIALLY on a hosted runner, and it does not
+    # fit in an hour. Measured on run 35492256478: the static and drift gates all passed
+    # by 05:46:03, the four serial suites started, and the job was killed at 06:40:38 —
+    # 60m27s after it started, with no output from any of them. The unit gate's own label
+    # says "~30-50min idle, up to ~80min under load", so it alone can exceed what was
+    # left. Three earlier attempts died the same way.
+    #
+    # The job declared no budget, so it inherited one. An explicit ceiling makes the
+    # budget a decision instead of an accident, and a sweep that overruns THIS says so
+    # as a timeout rather than as an opaque exit 143.
+    timeout-minutes: 180
     env:
       JWT_SECRET: ci-nightly-secret-with-sufficient-length-for-validation
       API_KEY_SECRET: ci-nightly-api-key-secret-long
