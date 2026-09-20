@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { z } from "zod";
 
 import { logAdminAuditEvent } from "@/lib/compliance/adminAuditActor";
+import * as log from "@/sse/utils/logger";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 
 /** Shared plumbing of the `/api/workspaces/**` handlers. */
@@ -50,6 +51,20 @@ export function auditWorkspaceChange(
   logAdminAuditEvent(request, { action, target, resourceType: "workspace", metadata });
 }
 
-export function internalError(): Response {
+function internalError(): Response {
   return errorJson(500, "Workspace operation failed");
+}
+
+/**
+ * The 500 path of every `/api/workspaces/**` verb: an unexpected failure (a database error,
+ * say) answers with the same JSON envelope as the other refusals instead of Next's default
+ * error page, and the reason is logged server-side only.
+ */
+export async function withWorkspaceErrors(handle: () => Promise<Response>): Promise<Response> {
+  try {
+    return await handle();
+  } catch (error) {
+    log.error("workspaces", "Workspace request failed", error);
+    return internalError();
+  }
 }
