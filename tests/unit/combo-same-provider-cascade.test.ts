@@ -4,6 +4,10 @@ import assert from "node:assert/strict";
 import { normalizeHeaders } from "../../open-sse/utils/headers.ts";
 import { createChatPipelineHarness } from "../integration/_chatPipelineHarness.ts";
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 /**
  * Guard for the same-provider cascade (issue #3200): when a combo has SEVERAL
  * targets from the same provider and that provider fails, the combo must NOT

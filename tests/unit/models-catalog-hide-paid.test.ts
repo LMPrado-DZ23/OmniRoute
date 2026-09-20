@@ -19,6 +19,10 @@ const settingsDb = await import("../../src/lib/db/settings.ts");
 const providersDb = await import("../../src/lib/db/providers.ts");
 const v1ModelsCatalog = await import("../../src/app/api/v1/models/catalog.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 async function fetchCatalog(): Promise<Array<{ id: string; type?: string }>> {
   const res = await v1ModelsCatalog.getUnifiedModelsResponse(
     new Request("http://localhost/api/v1/models", { method: "GET" })

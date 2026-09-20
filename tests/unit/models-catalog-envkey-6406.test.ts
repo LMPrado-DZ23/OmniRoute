@@ -19,6 +19,10 @@ const apiKeysDb = await import("../../src/lib/db/apiKeys.ts");
 const providersDb = await import("../../src/lib/db/providers.ts");
 const v1ModelsCatalog = await import("../../src/app/api/v1/models/catalog.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 // `getUnifiedModelsResponse` returns the OpenAI-shaped `{object, data}` catalog
 // list (see catalog.ts's `responseBody`); only `data[].id` is asserted here.
 interface ModelsCatalogResponseBody {

@@ -18,6 +18,10 @@ const { resetAllCircuitBreakers, getCircuitBreaker } =
   await import("../../src/shared/utils/circuitBreaker.ts");
 const { invalidateDbCache } = await import("../../src/lib/db/readCache.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 const originalFetch = globalThis.fetch;
 
 test.beforeEach(() => {

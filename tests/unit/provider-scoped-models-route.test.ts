@@ -14,6 +14,10 @@ const serviceModelsDb = await import("../../src/lib/db/serviceModels.ts");
 const providerModelsRoute =
   await import("../../src/app/api/v1/providers/[provider]/models/route.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 interface SeedConnectionOverrides {
   authType?: string;
   name?: string;

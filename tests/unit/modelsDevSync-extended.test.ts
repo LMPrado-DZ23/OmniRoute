@@ -173,6 +173,9 @@ test.describe("modelsDevSync-extended", { concurrency: 1 }, async () => {
   });
 
   test("modelsDev interval falls back to the default when env values are invalid or non-positive", async () => {
+    // startPeriodicSync() launches an immediate sync: without this stub the interval
+    // assertions below fired a REAL request to models.dev on every run.
+    mockFetchWith(MOCK_MODELS_DEV_DATA);
     process.env.MODELS_DEV_SYNC_INTERVAL = "0";
     const zeroInterval = await importFresh("interval-zero");
     zeroInterval.startPeriodicSync();

@@ -21,6 +21,10 @@ const { getModelInfo } = await import("../../src/sse/services/model.ts");
 const { resolveModelOrError } = await import("../../src/sse/handlers/chatHelpers.ts");
 const chatRoute = await import("../../src/app/api/v1/chat/completions/route.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 const originalFetch = globalThis.fetch;
 
 const RETIRED_PROVIDER_VARIANTS = [

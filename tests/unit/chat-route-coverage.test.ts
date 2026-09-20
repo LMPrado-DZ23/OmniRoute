@@ -23,6 +23,10 @@ const { clearProviderFailure } = await import("../../open-sse/services/accountFa
 const { getDefaultTaskModelMap, resetTaskRoutingStats, setTaskRoutingConfig } =
   await import("../../open-sse/services/taskAwareRouter.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 function buildOpenAIStreamResponse(text = "streamed from openai") {
   return new Response(
     [

@@ -21,6 +21,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-9034-"));
 process.env.DATA_DIR = TEST_DATA_DIR;
 

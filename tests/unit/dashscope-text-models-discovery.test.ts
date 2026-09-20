@@ -12,6 +12,10 @@ const providersDb = await import("../../src/lib/db/providers.ts");
 const modelsDb = await import("../../src/lib/db/models.ts");
 const modelsRoute = await import("../../src/app/api/providers/[id]/models/route.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 const ALIBABA_MODEL_STUDIO_MODEL_IDS = [
   "qwen3.7-max",
   "qwen3.7-plus",

@@ -18,6 +18,10 @@ const providersDb = await import("../../src/lib/db/providers.ts");
 const accountSemaphores = await import("../../open-sse/services/accountSemaphore.ts");
 const { POST: handleCompletions } = await import("../../src/app/api/v1/completions/route.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 const OWNER = "vlo_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 const OWNER_B = "vlo_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
 

@@ -3,6 +3,10 @@ import assert from "node:assert/strict";
 
 const mod = await import("../../open-sse/executors/poe-web.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 describe("PoeWebExecutor", () => {
   it("can be instantiated", () => {
     const executor = new mod.PoeWebExecutor();

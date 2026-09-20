@@ -18,6 +18,10 @@ const route = await import("../../src/app/api/models/alias/route.ts");
 const catalogRoute = await import("../../src/app/api/models/catalog/route.ts");
 const v1Catalog = await import("../../src/app/api/v1/models/catalog.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 async function resetStorage() {
   delete process.env.INITIAL_PASSWORD;
   core.resetDbInstance();

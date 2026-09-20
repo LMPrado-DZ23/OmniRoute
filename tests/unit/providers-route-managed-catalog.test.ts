@@ -14,6 +14,25 @@ const core = await import("../../src/lib/db/core.ts");
 const providersRoute = await import("../../src/app/api/providers/route.ts");
 const modelsDb = await import("../../src/lib/db/models.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
+// Two managed-catalog providers reach their upstream through a per-provider wreq-js client
+// (a native binding, invisible to a fetch stub): without these overrides the suite dialled
+// grok.com and www.perplexity.ai for real.
+for (const tlsClient of await Promise.all([
+  import("../../open-sse/services/grokTlsClient.ts"),
+  import("../../open-sse/services/perplexityTlsClient.ts"),
+])) {
+  tlsClient.__setTlsFetchOverrideForTesting(async () => ({
+    status: 401,
+    headers: new Headers({ "content-type": "application/json" }),
+    text: JSON.stringify({ error: { message: "offline unit test" } }),
+    body: null,
+  }));
+}
+
 function resetDb() {
   core.resetDbInstance();
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });

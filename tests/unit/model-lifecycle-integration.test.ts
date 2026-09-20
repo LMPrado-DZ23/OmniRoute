@@ -16,6 +16,10 @@ const v1ModelsCatalog = await import("../../src/app/api/v1/models/catalog.ts");
 const providerModelsRoute = await import("../../src/app/api/providers/[id]/models/route.ts");
 const { handleChatCore } = await import("../../open-sse/handlers/chatCore.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 const originalFetch = globalThis.fetch;
 
 async function resetStorage() {

@@ -30,6 +30,10 @@ const vscodeRawTagsRoute =
 const vscodeRawShowRoute =
   await import("../../src/app/api/v1/vscode/raw/[token]/api/show/route.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 async function resetStorage() {
   core.resetDbInstance();
   apiKeysDb.resetApiKeyState();

@@ -25,6 +25,13 @@ const providersDb = await import("../../src/lib/db/providers.ts");
 const proxiesDb = await import("../../src/lib/db/proxies.ts");
 const proxyFetch = await import("../../open-sse/utils/proxyFetch.ts");
 const { handleRerank } = await import("../../open-sse/handlers/rerank.ts");
+const { reserveDeadLoopbackPort } = await import("./_helpers/deadLoopback.ts");
+
+// A pinned-but-dead proxy that never leaves this machine: a loopback port with nothing
+// listening. It used to be the made-up host `rerank-egress.local`, whose "unreachable"
+// depended on the resolver answering NXDOMAIN — a real outbound attempt, and one the
+// network guard (tests/_setup/blockNetwork.ts) refuses.
+const DEAD_PROXY = { host: "127.0.0.1", port: await reserveDeadLoopbackPort() };
 
 const originalFetch = globalThis.fetch;
 
@@ -57,8 +64,8 @@ test("#7350 handleRerank routes the upstream call through the connection's pinne
   const proxy = await proxiesDb.createProxy({
     name: "Rerank Egress Proxy",
     type: "http",
-    host: "rerank-egress.local",
-    port: 8080,
+    host: DEAD_PROXY.host,
+    port: DEAD_PROXY.port,
   });
   await proxiesDb.assignProxyToScope("account", (conn as { id: string }).id, proxy.id);
 
@@ -70,7 +77,7 @@ test("#7350 handleRerank routes the upstream call through the connection's pinne
   // #9100: the T14 reachability probe is now NON-BLOCKING — dispatch is optimistic, so
   // fn() (and hence this stub) runs immediately. To still observe the dead-proxy
   // failure the stub must stay pending long enough for the probe (fast NXDOMAIN /
-  // ECONNREFUSED on rerank-egress.local) to resolve unreachable and abort the
+  // ECONNREFUSED on the dead loopback port) to resolve unreachable and abort the
   // in-flight request with PROXY_UNREACHABLE instead of a direct 200.
   const seen: { proxyUrl: string | null | undefined }[] = [];
   let releaseStub: () => void = () => {};

@@ -11,6 +11,10 @@ const { clearAntigravityProjectCache } =
 const { seedAntigravityIdeVersionCache, seedAntigravityCliVersionCache } =
   await import("../../open-sse/services/antigravityVersion.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 const BOOTSTRAP_URL = "https://cloudcode-pa.googleapis.com/v1internal:loadCodeAssist";
 
 test.beforeEach(async () => {

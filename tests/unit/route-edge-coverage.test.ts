@@ -30,6 +30,10 @@ const rerankRoute = await import("../../src/app/api/v1/rerank/route.ts");
 const searchRoute = await import("../../src/app/api/v1/search/route.ts");
 const videosRoute = await import("../../src/app/api/v1/videos/generations/route.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 const MACHINE_ID = "1234567890abcdef";
 
 async function resetStorage() {

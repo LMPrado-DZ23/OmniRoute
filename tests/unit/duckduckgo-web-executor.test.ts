@@ -9,6 +9,10 @@ import {
   STATUS_URL,
 } from "../../open-sse/executors/duckduckgo-web.ts";
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 describe("DuckDuckGoWebExecutor", () => {
   describe("class instantiation", () => {
     it("should instantiate executor", () => {

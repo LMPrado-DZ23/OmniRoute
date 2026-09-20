@@ -5,6 +5,10 @@ import assert from "node:assert/strict";
 import { validateProviderApiKey } from "../../src/lib/providers/validation";
 import { getStaticModelsForProvider } from "../../src/lib/providers/staticModels";
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 test("#6142 (fixed): saving a Devin cloud-agent API key should not be 'unsupported' by the generic provider flow (parity with jules)", async () => {
   const result = await validateProviderApiKey({
     provider: "devin",

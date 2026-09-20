@@ -17,6 +17,10 @@ const { clearAntigravityProjectCache } =
 const { seedAntigravityIdeVersionCache, seedAntigravityCliVersionCache } =
   await import("../../open-sse/services/antigravityVersion.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 test.beforeEach(async () => {
   BaseExecutor.RETRY_CONFIG.delayMs = 0;
   process.env.ANTIGRAVITY_CREDITS = "off";

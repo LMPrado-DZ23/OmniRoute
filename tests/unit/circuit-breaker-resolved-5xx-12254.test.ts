@@ -21,6 +21,10 @@ const { BaseExecutor, buildRequest, handleChat, resetStorage, seedConnection, se
 const { CircuitBreaker, getCircuitBreaker, STATE } =
   await import("../../src/shared/utils/circuitBreaker.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 const originalFetch = globalThis.fetch;
 const originalRetryConfig = {
   maxAttempts: BaseExecutor.RETRY_CONFIG.maxAttempts,

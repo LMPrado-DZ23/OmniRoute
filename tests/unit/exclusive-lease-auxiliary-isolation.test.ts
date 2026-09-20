@@ -28,6 +28,10 @@ const vnc = await import("../../src/lib/vncSession/service.ts");
 const usageRoute = await import("../../src/app/api/usage/[connectionId]/route.ts");
 const providerLimits = await import("../../src/lib/usage/providerLimits.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 const OWNER = "vlo_UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU";
 
 async function seedConnection(name: string, provider = "openai"): Promise<{ id: string }> {

@@ -23,6 +23,10 @@ process.env.API_KEY_SECRET = process.env.API_KEY_SECRET || "catalog-11947-secret
 const core = await import("../../src/lib/db/core.ts");
 const catalog = await import("../../src/app/api/v1/models/catalog.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 type CatalogEntry = {
   id: string;
   owned_by?: string;

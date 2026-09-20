@@ -409,10 +409,10 @@ jobs:
           done
           RC=0
           if [ ${#REST[@]} -gt 0 ]; then
-            node --import tsx/esm --import ./open-sse/utils/setupPolyfill.ts --import ./tests/_setup/isolateDataDir.ts --test --test-force-exit --test-concurrency=4 "${REST[@]}" || RC=$?
+            node --import tsx/esm --import ./open-sse/utils/setupPolyfill.ts --import ./tests/_setup/isolateDataDir.ts --import ./tests/_setup/blockNetwork.ts --test --test-force-exit --test-concurrency=4 "${REST[@]}" || RC=$?
           fi
           if [ ${#DASH[@]} -gt 0 ]; then
-            node --import tsx --import ./open-sse/utils/setupPolyfill.ts --import ./tests/_setup/isolateDataDir.ts --test --test-force-exit --test-concurrency=4 "${DASH[@]}" || RC=$?
+            node --import tsx --import ./open-sse/utils/setupPolyfill.ts --import ./tests/_setup/isolateDataDir.ts --import ./tests/_setup/blockNetwork.ts --test --test-force-exit --test-concurrency=4 "${DASH[@]}" || RC=$?
           fi
           exit $RC
       # #8084 shadow evidence: keep the raw selection downloadable so TIA misses can be

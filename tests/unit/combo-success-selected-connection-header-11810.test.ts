@@ -21,6 +21,10 @@ import assert from "node:assert/strict";
 
 import { createChatPipelineHarness } from "../integration/_chatPipelineHarness.ts";
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 const harness = await createChatPipelineHarness("combo-success-sel-conn-11810");
 const { buildOpenAIResponse, buildRequest, combosDb, handleChat, resetStorage, seedConnection } =
   harness;

@@ -21,6 +21,10 @@ const { getCircuitBreaker } = await import(
   "../../src/shared/utils/circuitBreaker.ts"
 );
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 test.beforeEach(async () => {
   await resetStorage();
 });

@@ -19,6 +19,10 @@ const providersRoute = await import("../../src/app/api/providers/route.ts");
 const providerByIdRoute = await import("../../src/app/api/providers/[id]/route.ts");
 const providersDb = await import("../../src/lib/db/providers.ts");
 const modelsDb = await import("../../src/lib/db/models.ts");
+
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
 const originalGetLoginCookieStore = loginRoute.authRouteInternals.getCookieStore;
 const originalGetLogoutCookieStore = logoutRoute.logoutRouteInternals.getCookieStore;
 

@@ -442,6 +442,8 @@
       "./open-sse/utils/setupPolyfill.ts",
       "--import",
       "./tests/_setup/isolateDataDir.ts",
+      "--import",
+      "./tests/_setup/blockNetwork.ts",
       "--test-reporter=tap",
       "-r",
       "{{hookFile}}",

@@ -37,8 +37,18 @@ process.env.DISABLE_SQLITE_AUTO_BACKUP = "true";
 // /api/providers) gets a harmless 404 instead of touching the network.
 const VALIDATION_BASE_URL = "https://proxy.activation-11446.example.com/v1";
 let nextModelsProbeStatus: number | null = 200;
+
+const core = await import("../../src/lib/db/core.ts");
+const providerNodesRoute = await import("../../src/app/api/provider-nodes/route.ts");
+const providersRoute = await import("../../src/app/api/providers/route.ts");
+const { testSingleConnection } = await import("../../src/app/api/providers/[id]/test/route.ts");
+
+// The stub goes in AFTER the route imports, and is asserted to be the live fetch:
+// open-sse/utils/proxyFetch.ts replaces globalThis.fetch at import time, so a stub
+// installed above this line was silently discarded and the probes went to the real
+// network (the guard in tests/_setup/blockNetwork.ts caught 10 such attempts).
 const originalFetch = globalThis.fetch;
-globalThis.fetch = (async (input: string | URL | Request) => {
+const probeStub = (async (input: string | URL | Request) => {
   const url =
     typeof input === "string" ? input : input instanceof Request ? input.url : input.toString();
   if (url === `${VALIDATION_BASE_URL}/models`) {
@@ -47,13 +57,10 @@ globalThis.fetch = (async (input: string | URL | Request) => {
     }
     return new Response(JSON.stringify({ data: [] }), { status: nextModelsProbeStatus });
   }
-  return new Response("not found", { status: 404 });
+  throw new Error(`unexpected outbound request in this suite: ${url}`);
 }) as typeof fetch;
-
-const core = await import("../../src/lib/db/core.ts");
-const providerNodesRoute = await import("../../src/app/api/provider-nodes/route.ts");
-const providersRoute = await import("../../src/app/api/providers/route.ts");
-const { testSingleConnection } = await import("../../src/app/api/providers/[id]/test/route.ts");
+globalThis.fetch = probeStub;
+assert.equal(globalThis.fetch, probeStub, "the probe stub must be the live globalThis.fetch");
 
 async function readJsonObject(response: Response): Promise<Record<string, unknown>> {
   const text = await response.text();

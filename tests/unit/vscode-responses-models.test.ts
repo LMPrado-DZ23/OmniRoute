@@ -17,6 +17,10 @@ const vscodeModelsRoute = await import("../../src/app/api/v1/vscode/[token]/mode
 const vscodeRawModelsRoute =
   await import("../../src/app/api/v1/vscode/raw/[token]/models/route.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 type MetadataModel = {
   id?: string;
   root?: string;

@@ -88,7 +88,7 @@ for f in "${RUN_TESTS[@]}"; do
 done
 
 cd "$REPO_ROOT"
-NODE_COMMON=(--max-old-space-size=8192 --import ./open-sse/utils/setupPolyfill.ts --import ./tests/_setup/isolateDataDir.ts --test --test-force-exit)
+NODE_COMMON=(--max-old-space-size=8192 --import ./open-sse/utils/setupPolyfill.ts --import ./tests/_setup/isolateDataDir.ts --import ./tests/_setup/blockNetwork.ts --test --test-force-exit)
 export DISABLE_SQLITE_AUTO_BACKUP=true
 RC=0
 if [ ${#REST[@]} -gt 0 ]; then

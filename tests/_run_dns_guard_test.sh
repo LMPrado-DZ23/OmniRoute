@@ -21,5 +21,5 @@ if ! grep -q "$TEST_HOST" "$HOSTS_FILE" 2>/dev/null; then
 fi
 
 cd "$REPO_ROOT"
-node --import tsx/esm --import ./tests/_setup/isolateDataDir.ts \
+node --import tsx/esm --import ./tests/_setup/isolateDataDir.ts --import ./tests/_setup/blockNetwork.ts \
   --test tests/unit/mitm-dnsConfig.test.ts

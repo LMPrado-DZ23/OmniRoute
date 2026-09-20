@@ -5,6 +5,10 @@ import { gheCopilotProvider } from "../../open-sse/config/providers/registry/ghe
 import { GHE_COPILOT_TARGET } from "../../src/mitm/targets/ghe-copilot.ts";
 import type { ProviderCredentials } from "../../open-sse/executors/base.ts";
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 test("GHE Copilot registry exposes Claude Opus 5", () => {
   const opus5 = gheCopilotProvider.models.find((model) => model.id === "claude-opus-5");
 

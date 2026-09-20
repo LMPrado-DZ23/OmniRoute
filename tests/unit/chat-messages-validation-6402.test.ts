@@ -8,6 +8,10 @@ import {
 import { AGY_PUBLIC_MODELS } from "../../open-sse/config/agyModels.ts";
 import { createChatPipelineHarness } from "../integration/_chatPipelineHarness.ts";
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 // Regression tests for #6402 — schema-invalid `messages` fields fell through
 // the existing empty-array guard and reached model resolution, where an
 // unresolvable model surfaced as a misleading 404 `model_not_found` from

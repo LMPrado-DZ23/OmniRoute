@@ -14,6 +14,10 @@ const providersDb = await import("../../src/lib/db/providers.ts");
 const modelsCatalog = await import("../../src/app/api/v1/models/catalog.ts");
 const modelsRoute = await import("../../src/app/api/v1/models/route.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 const NODE_ID = "openai-compatible-chat-550e8400-e29b-41d4-a716-446655440000";
 const PREFIX = "infrex";
 const EXPECTED_IDS = [

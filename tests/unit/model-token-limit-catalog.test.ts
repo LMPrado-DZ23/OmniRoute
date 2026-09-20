@@ -15,6 +15,10 @@ const providers = await import("../../src/lib/db/providers.ts");
 const catalog = await import("../../src/app/api/v1/models/catalog.ts");
 const overrideRoute = await import("../../src/app/api/model-capability-overrides/route.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 const TARGET = "openai/gpt-5.6";
 const LIMITS = { context: 372000, input: 353400, output: 128000 };
 

@@ -24,6 +24,28 @@ const core = await import("../../src/lib/db/core.ts");
 const providersDb = await import("../../src/lib/db/providers.ts");
 const { checkConnection } = await import("../../src/lib/tokenHealthCheck.ts");
 
+// Hermetic outbound layer — installed AFTER every import, because
+// open-sse/utils/proxyFetch.ts replaces globalThis.fetch at import time and would
+// discard a stub installed before it. Production code under test makes best-effort
+// calls (catalog polls, egress probes) that must never leave the machine.
+const { installOfflineOutbound } = await import("./_helpers/offlineOutbound.ts");
+// The refresh path of the dual-auth case below used to call the REAL Google token
+// endpoint and depend on it rejecting the fixture token. It now answers here with the
+// exact response Google returns for a stale refresh token, so the "expired" outcome is
+// a property of our classification, not of the network.
+await installOfflineOutbound({
+  respond: (url) =>
+    url.href === "https://oauth2.googleapis.com/token"
+      ? new Response(
+          JSON.stringify({
+            error: "invalid_grant",
+            error_description: "Token has been expired or revoked.",
+          }),
+          { status: 400, headers: { "content-type": "application/json" } }
+        )
+      : undefined,
+});
+
 async function resetStorage() {
   core.resetDbInstance();
   for (let attempt = 0; attempt < 10; attempt++) {

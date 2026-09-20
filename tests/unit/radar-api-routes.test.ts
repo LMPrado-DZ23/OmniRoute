@@ -39,6 +39,10 @@ const core = await import("../../src/lib/db/core.ts");
 const radarDb = await import("../../src/lib/db/radar.ts");
 const featureFlags = await import("../../src/shared/utils/featureFlags.ts");
 
+// Hermetic outbound layer — installed AFTER every import (proxyFetch replaces
+// globalThis.fetch at import time). See tests/unit/_helpers/offlineOutbound.ts.
+await (await import("./_helpers/offlineOutbound.ts")).installOfflineOutbound();
+
 // We need to test the route handlers. Since Next.js route handlers are just
 // exported functions, we can import and call them directly with mock Request
 // objects. However, the routes import from @/lib/radar which reads the DB,
