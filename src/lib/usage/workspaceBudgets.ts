@@ -25,7 +25,7 @@ import {
   listWorkspaceApiKeyIds,
   type HierarchyBudget,
 } from "@/lib/db/workspaces";
-import { loadCostTotal } from "@/lib/db/domainState";
+import { loadCostTotalForKeys } from "@/lib/db/domainState";
 import { spendBatchWriter } from "@/lib/spend/batchWriter";
 import { notifyHierarchyBudgetThresholdReached } from "@/lib/usage/budgetAlerts";
 import {
@@ -61,17 +61,32 @@ export interface HierarchyVerdict {
   levels: LevelEvaluation[];
 }
 
-/** Sum of the per-key ledger over `apiKeyIds` since `sinceMs`. */
+/**
+ * Sum of the per-key ledger over `apiKeyIds` since `sinceMs`.
+ *
+ * The committed half is ONE query for the whole set rather than one per key. This runs on
+ * every request that carries a project-scoped key, and the per-key shape meant a workspace
+ * with 100 keys cost 100 round-trips through `prepare()` to answer a single budget
+ * question. The pending half still walks the in-memory write buffer, which is a JS loop
+ * over unflushed entries and never touches SQLite.
+ *
+ * `spendOf` stays for the tests that inject a counting stub: passing it keeps the old
+ * per-key path, so a caller that wants to observe each lookup still can.
+ */
 export function rollUpSpend(
   apiKeyIds: readonly string[],
   sinceMs: number,
-  spendOf: (apiKeyId: string, sinceMs: number) => number = keySpendSince
+  spendOf?: (apiKeyId: string, sinceMs: number) => number
 ): number {
-  return apiKeyIds.reduce((total, apiKeyId) => total + spendOf(apiKeyId, sinceMs), 0);
-}
-
-function keySpendSince(apiKeyId: string, sinceMs: number): number {
-  return loadCostTotal(apiKeyId, sinceMs) + spendBatchWriter.getPendingCostTotal(apiKeyId, sinceMs);
+  if (spendOf) {
+    return apiKeyIds.reduce((total, apiKeyId) => total + spendOf(apiKeyId, sinceMs), 0);
+  }
+  const committed = loadCostTotalForKeys(apiKeyIds, sinceMs);
+  const pending = apiKeyIds.reduce(
+    (total, apiKeyId) => total + spendBatchWriter.getPendingCostTotal(apiKeyId, sinceMs),
+    0
+  );
+  return committed + pending;
 }
 
 export function toInternalLimit(
