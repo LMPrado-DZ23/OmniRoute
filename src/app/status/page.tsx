@@ -82,7 +82,7 @@ export default function StatusPage() {
           </div>
           <button
             onClick={() => void loadHealth()}
-            className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-semibold bg-gradient-to-br from-primary to-primary-hover text-white transition-all duration-200 motion-reduce:transition-none"
+            className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-semibold bg-gradient-to-br from-primary to-primary-hover text-on-primary transition-all duration-200 motion-reduce:transition-none"
           >
             {tc("refresh")}
           </button>

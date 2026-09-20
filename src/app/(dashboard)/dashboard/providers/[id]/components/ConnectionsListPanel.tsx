@@ -278,7 +278,7 @@ export default function ConnectionsListPanel({
           }}
           className={`px-2.5 py-1 text-xs rounded-full font-medium transition-colors ${
             healthFilter === opt.value
-              ? "bg-primary text-white"
+              ? "bg-primary text-on-primary"
               : "bg-muted/60 text-text-muted hover:bg-muted"
           }`}
         >

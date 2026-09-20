@@ -1140,7 +1140,7 @@ const RequestLoggerV2 = forwardRef<RequestLoggerV2Handle, { initialSelectedId?: 
                       ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/40"
                       : f.key === "combo"
                         ? "bg-violet-500/20 text-violet-700 dark:text-violet-300 border-violet-500/40"
-                        : "bg-primary text-white border-primary"
+                        : "bg-primary text-on-primary border-primary"
                   : "bg-bg-subtle border-border text-text-muted hover:border-text-muted"
               }`}
             >

@@ -142,7 +142,7 @@ function Stepper({ currentStep }: { currentStep: 1 | 2 | 3 }) {
             <span
               className={`flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-semibold transition-colors ${
                 currentStep === step.num
-                  ? "bg-primary text-white"
+                  ? "bg-primary text-on-primary"
                   : currentStep > step.num
                     ? "bg-primary/20 text-primary"
                     : "bg-border text-text-muted"
@@ -780,7 +780,7 @@ export default function PoolWizard({
               <button
                 onClick={() => setStep(2)}
                 disabled={connectionIds.length === 0}
-                className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {t("wizardNext")}
                 <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
@@ -893,7 +893,7 @@ export default function PoolWizard({
               </button>
               <button
                 onClick={() => setStep(3)}
-                className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors"
+                className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-colors"
               >
                 {t("wizardNext")}
                 <span className="material-symbols-outlined text-[16px]">arrow_forward</span>

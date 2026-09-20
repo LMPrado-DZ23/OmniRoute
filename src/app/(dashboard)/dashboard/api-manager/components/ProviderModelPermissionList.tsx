@@ -277,7 +277,7 @@ const ProviderModelPermissionList = memo(function ProviderModelPermissionList({
                             onClick={() => handleToggleModel(model)}
                             className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-mono transition-all ${
                               isSelected
-                                ? "bg-primary text-white"
+                                ? "bg-primary text-on-primary"
                                 : "bg-surface border border-border text-text-muted hover:border-primary/50 hover:text-text-main"
                             } ${isToggleable ? "" : "opacity-70 cursor-not-allowed"}`}
                             title={model.id}

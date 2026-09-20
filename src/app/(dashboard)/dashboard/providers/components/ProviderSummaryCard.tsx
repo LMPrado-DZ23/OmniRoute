@@ -263,7 +263,7 @@ export default function ProviderSummaryCard({
                 aria-pressed={isActive}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
                   isActive
-                    ? "bg-primary text-white border-primary"
+                    ? "bg-primary text-on-primary border-primary"
                     : "bg-bg-subtle border-border text-text-muted hover:text-text-primary hover:border-primary/30"
                 }`}
                 title={cat.title || cat.label}
@@ -271,7 +271,7 @@ export default function ProviderSummaryCard({
                 {cat.color && <CategoryDot color={cat.color} label={cat.label} />}
                 <span>{cat.label}</span>
                 {/* Full-opacity counts: the dimmed variants measured 2.1–2.6:1 contrast. */}
-                <span className={`text-[11px] ${isActive ? "text-white" : "text-text-muted"}`}>
+                <span className={`text-[11px] ${isActive ? "text-on-primary" : "text-text-muted"}`}>
                   {cat.stat.configured}
                   <span>/{cat.stat.total}</span>
                 </span>
@@ -293,7 +293,7 @@ export default function ProviderSummaryCard({
                 aria-pressed={isActive}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
                   isActive
-                    ? "bg-primary text-white border-primary"
+                    ? "bg-primary text-on-primary border-primary"
                     : "bg-bg-subtle border-border text-text-muted hover:text-text-primary hover:border-primary/30"
                 }`}
               >

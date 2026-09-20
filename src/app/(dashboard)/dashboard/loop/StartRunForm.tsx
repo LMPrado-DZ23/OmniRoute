@@ -42,7 +42,7 @@ export function StartRunForm({ starting, onStart }: StartRunFormProps) {
         data-testid="loop-start-button"
         onClick={() => void submit()}
         disabled={starting || !trimmed}
-        className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
+        className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary transition-colors hover:opacity-90 disabled:opacity-50"
       >
         {starting ? t("starting") : t("start")}
       </button>
