@@ -335,7 +335,7 @@ export default function ProxyLogger() {
                     ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
                     : f.key === "timeout"
                       ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
-                      : "bg-primary text-white border-primary"
+                      : "bg-primary text-on-primary border-primary"
                 : "bg-bg-subtle border-border text-text-muted hover:border-text-muted"
             }`}
           >

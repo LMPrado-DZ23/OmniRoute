@@ -180,7 +180,7 @@ export default function CallbackPage() {
                 user is simply stranded on the callback page. */}
             <Link
               href="/dashboard/providers"
-              className="mt-4 inline-flex items-center gap-1 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+              className="mt-4 inline-flex items-center gap-1 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:opacity-90"
             >
               <span className="material-symbols-outlined text-sm" aria-hidden="true">
                 arrow_back

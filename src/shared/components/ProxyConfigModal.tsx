@@ -586,7 +586,7 @@ export default function ProxyConfigModal({
                 onClick={() => setMode("saved")}
                 className={`px-3 py-2 rounded text-sm border transition-colors ${
                   mode === "saved"
-                    ? "bg-primary text-white border-primary"
+                    ? "bg-primary text-on-primary border-primary"
                     : "bg-bg-subtle text-text-muted border-border"
                 }`}
               >
@@ -596,7 +596,7 @@ export default function ProxyConfigModal({
                 onClick={() => setMode("custom")}
                 className={`px-3 py-2 rounded text-sm border transition-colors ${
                   mode === "custom"
-                    ? "bg-primary text-white border-primary"
+                    ? "bg-primary text-on-primary border-primary"
                     : "bg-bg-subtle text-text-muted border-border"
                 }`}
               >
@@ -638,7 +638,7 @@ export default function ProxyConfigModal({
                       onClick={() => setProxyType(t.value)}
                       className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${
                         proxyType === t.value
-                          ? "bg-primary text-white shadow-sm"
+                          ? "bg-primary text-on-primary shadow-sm"
                           : "text-text-muted hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/5"
                       }`}
                     >

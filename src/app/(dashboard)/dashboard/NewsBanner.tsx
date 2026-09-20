@@ -95,7 +95,7 @@ export default function NewsBanner() {
             href={announcement.link}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:brightness-110"
+            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary transition-colors hover:brightness-110"
           >
             {announcement.linkLabel ?? announcement.title}
             <span className="material-symbols-outlined text-[14px]" aria-hidden="true">

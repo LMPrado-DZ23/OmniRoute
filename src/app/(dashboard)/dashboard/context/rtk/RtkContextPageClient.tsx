@@ -295,7 +295,7 @@ export default function RtkContextPageClient() {
               <h2 className="text-sm font-semibold text-text-main">{t("filterTesting")}</h2>
               <button
                 onClick={runPreview}
-                className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white"
+                className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-on-primary"
               >
                 {t("run")}
               </button>

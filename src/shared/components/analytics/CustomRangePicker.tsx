@@ -185,7 +185,7 @@ export default function CustomRangePicker({
           type="button"
           disabled={!isValid}
           onClick={handleApply}
-          className="rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-primary-hover disabled:opacity-40 disabled:cursor-not-allowed"
+          className="rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-on-primary shadow-sm transition-colors hover:bg-primary-hover disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {t("rangeApply")}
         </button>

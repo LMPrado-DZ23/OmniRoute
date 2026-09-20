@@ -33,7 +33,7 @@ export function ChaosConfigActionsBar({
           type="button"
           onClick={onSave}
           disabled={saving}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-on-primary text-sm font-semibold hover:opacity-90 disabled:opacity-50"
         >
           {saving ? (
             <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>

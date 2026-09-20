@@ -218,7 +218,7 @@ export default function NoAuthAccountCard({
     }
   };
 
-   const handleAddManualApiKey = async () => {
+  const handleAddManualApiKey = async () => {
     if (!manualApiKey.trim()) return;
     setAddingManualKey(true);
     try {
@@ -522,7 +522,7 @@ export default function NoAuthAccountCard({
                     onClick={() => setProxyMode("saved")}
                     className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                       proxyMode === "saved"
-                        ? "bg-primary text-white"
+                        ? "bg-primary text-on-primary"
                         : "text-text-muted hover:text-text-main"
                     }`}
                   >
@@ -533,7 +533,7 @@ export default function NoAuthAccountCard({
                     onClick={() => setProxyMode("custom")}
                     className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                       proxyMode === "custom"
-                        ? "bg-primary text-white"
+                        ? "bg-primary text-on-primary"
                         : "text-text-muted hover:text-text-main"
                     }`}
                   >

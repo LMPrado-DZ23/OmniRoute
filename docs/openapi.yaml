@@ -68,6 +68,8 @@ tags:
     description: Prompt compression, RTK filters, Caveman rules, and compression combos
   - name: Usage
     description: Usage analytics and logs
+  - name: Workspaces
+    description: Workspace → project → API key hierarchy with rolled-up budgets
   - name: Translator
     description: Format translation debug & testing
   - name: CLI Tools
@@ -684,6 +686,14 @@ paths:
       tags:
         - Memory
       summary: Create a memory entry
+      description: >-
+        Creates a memory entry and answers `200` with `{ success: true, id }`.
+        NOTE: despite its name, `id` holds the FULL created MemoryEntry, not an
+        identifier string — read the new entry's identifier from `id.id`. This
+        shape is consumed by the dashboard and the CLI and is kept for
+        compatibility; it is known design debt that blocks promoting this
+        operation to `stable` (a later release can add a correctly named field
+        alongside and deprecate `id` before removing it at a major).
       security:
         - ManagementSessionAuth: []
       requestBody:
@@ -723,16 +733,32 @@ paths:
                   format: date-time
                   nullable: true
       responses:
-        "201":
-          description: Created memory entry
+        "200":
+          description: >-
+            Memory entry created. `id` carries the full created MemoryEntry (not an
+            identifier string); see the operation description.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MemoryEntry"
+                type: object
+                required:
+                  - success
+                  - id
+                properties:
+                  success:
+                    type: boolean
+                    enum:
+                      - true
+                  id:
+                    $ref: "#/components/schemas/MemoryEntry"
         "400":
-          description: Validation error
+          description: >-
+            Validation error (body is `{ message, details: [{ field, message }] }`), or
+            a storage failure (body is `{ error: { message } }`).
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: API key lacks the manage scope
   /api/memory/{id}:
     parameters:
       - name: id
@@ -4298,6 +4324,442 @@ paths:
       responses:
         "200":
           description: Updated budget configuration
+
+  # ─── Workspaces (workspace → project → API key, rolled-up budgets) ───
+  # Authorization: the owner (dashboard session, loopback CLI token, login disabled) sees every
+  # workspace; a management API key (`api_key:<id>`) or CLI access token (`access_token:<id>`)
+  # sees only workspaces it is a member of. A workspace (or project) outside the caller's
+  # memberships answers with the same 404 body as a nonexistent one. Mutations need the
+  # workspace `admin` member role, and `admin` scope for CLI access tokens.
+  # See docs/architecture/WORKSPACES_RBAC.md.
+
+  /api/workspaces:
+    get:
+      x-stability: experimental
+      x-owner: "@LMPrado-DZ23"
+      x-since: "3.8.55"
+      x-rate-limit: none
+      tags: [Workspaces]
+      summary: List the workspaces visible to the caller
+      description: Owner sees all workspaces; any other principal sees its memberships. Each entry carries the workspace's rolled-up spend in its current budget window.
+      security:
+        - BearerAuth: []
+        - ManagementSessionAuth: []
+      responses:
+        "200":
+          description: Visible workspaces with spend
+        "401":
+          description: Authentication required
+        "403":
+          description: Credential may not use the management API
+    post:
+      x-stability: experimental
+      x-owner: "@LMPrado-DZ23"
+      x-since: "3.8.55"
+      x-rate-limit: none
+      tags: [Workspaces]
+      summary: Create a workspace
+      description: A non-owner creator becomes the workspace `admin` member.
+      security:
+        - BearerAuth: []
+        - ManagementSessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 100 }
+                description: { type: string, nullable: true, maxLength: 500 }
+                budget:
+                  type: object
+                  additionalProperties: false
+                  description: A level with `limitUsd` null has no budget. Intervals are UTC with a 00:00 reset.
+                  properties:
+                    limitUsd:
+                      type: number
+                      nullable: true
+                      exclusiveMinimum: 0
+                      maximum: 1000000000
+                    interval: { type: string, enum: [daily, weekly, monthly] }
+                    warningThreshold:
+                      type: number
+                      minimum: 0.01
+                      maximum: 1
+            example:
+              name: Research
+              budget:
+                limitUsd: 200
+                interval: monthly
+                warningThreshold: 0.8
+      responses:
+        "201":
+          description: Workspace created
+        "400":
+          description: Invalid body
+        "409":
+          description: Name already taken
+
+  /api/workspaces/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      x-stability: experimental
+      x-owner: "@LMPrado-DZ23"
+      x-since: "3.8.55"
+      x-rate-limit: none
+      tags: [Workspaces]
+      summary: Get a workspace with its projects and rolled-up spend
+      security:
+        - BearerAuth: []
+        - ManagementSessionAuth: []
+      responses:
+        "200":
+          description: Workspace, caller role, projects and spend per level
+        "404":
+          description: Workspace not found (also returned for a workspace the caller is not a member of)
+    patch:
+      x-stability: experimental
+      x-owner: "@LMPrado-DZ23"
+      x-since: "3.8.55"
+      x-rate-limit: none
+      tags: [Workspaces]
+      summary: Update a workspace name, description or budget
+      security:
+        - BearerAuth: []
+        - ManagementSessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              minProperties: 1
+              properties:
+                name: { type: string, minLength: 1, maxLength: 100 }
+                description: { type: string, nullable: true, maxLength: 500 }
+                budget:
+                  type: object
+                  additionalProperties: false
+                  description: A level with `limitUsd` null has no budget. Intervals are UTC with a 00:00 reset.
+                  properties:
+                    limitUsd:
+                      type: number
+                      nullable: true
+                      exclusiveMinimum: 0
+                      maximum: 1000000000
+                    interval: { type: string, enum: [daily, weekly, monthly] }
+                    warningThreshold:
+                      type: number
+                      minimum: 0.01
+                      maximum: 1
+      responses:
+        "200":
+          description: Updated workspace
+        "400":
+          description: Invalid body, or a project budget would exceed the new workspace budget (`budget_exceeds_parent`)
+        "403":
+          description: Caller is a `viewer` member
+        "404":
+          description: Workspace not found
+        "409":
+          description: Name already taken
+    delete:
+      x-stability: experimental
+      x-owner: "@LMPrado-DZ23"
+      x-since: "3.8.55"
+      x-rate-limit: none
+      tags: [Workspaces]
+      summary: Delete an empty workspace
+      security:
+        - BearerAuth: []
+        - ManagementSessionAuth: []
+      responses:
+        "200":
+          description: Workspace deleted
+        "403":
+          description: Caller is a `viewer` member
+        "404":
+          description: Workspace not found
+        "409":
+          description: The workspace still has projects (`workspace_not_empty`)
+
+  /api/workspaces/{id}/projects:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      x-stability: experimental
+      x-owner: "@LMPrado-DZ23"
+      x-since: "3.8.55"
+      x-rate-limit: none
+      tags: [Workspaces]
+      summary: List the projects of a workspace with their spend
+      security:
+        - BearerAuth: []
+        - ManagementSessionAuth: []
+      responses:
+        "200":
+          description: Projects with assigned key ids and spend
+        "404":
+          description: Workspace not found
+    post:
+      x-stability: experimental
+      x-owner: "@LMPrado-DZ23"
+      x-since: "3.8.55"
+      x-rate-limit: none
+      tags: [Workspaces]
+      summary: Create a project in a workspace
+      security:
+        - BearerAuth: []
+        - ManagementSessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 100 }
+                description: { type: string, nullable: true, maxLength: 500 }
+                budget:
+                  type: object
+                  additionalProperties: false
+                  description: A level with `limitUsd` null has no budget. Intervals are UTC with a 00:00 reset.
+                  properties:
+                    limitUsd:
+                      type: number
+                      nullable: true
+                      exclusiveMinimum: 0
+                      maximum: 1000000000
+                    interval: { type: string, enum: [daily, weekly, monthly] }
+                    warningThreshold:
+                      type: number
+                      minimum: 0.01
+                      maximum: 1
+            example:
+              name: Chatbot
+              budget: { limitUsd: 50, interval: monthly }
+      responses:
+        "201":
+          description: Project created
+        "400":
+          description: Invalid body, or the budget exceeds the workspace budget on the same interval (`budget_exceeds_parent`)
+        "403":
+          description: Caller is a `viewer` member
+        "404":
+          description: Workspace not found
+        "409":
+          description: Name already taken in this workspace
+
+  /api/workspaces/{id}/projects/{projectId}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+      - { name: projectId, in: path, required: true, schema: { type: string } }
+    get:
+      x-stability: experimental
+      x-owner: "@LMPrado-DZ23"
+      x-since: "3.8.55"
+      x-rate-limit: none
+      tags: [Workspaces]
+      summary: Get a project with its spend
+      security:
+        - BearerAuth: []
+        - ManagementSessionAuth: []
+      responses:
+        "200":
+          description: Project
+        "404":
+          description: Workspace or project not found (a project of another workspace is not found)
+    patch:
+      x-stability: experimental
+      x-owner: "@LMPrado-DZ23"
+      x-since: "3.8.55"
+      x-rate-limit: none
+      tags: [Workspaces]
+      summary: Update a project name, description or budget
+      security:
+        - BearerAuth: []
+        - ManagementSessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              minProperties: 1
+              properties:
+                name: { type: string, minLength: 1, maxLength: 100 }
+                description: { type: string, nullable: true, maxLength: 500 }
+                budget:
+                  type: object
+                  additionalProperties: false
+                  description: A level with `limitUsd` null has no budget. Intervals are UTC with a 00:00 reset.
+                  properties:
+                    limitUsd:
+                      type: number
+                      nullable: true
+                      exclusiveMinimum: 0
+                      maximum: 1000000000
+                    interval: { type: string, enum: [daily, weekly, monthly] }
+                    warningThreshold:
+                      type: number
+                      minimum: 0.01
+                      maximum: 1
+      responses:
+        "200":
+          description: Updated project
+        "400":
+          description: Invalid body, or the budget exceeds the workspace budget (`budget_exceeds_parent`)
+        "403":
+          description: Caller is a `viewer` member
+        "404":
+          description: Workspace or project not found
+        "409":
+          description: Name already taken in this workspace
+    delete:
+      x-stability: experimental
+      x-owner: "@LMPrado-DZ23"
+      x-since: "3.8.55"
+      x-rate-limit: none
+      tags: [Workspaces]
+      summary: Delete a project with no assigned API keys
+      security:
+        - BearerAuth: []
+        - ManagementSessionAuth: []
+      responses:
+        "200":
+          description: Project deleted
+        "403":
+          description: Caller is a `viewer` member
+        "404":
+          description: Workspace or project not found
+        "409":
+          description: API keys are still assigned (`project_not_empty`)
+
+  /api/workspaces/{id}/projects/{projectId}/keys:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+      - { name: projectId, in: path, required: true, schema: { type: string } }
+    put:
+      x-stability: experimental
+      x-owner: "@LMPrado-DZ23"
+      x-since: "3.8.55"
+      x-rate-limit: none
+      tags: [Workspaces]
+      summary: Replace the set of API keys assigned to a project
+      description: Listed keys are assigned; keys of this project that are not listed are unassigned. A key already in a project of another workspace must be unassigned there first.
+      security:
+        - BearerAuth: []
+        - ManagementSessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [apiKeyIds]
+              properties:
+                apiKeyIds:
+                  type: array
+                  maxItems: 500
+                  items: { type: string }
+            example:
+              apiKeyIds: ["3f0c9a52-6b8e-4f5e-9a7d-2c1b0e4d8a11"]
+      responses:
+        "200":
+          description: Updated project
+        "403":
+          description: Caller is a `viewer` member
+        "404":
+          description: Workspace, project or API key not found (a key in a workspace the caller cannot see is not found)
+        "409":
+          description: A key is assigned in another workspace the caller can see (`key_in_other_workspace`)
+
+  /api/workspaces/{id}/members:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      x-stability: experimental
+      x-owner: "@LMPrado-DZ23"
+      x-since: "3.8.55"
+      x-rate-limit: none
+      tags: [Workspaces]
+      summary: List workspace members
+      security:
+        - BearerAuth: []
+        - ManagementSessionAuth: []
+      responses:
+        "200":
+          description: Members (principal and role)
+        "404":
+          description: Workspace not found
+    post:
+      x-stability: experimental
+      x-owner: "@LMPrado-DZ23"
+      x-since: "3.8.55"
+      x-rate-limit: none
+      tags: [Workspaces]
+      summary: Add a member or change its role
+      security:
+        - BearerAuth: []
+        - ManagementSessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [principal, role]
+              properties:
+                principal:
+                  type: string
+                  pattern: "^(api_key|access_token):[A-Za-z0-9._-]{1,200}$"
+                role:
+                  type: string
+                  enum: [admin, viewer]
+            example:
+              principal: "api_key:3f0c9a52-6b8e-4f5e-9a7d-2c1b0e4d8a11"
+              role: viewer
+      responses:
+        "200":
+          description: Updated member list
+        "400":
+          description: Invalid body
+        "403":
+          description: Caller is a `viewer` member
+        "404":
+          description: Workspace not found
+
+  /api/workspaces/{id}/members/{principal}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+      - { name: principal, in: path, required: true, schema: { type: string } }
+    delete:
+      x-stability: experimental
+      x-owner: "@LMPrado-DZ23"
+      x-since: "3.8.55"
+      x-rate-limit: none
+      tags: [Workspaces]
+      summary: Remove a workspace member
+      security:
+        - BearerAuth: []
+        - ManagementSessionAuth: []
+      responses:
+        "200":
+          description: Updated member list
+        "403":
+          description: Caller is a `viewer` member
+        "404":
+          description: Workspace or member not found
 
   /api/usage/cache-health:
     get:
@@ -8076,10 +8538,23 @@ paths:
       x-rate-limit: none
       tags: [Telemetry]
       summary: Get telemetry summary
-      description: Returns aggregated telemetry data including request metrics and performance stats.
+      description: >-
+        Returns aggregated telemetry data including request metrics and performance stats.
+        Management-scoped. When login is required, an anonymous caller gets 401 and a
+        key without the manage scope gets 403 (enforced by the central middleware and,
+        as defence in depth, by the handler). With requireLogin disabled — the
+        documented local-only mode, where the whole management surface is open — the
+        route answers anonymous callers, so the dashboard telemetry card works on
+        keyless installs. Unlike /api/metrics it is intentionally not always-protected.
+      security:
+        - BearerAuth: []
       responses:
         "200":
           description: Telemetry summary data
+        "401":
+          description: Management authentication required
+        "403":
+          description: API key lacks the manage scope
 
   /api/token-health:
     get:
@@ -18530,8 +19005,10 @@ paths:
         - Webhooks
       summary: "POST webhooks"
       responses:
-        "200":
-          description: OK
+        "201":
+          description: Webhook created. Body is `{ webhook }`, the stored row.
+        "400":
+          description: Invalid body (unknown event, blocked private URL, or telegram without storage encryption).
   /api/webhooks/{id}:
     delete:
       x-stability: internal

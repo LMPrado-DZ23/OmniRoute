@@ -10,7 +10,7 @@ export interface AllowedComboOption {
   models?: unknown[];
 }
 
-const MODE_BUTTON_ACTIVE = "bg-primary text-white";
+const MODE_BUTTON_ACTIVE = "bg-primary text-on-primary";
 const MODE_BUTTON_IDLE = "text-text-muted hover:bg-black/5 dark:hover:bg-white/5";
 
 function ComboAccessModeToggle({
@@ -70,7 +70,7 @@ function ComboOptionRow({
         }`}
       >
         {isSelected && (
-          <span className="material-symbols-outlined text-white text-[10px]">check</span>
+          <span className="material-symbols-outlined text-on-primary text-[10px]">check</span>
         )}
       </div>
       <span className="truncate flex-1">{combo.name}</span>

@@ -39,7 +39,7 @@ const DEFAULT_PROVIDER_URLS: Record<string, string> = {
 const INPUT_CLASS =
   "w-full px-4 py-2.5 bg-bg-subtle border border-border rounded-lg text-text-main text-sm placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/40";
 const PRIMARY_BUTTON_CLASS =
-  "px-6 py-2.5 bg-primary rounded-lg text-white font-medium text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
+  "px-6 py-2.5 bg-primary rounded-lg text-on-primary font-medium text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
 
 /** `/dashboard/onboarding?rerun=1` opens the wizard even after setup was completed. */
 function isRerunRequested(): boolean {

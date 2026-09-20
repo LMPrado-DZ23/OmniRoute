@@ -28,7 +28,7 @@ export default function NotFound() {
       <div className="flex flex-col sm:flex-row items-center gap-3">
         <Link
           href="/dashboard"
-          className="px-8 py-3 rounded-xl text-white text-sm font-medium no-underline transition-all duration-200 motion-reduce:transition-none shadow-warm hover:-translate-y-0.5 bg-gradient-to-br from-primary to-primary-hover hover:shadow-elevated focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+          className="px-8 py-3 rounded-xl text-on-primary text-sm font-medium no-underline transition-all duration-200 motion-reduce:transition-none shadow-warm hover:-translate-y-0.5 bg-gradient-to-br from-primary to-primary-hover hover:shadow-elevated focus:outline-2 focus:outline-offset-2 focus:outline-primary"
           aria-label={t("notFound.dashboardAriaLabel")}
         >
           {tc("goToDashboard")}
