@@ -135,7 +135,15 @@
   --surface-2: #f5f5fa;
   --radius: 14px;
   --radius-control: 9px;
-  --grad-brand: linear-gradient(135deg, var(--color-primary), var(--color-accent-light));
+  /* The primary button paints --color-on-primary ON this gradient, so BOTH ends have to
+     clear 4.5:1 — not just the crimson one. White on #b83242 is 5.88:1, but white on the
+     brand violet #a855f7 is 3.96:1, under AA for normal text. axe reports a gradient as
+     `incomplete` rather than as a violation, so the production scan never saw it.
+     #9333ea takes the violet end to 5.16:1 and the midpoint to 5.97:1 (the ends are the
+     worst case, so the whole fill passes). --color-accent-light is untouched: it stays
+     the brand accent everywhere it is decoration rather than a backdrop for text. */
+  --color-accent-on-primary: #9333ea;
+  --grad-brand: linear-gradient(135deg, var(--color-primary), var(--color-accent-on-primary));
 
   /* Data-table surfaces — theme-aware. The DARK values (in .dark below) exactly mirror
      the previous hardcoded rgba in DataTable.tsx so dark stays byte-identical; these
@@ -161,6 +169,9 @@
      only 4.3:1); it is derived from --color-primary so it never drifts from the brand. */
   --color-primary-hover: color-mix(in srgb, var(--color-primary) 85%, #ffffff);
   --color-on-primary: #000000;
+  /* The dark theme writes BLACK on the gradient, which the brand violet already clears
+     (5.31:1 on #a855f7, 5.56:1 on #e54d5e), so it keeps the undarkened accent. */
+  --color-accent-on-primary: var(--color-accent-light);
   /* Dark counterpart: #e54d5e as text on bg-primary/10 over --color-sidebar measured
      4.43:1, just under AA. Lightening instead of darkening clears 4.5:1 on every primary
      tint here (5.0:1 on the worst one). */
