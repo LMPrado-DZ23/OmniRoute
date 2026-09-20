@@ -72,7 +72,7 @@ docker rm omniroute
 docker volume rm omniroute-data
 
 # （選擇性）移除映像檔
-docker rmi ghcr.io/lmprado-dz23/omniroute:next
+docker rmi ghcr.io/lmprado-dz23/omniroute:latest
 ```
 
 ### Docker Compose

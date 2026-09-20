@@ -170,7 +170,7 @@ podman run -d --name omniroute \
   -e DATA_DIR=/app/data \
   -p 20128:20128 \
   -v omniroute-data:/app/data \
-  ghcr.io/lmprado-dz23/omniroute:next
+  ghcr.io/lmprado-dz23/omniroute:latest
 ```
 
 For a bind mount that still fails, inspect or repair the shared path from the

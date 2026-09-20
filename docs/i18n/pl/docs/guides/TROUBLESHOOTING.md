@@ -311,7 +311,7 @@ Pełne szczegóły i instrukcja krok po kroku dodawania dwóch kont Kiro obok si
 2. **Trwała poprawka:** Wymuś IPv4 przez `-p 127.0.0.1:20128:20128` w `docker run`:
    ```bash
    docker run -d --name omniroute --restart unless-stopped --stop-timeout 40 \
-     -p 127.0.0.1:20128:20128 -v omniroute-data:/app/data ghcr.io/lmprado-dz23/omniroute:next
+     -p 127.0.0.1:20128:20128 -v omniroute-data:/app/data ghcr.io/lmprado-dz23/omniroute:latest
    ```
    To wymusza bind IPv4 i dodatkowo nie eksponuje proxy na wszystkich interfejsach hosta.
 

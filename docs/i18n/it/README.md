@@ -931,7 +931,7 @@ Usali solo con client che non possono aggiungere `Authorization: Bearer ...`. L'
 
 ```bash
 docker run -d --name omniroute --restart unless-stopped --stop-timeout 40 \
-  -p 127.0.0.1:20128:20128 -v omniroute-data:/app/data ghcr.io/lmprado-dz23/omniroute:next
+  -p 127.0.0.1:20128:20128 -v omniroute-data:/app/data ghcr.io/lmprado-dz23/omniroute:latest
 ```
 
 `:latest` segue la versione SemVer stabile **pubblicata** più alta. Non segue il branch git `main`. Per GitOps, fissa `:X.Y.Z`. Vedi [Canali di release Docker](../../guides/DOCKER_GUIDE.md#release-channels). L'immagine imposta **`OMNIROUTE_MEMORY_MB=1024`**. È sufficiente per la dashboard e una chat leggera. I **coding agent** (`POST /v1/responses` da Claude Code, Codex, Grok, …) richiedono un heap V8 molto più grande, altrimenti il processo va in `FATAL ERROR` a ~12 GiB con due contesti lunghi sovrapposti. Dimensiona il container oltre l'heap (i buffer nativi si trovano fuori da V8):
@@ -945,7 +945,7 @@ docker run -d --name omniroute --restart unless-stopped --stop-timeout 40 \
 ```bash
 docker run -d --name omniroute --restart unless-stopped --stop-timeout 40 \
   -e OMNIROUTE_MEMORY_MB=8192 --memory=10g \
-  -p 127.0.0.1:20128:20128 -v omniroute-data:/app/data ghcr.io/lmprado-dz23/omniroute:next
+  -p 127.0.0.1:20128:20128 -v omniroute-data:/app/data ghcr.io/lmprado-dz23/omniroute:latest
 ```
 
 Tabella completa: [Guida Docker — RAM di runtime](../../guides/DOCKER_GUIDE.md#runtime-ram-for-coding-agents).
