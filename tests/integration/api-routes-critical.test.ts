@@ -19,6 +19,21 @@ const proxiesRoute = await import("../../src/app/api/v1/management/proxies/route
 const settingsProxyRoute = await import("../../src/app/api/settings/proxy/route.ts");
 const settingsMitmRoute = await import("../../src/app/api/settings/mitm/route.ts");
 const v1ModelsRoute = await import("../../src/app/api/v1/models/route.ts");
+const { aiHordeImageCatalog } = await import("@omniroute/open-sse/services/aihordeImageCatalog");
+
+// GET /api/v1/models refreshes the AI Horde image catalog whenever `aihorde` is active —
+// and it is active by default, because it is a no-auth provider with no connection row to
+// switch off. So this file was making a live HTTPS request to aihorde.net on every run
+// (3 attempts, counting the retry), which is what tests/_setup/blockNetwork.ts caught.
+// The service exposes setFetch precisely for this; the route's own catch keeps the last
+// good snapshot, so an empty worker list changes none of the assertions below.
+aiHordeImageCatalog.setFetch(
+  async () =>
+    new Response(JSON.stringify([]), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    })
+);
 
 const MACHINE_ID = "1234567890abcdef";
 

@@ -92,6 +92,30 @@ const loopback = new net.BlockList();
 loopback.addSubnet("127.0.0.0", 8, "ipv4");
 loopback.addAddress("::1", "ipv6");
 
+/**
+ * Top-level domains the IETF reserves as permanently unresolvable (RFC 2606 / RFC 6761).
+ * A name under one of these cannot reach a host: there is no delegation for it, anywhere.
+ *
+ * Tests use them on purpose to exercise a FAILING outbound path — `CLOUD_URL` is set to
+ * `http://cloud.example` in tests/integration/api-keys.test.ts so the cloud-sync branch is
+ * taken and fails. Counting that as "the suite reached the network" made this guard fail a
+ * file that never left the machine, which is a false positive on a guard whose value is
+ * that its reds are real.
+ *
+ * This is not a hole: the exemption is not "hosts a test asked for", it is "names that by
+ * standard resolve to nothing". A provider smuggled in under `.test` would still not be
+ * reachable, so there is nothing to smuggle.
+ */
+const UNRESOLVABLE_TLDS = ["test", "example", "invalid", "localhost"];
+
+/** True for a name under an RFC-reserved, permanently unresolvable TLD. */
+export function isUnresolvableHost(host: string): boolean {
+  const normalized = host.trim().replace(/\.$/, "").toLowerCase();
+  if (net.isIP(normalized)) return false;
+  const tld = normalized.split(".").pop() ?? "";
+  return UNRESOLVABLE_TLDS.includes(tld);
+}
+
 /** True for loopback IPs (v4, v6, IPv4-mapped v6) and the name `localhost`. */
 export function isLoopbackHost(host: string): boolean {
   const normalized = host
@@ -245,9 +269,15 @@ function installNetworkGuard(decision: GuardDecision): NetworkGuard {
   function block(host: string, port: string, via: string): NetworkAccessBlockedError {
     const testFile = currentTestFile();
     const violation: Violation = { host, port, via, testFile, stack: captureStack() };
-    violations.push(violation);
+    // Refuse it either way — the connection must never leave the machine, not even as a
+    // DNS lookup. What an RFC-reserved name changes is only whether it is COUNTED: a test
+    // that points at `cloud.example` on purpose, to exercise a failing outbound branch,
+    // has not reached the network and must not fail the file for it.
+    const counted = !isUnresolvableHost(host);
+    if (counted) violations.push(violation);
     process.stderr.write(
-      `${LOG_PREFIX} ${decision.mode === "report" ? "REPORT" : "BLOCKED"} ` +
+      `${LOG_PREFIX} ${decision.mode === "report" ? "REPORT" : "BLOCKED"}` +
+        `${counted ? "" : " (reserved name — refused, not counted)"} ` +
         `host=${host} port=${port} via=${via} file=${testFile}\n${violation.stack}\n`
     );
     return new NetworkAccessBlockedError(host, port, via, testFile);

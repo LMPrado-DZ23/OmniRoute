@@ -18,6 +18,7 @@ import {
   networkGuard,
   resolveGuardMode,
   targetFromConnectArgs,
+  isUnresolvableHost,
 } from "../_setup/blockNetwork.ts";
 
 const PROBE = "tests/unit/fixtures/network-guard-probe.ts";
@@ -246,4 +247,45 @@ test("the wreq-js native transport (outside net.Socket) is blocked too", () => {
     run.stderr,
     /\[network-guard\] BLOCKED host=192\.0\.2\.1 port=443 via=wreq-js\.request/
   );
+});
+
+// ─── RFC-reserved names are not "the network" ──────────────────────────────
+
+test("names under an RFC-reserved TLD are not counted as reaching the network", () => {
+  // RFC 2606 / RFC 6761 reserve these as permanently unresolvable, and tests use them to
+  // exercise a FAILING outbound path on purpose — api-keys.test.ts sets CLOUD_URL to
+  // http://cloud.example so the cloud-sync branch is taken and fails. Counting that as a
+  // violation failed a file that never left the machine.
+  for (const host of [
+    "cloud.example",
+    "api.test",
+    "nothing.invalid",
+    "foo.localhost",
+    "DEEP.sub.Example",
+    "trailing.example.",
+  ]) {
+    assert.equal(isUnresolvableHost(host), true, `${host} must be treated as unresolvable`);
+  }
+});
+
+test("the exemption does not reach real names or addresses", () => {
+  // The value of this guard is that its reds are real. An exemption that leaked to
+  // `aihorde.net` — the live call the sweep actually caught — would destroy that.
+  for (const host of [
+    "aihorde.net",
+    "api.openai.com",
+    "example.com",
+    "exampletest",
+    "192.0.2.1",
+    "2001:db8::1",
+  ]) {
+    assert.equal(isUnresolvableHost(host), false, `${host} must still be a violation`);
+  }
+});
+
+test("an unresolvable name is still not loopback", () => {
+  // Two separate questions, kept separate: `cloud.example` is exempt from the violation
+  // count, but it is not a local address and must never be treated as one.
+  assert.equal(isLoopbackHost("cloud.example"), false);
+  assert.equal(isLoopbackHost("localhost"), true);
 });
