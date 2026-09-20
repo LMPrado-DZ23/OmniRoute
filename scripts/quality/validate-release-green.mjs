@@ -52,13 +52,29 @@
 //                   tests self-skip exactly like CI (dev machines otherwise run
 //                   them against localhost and produce false-positive reds)
 //
+// SHARDING (#9533) — one run split across CI jobs. A GitHub-hosted runner stops at ~60
+// minutes; the slow suites' own ceilings sum to ~155 minutes serial, so no single hosted
+// job can carry the sweep (measured: run 35496465106 was killed at 60m11s with every
+// static gate already green). These four flags split it and put it back together:
+//     --no-static   run ONLY the slow wave — skip every static/drift/full-ci gate. For
+//                   the shard jobs, whose static gates the aggregator already runs.
+//     --slow-gates= comma list of the slow suites this job owns (unit, vitest,
+//                   integration, pack-artifact), or `none`. Unknown id → hard error.
+//     --shard=i/N   split `unit` and `integration` N ways and run slice i (via their
+//                   $TEST_SHARD npm scripts). Recorded as `<suite>#i/N`.
+//     --merge-slow= directory of the shard jobs' JSON reports; their checks are folded
+//                   into this run's verdict before it is computed.
+//     --expect-slow comma list of suite ids that MUST appear in the merged reports.
+//                   Required with --merge-slow: a shard that uploaded nothing would
+//                   otherwise read as "no failures" instead of "did not run".
+//
 // Per-gate output is saved to _artifacts/release-green/<gate>.log (gitignored) —
 // diagnose a red from the file instead of re-running the gate.
 
 import { execFile, execFileSync } from "node:child_process";
 import { promisify } from "node:util";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
 
@@ -455,6 +471,128 @@ export async function runSlowWave(gates, runGate, { serial = false } = {}) {
   return results;
 }
 
+/** Ids the slow wave can run. `pack-boot` is not selectable — it follows pack-artifact. */
+export const SLOW_GATE_IDS = ["unit", "vitest", "integration", "pack-artifact"];
+
+/**
+ * Read a `--flag=value` style argument out of argv. Returns null when absent.
+ *
+ * @param {string[]} argv
+ * @param {string} name flag name WITHOUT the leading dashes
+ * @returns {string | null}
+ */
+export function flagValue(argv, name) {
+  const prefix = `--${name}=`;
+  const hit = argv.find((a) => a.startsWith(prefix));
+  return hit == null ? null : hit.slice(prefix.length);
+}
+
+/**
+ * Parse `--slow-gates=<id[,id]>` into the set of slow suites this invocation owns.
+ *
+ * Returns null when the flag is absent — "run the whole wave", the pre-flight default.
+ * `none` selects nothing, for a run that only wants the static gates.
+ *
+ * An unknown id THROWS rather than being ignored. A typo'd shard name would otherwise
+ * run zero suites and report release-green, which is the exact failure this sharding
+ * exists to prevent (a gate reporting green while measuring nothing).
+ *
+ * @param {string[]} argv
+ * @returns {Set<string> | null}
+ */
+export function parseSlowGates(argv) {
+  const raw = flagValue(argv, "slow-gates");
+  if (raw == null) return null;
+  const ids = raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (ids.length === 1 && ids[0] === "none") return new Set();
+  const unknown = ids.filter((id) => !SLOW_GATE_IDS.includes(id));
+  if (unknown.length > 0) {
+    throw new Error(
+      `--slow-gates: unknown suite ${unknown.map((u) => `'${u}'`).join(", ")} ` +
+        `(known: ${SLOW_GATE_IDS.join(", ")}, or 'none')`
+    );
+  }
+  if (ids.length === 0) {
+    throw new Error("--slow-gates: empty list (pass 'none' to select no suites)");
+  }
+  return new Set(ids);
+}
+
+/**
+ * Parse `--shard=<i/N>`: split `unit` and `integration` across N jobs, this one running
+ * slice i. Both suites already have `$TEST_SHARD`-driven npm scripts; this only picks them.
+ *
+ * @param {string[]} argv
+ * @returns {{ index: number, total: number, spec: string } | null}
+ */
+export function parseShard(argv) {
+  const raw = flagValue(argv, "shard");
+  if (raw == null) return null;
+  const m = /^(\d+)\/(\d+)$/.exec(raw.trim());
+  if (!m) throw new Error(`--shard: expected <index>/<total> (e.g. 2/4), got '${raw}'`);
+  const index = Number(m[1]);
+  const total = Number(m[2]);
+  if (total < 1 || index < 1 || index > total) {
+    throw new Error(`--shard: ${index}/${total} is out of range (1 ≤ index ≤ total, total ≥ 1)`);
+  }
+  return { index, total, spec: `${index}/${total}` };
+}
+
+/**
+ * Fold the slow-suite reports written by the shard jobs into this run's results.
+ *
+ * `expected` is the list of slow suite ids the caller KNOWS were sharded out. Every one
+ * must appear in the merged set — as its bare id, or as `<id>#<i>/<N>` from a sharded
+ * job. A suite that is missing is recorded as a HARD failure, never silently dropped:
+ * a shard that uploaded nothing (cancelled, disk-full, a matrix that produced no job)
+ * must not read as "no failures found".
+ *
+ * @param {{name: string, json: unknown}[]} reports parsed shard reports, in any order
+ * @param {string[]} expected slow suite ids that must be covered
+ * @returns {{id: string, label: string, kind: string, ok: boolean, detail: string}[]}
+ */
+export function mergeSlowReports(reports, expected) {
+  const merged = [];
+  for (const { name, json } of reports) {
+    const checks = Array.isArray(json?.checks) ? json.checks : null;
+    if (!checks) {
+      merged.push({
+        id: `slow-report:${name}`,
+        label: `Slow-suite report ${name}`,
+        kind: "hard",
+        ok: false,
+        detail: "report has no `checks` array — the shard did not finish writing it",
+      });
+      continue;
+    }
+    for (const c of checks) {
+      merged.push({
+        id: c.id,
+        label: `${c.id} [shard ${name}]`,
+        kind: c.kind === "drift" ? "drift" : "hard",
+        ok: c.ok === true,
+        detail: c.detail ?? "",
+      });
+    }
+  }
+  for (const id of expected) {
+    const covered = merged.some((c) => c.id === id || String(c.id).startsWith(`${id}#`));
+    if (!covered) {
+      merged.push({
+        id: `slow-missing:${id}`,
+        label: `Slow suite '${id}' (sharded out)`,
+        kind: "hard",
+        ok: false,
+        detail: "no shard report covered this suite — it did not run, so it is NOT green",
+      });
+    }
+  }
+  return merged;
+}
+
 async function runAsync(cmd, cmdArgs, opts = {}) {
   try {
     const { stdout, stderr } = await execFileAsync(cmd, cmdArgs, {
@@ -471,13 +609,32 @@ async function runAsync(cmd, cmdArgs, opts = {}) {
 }
 
 async function main() {
-  const args = new Set(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+  const args = new Set(argv);
   const JSON_OUT = args.has("--json");
   const WITH_BUILD = args.has("--with-build");
   const QUICK = args.has("--quick");
   const FULL_CI = args.has("--full-ci");
   const SERIAL_SLOW = args.has("--serial-slow");
   hermetic = args.has("--hermetic");
+  // Sharding (#9533). A 60-minute ceiling on GitHub-hosted runners cannot fit the slow
+  // suites end to end, so the sweep splits across jobs: shard jobs take --no-static
+  // --slow-gates=<suite> [--shard=i/N], the aggregator takes --merge-slow to fold their
+  // reports back in. See .github/workflows/nightly-release-green.yml.
+  const NO_STATIC = args.has("--no-static");
+  const SLOW_GATES = parseSlowGates(argv);
+  const SHARD = parseShard(argv);
+  const MERGE_SLOW = flagValue(argv, "merge-slow");
+  const EXPECT_SLOW = (flagValue(argv, "expect-slow") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (MERGE_SLOW && EXPECT_SLOW.length === 0) {
+    throw new Error(
+      "--merge-slow requires --expect-slow=<id[,id]>: without the expected set, a shard " +
+        "that produced no report would read as 'no failures' instead of 'did not run'."
+    );
+  }
 
   const results = [];
   const record = (r) => {
@@ -492,6 +649,7 @@ async function main() {
   const announce = (label) => process.stderr.write(`▶ ${label}…\n`);
 
   const hardCmd = (id, label, cmd, cmdArgs, opts) => {
+    if (NO_STATIC) return;
     announce(label);
     const { code, out } = run(cmd, cmdArgs, opts);
     saveGateLog(id, out);
@@ -510,6 +668,7 @@ async function main() {
   // ALL checks run regardless of earlier failures (the report is collected, not
   // fail-fast) so one pass surfaces every red instead of revealing them in layers.
   const driftCmd = (id, label, cmd, cmdArgs, okDetail = "within baseline", opts) => {
+    if (NO_STATIC) return;
     announce(label);
     const { code, out } = run(cmd, cmdArgs, opts);
     saveGateLog(id, out);
@@ -527,7 +686,7 @@ async function main() {
   hardCmd("typecheck", "Typecheck (core)", npmCmd, ["run", "typecheck:core"]);
 
   // ESLint: ONE pass → errors (hard) + warnings (drift)
-  {
+  if (!NO_STATIC) {
     announce("ESLint (errors + warnings — ~15-45min)");
     // Suppressions-aware, matching `npm run lint` (Pacote 4 no-new-warnings): the frozen
     // pre-existing debt in config/quality/eslint-suppressions.json must not count as
@@ -568,7 +727,7 @@ async function main() {
   hardCmd("public-creds", "Public creds", npmCmd, ["run", "check:public-creds"]);
 
   // Complexity + cognitive (one ESLint walk; both still recorded as drift)
-  {
+  if (!NO_STATIC) {
     announce("Complexity + cognitive ratchets (shared ESLint walk)");
     const { out } = run(npmCmd, ["run", "check:complexity-ratchets"]);
     saveGateLog("complexity-ratchets", out);
@@ -609,7 +768,7 @@ async function main() {
   }
 
   // file-size (drift)
-  {
+  if (!NO_STATIC) {
     const { code, out } = run(npmCmd, ["run", "check:file-size"]);
     record({
       id: "file-size",
@@ -625,7 +784,7 @@ async function main() {
   // here against origin/main so a non-allowlisted reduction surfaces in the pre-flight, not in a
   // ~40-min CI layer (v3.8.43 cost 3 such round-trips). Legitimate reductions get allowlisted in
   // config/quality/test-masking-allowlist.json; tautology/skip/deletion signals are never allowlistable.
-  if (!QUICK) {
+  if (!QUICK && !NO_STATIC) {
     announce("Test-masking (weakened-assert guard vs main)");
     // best-effort fetch so the merge-base diff is accurate; ignore fetch failure (offline pre-flight)
     run("git", ["fetch", "--no-tags", "origin", "main", "--depth=200"], { timeout: 60 * 1000 });
@@ -697,8 +856,9 @@ async function main() {
         id: "unit",
         label:
           "Unit tests (full suite, CI concurrency — ~30-50min idle, up to ~80min under load (awaiting idle .113 measurement, #9532))",
-        args: ["run", "test:unit:ci"],
+        args: ["run", SHARD ? "test:unit:ci:shard" : "test:unit:ci"],
         timeout: 80 * 60 * 1000,
+        shardable: true,
       },
       {
         id: "vitest",
@@ -715,8 +875,9 @@ async function main() {
         // visible failure — without punishing a long-but-healthy suite.
         id: "integration",
         label: "Integration tests (~20-25min)",
-        args: ["run", "test:integration"],
+        args: ["run", SHARD ? "test:integration:ci" : "test:integration"],
         timeout: 40 * 60 * 1000,
+        shardable: true,
       },
     ];
     if (WITH_BUILD) {
@@ -727,35 +888,48 @@ async function main() {
         timeout: 20 * 60 * 1000,
       });
     }
+    // --slow-gates picks the subset this job owns; the rest arrive via --merge-slow.
+    const selected = SLOW_GATES ? slow.filter((g) => SLOW_GATES.has(g.id)) : slow;
+    // A sharded suite is recorded under `<id>#<i>/<N>` so four unit jobs merge into four
+    // distinct checks instead of overwriting one another in the aggregate report.
+    const gateId = (g) => (SHARD && g.shardable ? `${g.id}#${SHARD.spec}` : g.id);
+    const gateLabel = (g) => (SHARD && g.shardable ? `${g.label} [shard ${SHARD.spec}]` : g.label);
     const waveMode = SERIAL_SLOW ? "serial" : "parallel";
-    slow.forEach((g) => announce(`${g.label} [${waveMode}]`));
+    selected.forEach((g) => announce(`${gateLabel(g)} [${waveMode}]`));
     const slowResults = await runSlowWave(
-      slow,
-      (g) => runAsync(npmCmd, g.args, { timeout: g.timeout }),
+      selected,
+      (g) =>
+        runAsync(npmCmd, g.args, {
+          timeout: g.timeout,
+          ...(SHARD && g.shardable ? { env: { TEST_SHARD: SHARD.spec } } : {}),
+        }),
       { serial: SERIAL_SLOW }
     );
-    slow.forEach((g, i) => {
+    selected.forEach((g, i) => {
       const { code, out } = slowResults[i];
-      saveGateLog(g.id, out);
+      // `#` and `/` are fine in a report id but `/` is a path separator — flatten for the log file.
+      saveGateLog(gateId(g).replace(/[#/]/g, "-"), out);
       record({
-        id: g.id,
-        label: g.label,
+        id: gateId(g),
+        label: gateLabel(g),
         kind: "hard",
         ok: code === 0,
         detail: code === 0 ? "pass" : firstFailureLine(out),
       });
     });
 
-    if (WITH_BUILD) {
+    // A shard job that did not select pack-artifact does not own the boot smoke either:
+    // recording it here would put an unowned red in every unit shard's report.
+    if (WITH_BUILD && selected.some((g) => g.id === "pack-artifact")) {
       // WS1.2 (#7065 class): boot the REAL packed tarball from a clean install.
       // check:pack-artifact is the builder for dist/ when staging is absent, so the
       // boot smoke MUST run after it completes. Running both in the parallel wave
       // races check:pack-boot against dist/server.js creation on clean worktrees.
-      const packArtifactIndex = slow.findIndex((g) => g.id === "pack-artifact");
+      const packArtifactIndex = selected.findIndex((g) => g.id === "pack-artifact");
       const packArtifactResult = slowResults[packArtifactIndex];
       const bootLabel = "Tarball boot-smoke (installed CLI serves /health)";
 
-      if (!packArtifactResult || packArtifactResult.code !== 0) {
+      if (packArtifactResult.code !== 0) {
         const out = "skipped because package-artifact did not produce a valid dist/ build";
         saveGateLog("pack-boot", out);
         record({
@@ -798,7 +972,7 @@ async function main() {
   // --full-ci: run every static gate declared in ci.yml's gate jobs (superset of the
   // curated HARD list above). Combine with --quick to run ONLY these + drift ratchets
   // (skip the slow suites) — the "1 command, 0 CI layers" pre-flight for the static category.
-  if (FULL_CI) {
+  if (FULL_CI && !NO_STATIC) {
     let gates = [];
     try {
       gates = extractCiGates(readFileSync(join(ROOT, ".github/workflows/ci.yml"), "utf8"));
@@ -832,6 +1006,39 @@ async function main() {
         detail: code === 0 ? "pass" : firstFailureLine(out),
       });
     }
+  }
+
+  // --merge-slow: fold in the suites that ran as their own jobs. This happens BEFORE the
+  // verdict, so a shard's red is this run's red and a shard that never reported is a red too.
+  if (MERGE_SLOW) {
+    const dir = resolve(ROOT, MERGE_SLOW);
+    const files = existsSync(dir)
+      ? readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((f) => f.endsWith(".json"))
+      : [];
+    process.stderr.write(
+      `\n──── merging ${files.length} slow-suite report(s) from ${MERGE_SLOW} ────\n`
+    );
+    const reports = files.map((f) => {
+      try {
+        return { name: f, json: JSON.parse(readFileSync(resolve(dir, f), "utf8")) };
+      } catch (err) {
+        return { name: f, json: { parseError: String(err?.message ?? err) } };
+      }
+    });
+    mergeSlowReports(reports, EXPECT_SLOW).forEach(record);
+  }
+
+  // A run that measured nothing is not green. Reachable through the shard flags
+  // (`--no-static --slow-gates=none`, or a selection every gate filtered away), and
+  // "0 hard failures" out of 0 gates would otherwise print the same ✅ as a full sweep.
+  if (results.length === 0) {
+    record({
+      id: "no-gates",
+      label: "Gate selection",
+      kind: "hard",
+      ok: false,
+      detail: "this invocation ran zero gates — nothing was measured, so nothing is green",
+    });
   }
 
   const { releaseGreen, hardFailures, drift } = computeVerdict(results);
