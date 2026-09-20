@@ -2949,6 +2949,7 @@
       "custom": "Egyéni eszközmegvalósításokhoz vagy általános OpenAI-kompatibilis konfigurációkhoz használható."
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini CLI egyéni alap-URL-lel",
       "aichat": "AIChat mindent egyben LLM CLI egyéni alap-URL-lel",
       "shell-gpt": "ShellGPT parancssori asszisztens egyéni alap-URL-lel",
       "mods": "Mods, MI a parancssorhoz a Charmtól",

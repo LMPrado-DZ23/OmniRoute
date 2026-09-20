@@ -2993,6 +2993,7 @@
       "custom": "Sử dụng để triển khai công cụ tùy chỉnh hoặc cấu hình chung tương thích với OpenAI."
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini CLI với URL cơ sở tùy chỉnh",
       "aichat": "AIChat — CLI LLM tất-cả-trong-một với URL cơ sở tùy chỉnh",
       "shell-gpt": "ShellGPT — trợ lý dòng lệnh với URL cơ sở tùy chỉnh",
       "mods": "Mods — AI cho dòng lệnh của Charm",

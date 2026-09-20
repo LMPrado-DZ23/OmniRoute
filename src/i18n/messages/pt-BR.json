@@ -2993,6 +2993,7 @@
       "custom": "Use quando seu CLI ou SDK não estiver hardcoded no OmniRoute, mas ainda aceitar base URL, chave de API e model string compatíveis com OpenAI."
     },
     "toolDescriptions": {
+      "gemini": "CLI do Google Gemini com URL base personalizada",
       "aichat": "CLI de LLM tudo-em-um AIChat com URL base personalizada",
       "shell-gpt": "Assistente de linha de comando ShellGPT com URL base personalizada",
       "mods": "Mods, IA para a linha de comando, da Charm",

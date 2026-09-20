@@ -2949,6 +2949,7 @@
       "custom": "Use for custom tool implementations or generic OpenAI-compatible configurations."
     },
     "toolDescriptions": {
+      "gemini": "‏رابط خط فرمان Google Gemini با نشانی پایه سفارشی",
       "aichat": "‏AIChat، رابط خط فرمان جامع مدل‌های زبانی با نشانی پایه سفارشی",
       "shell-gpt": "‏ShellGPT، دستیار خط فرمان با نشانی پایه سفارشی",
       "mods": "‏Mods، هوش مصنوعی برای خط فرمان از Charm",

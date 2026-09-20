@@ -2949,6 +2949,7 @@
       "custom": "Gunakan untuk pelaksanaan alat tersuai atau konfigurasi serasi OpenAI generik."
     },
     "toolDescriptions": {
+      "gemini": "CLI Google Gemini dengan URL asas tersuai",
       "aichat": "AIChat, CLI LLM serba boleh dengan URL asas tersuai",
       "shell-gpt": "ShellGPT, pembantu baris perintah dengan URL asas tersuai",
       "mods": "Mods, AI untuk baris perintah daripada Charm",

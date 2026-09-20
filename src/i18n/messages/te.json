@@ -2949,6 +2949,7 @@
       "custom": "Use for custom tool implementations or generic OpenAI-compatible configurations."
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini CLI, అనుకూల బేస్ URLతో",
       "aichat": "AIChat, అనుకూల బేస్ URLతో ఆల్-ఇన్-వన్ LLM CLI",
       "shell-gpt": "ShellGPT, అనుకూల బేస్ URLతో కమాండ్-లైన్ సహాయకుడు",
       "mods": "Mods, Charm నుండి కమాండ్ లైన్ కోసం AI",

@@ -2949,6 +2949,7 @@
       "custom": "Käytä mukautettuihin työkalutoteutuksiin tai yleisiin OpenAI-yhteensopiviin kokoonpanoihin."
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini CLI mukautetulla perus-URL-osoitteella",
       "aichat": "AIChat, kaikki yhdessä -LLM-CLI mukautetulla perus-URL-osoitteella",
       "shell-gpt": "ShellGPT-komentoriviavustaja mukautetulla perus-URL-osoitteella",
       "mods": "Mods, tekoäly komentoriville, Charmilta",

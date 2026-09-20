@@ -2949,6 +2949,7 @@
       "custom": "À utiliser pour les implémentations d'outils personnalisés ou les configurations génériques compatibles OpenAI."
     },
     "toolDescriptions": {
+      "gemini": "CLI Google Gemini avec URL de base personnalisée",
       "aichat": "CLI LLM tout-en-un AIChat avec URL de base personnalisée",
       "shell-gpt": "Assistant en ligne de commande ShellGPT avec URL de base personnalisée",
       "mods": "Mods, l'IA pour la ligne de commande, par Charm",

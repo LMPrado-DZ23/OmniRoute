@@ -2949,6 +2949,7 @@
       "custom": "Özel araç uygulamaları veya genel OpenAI uyumlu yapılandırmalar için kullanın."
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini CLI, özel temel URL destekli",
       "aichat": "AIChat hepsi bir arada LLM CLI, özel temel URL destekli",
       "shell-gpt": "ShellGPT komut satırı asistanı, özel temel URL destekli",
       "mods": "Mods, Charm tarafından komut satırı için yapay zekâ",

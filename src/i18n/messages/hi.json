@@ -2949,6 +2949,7 @@
       "custom": "कस्टम टूल कार्यान्वयन या सामान्य OpenAI-संगत कॉन्फ़िगरेशन के लिए उपयोग करें।"
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini CLI, कस्टम बेस URL के साथ",
       "aichat": "AIChat, कस्टम बेस URL के साथ ऑल-इन-वन LLM CLI",
       "shell-gpt": "ShellGPT, कस्टम बेस URL के साथ कमांड-लाइन सहायक",
       "mods": "Mods, Charm द्वारा कमांड लाइन के लिए AI",

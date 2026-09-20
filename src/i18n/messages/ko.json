@@ -2949,6 +2949,7 @@
       "custom": "사용자 정의 도구 구현 또는 일반 OpenAI 호환 구성에 사용합니다."
     },
     "toolDescriptions": {
+      "gemini": "Google Gemini CLI, 사용자 지정 기본 URL 지원",
       "aichat": "AIChat — 사용자 지정 기본 URL을 지원하는 올인원 LLM CLI",
       "shell-gpt": "ShellGPT — 사용자 지정 기본 URL을 지원하는 명령줄 어시스턴트",
       "mods": "Mods — Charm이 만든 명령줄용 AI",
