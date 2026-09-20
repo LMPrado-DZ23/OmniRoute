@@ -25,8 +25,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { execSync } from "node:child_process";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -311,22 +310,53 @@ export function parseEnvDocVars(text) {
   return vars;
 }
 
+/** Roots scanned for `process.env` references. */
+const CODE_SCAN_TARGETS = [
+  "src",
+  "open-sse",
+  "bin",
+  "scripts",
+  "electron/main.js",
+  "electron/preload.js",
+];
+
+const ENV_REF_RE = /process\.env\.([A-Z][A-Z0-9_]+)/g;
+
 /**
- * Collect environment variable references in source code via grep against
- * the `process.env` member access pattern.
+ * Collect environment variable references in source code.
+ *
+ * This used to shell out to `grep -rhoE ... 2>/dev/null || true`. There is no
+ * `grep` on a stock Windows box, so the command failed, `|| true` swallowed it,
+ * and the gate compared an EMPTY set of code references against the documented
+ * ones — reporting a clean sync while measuring nothing. Scanning in Node is
+ * portable and cannot fail silently the same way.
  */
-function scanCodeVars({ cwd } = {}) {
+export function scanCodeVars({ cwd } = {}) {
   const repoRoot = cwd ?? REPO_ROOT;
-  const stdout = execSync(
-    "grep -rhoE 'process\\.env\\.[A-Z][A-Z0-9_]+' " +
-      "src/ open-sse/ bin/ scripts/ electron/main.js electron/preload.js 2>/dev/null || true",
-    { cwd: repoRoot, encoding: "utf8", maxBuffer: 20 * 1024 * 1024 }
-  );
   const vars = new Set();
-  for (const line of stdout.split("\n")) {
-    const m = line.match(/^process\.env\.([A-Z][A-Z0-9_]+)$/);
-    if (m) vars.add(m[1]);
-  }
+
+  const visit = (absolute) => {
+    let stat;
+    try {
+      stat = fs.statSync(absolute);
+    } catch {
+      return; // a target that does not exist in this checkout
+    }
+    if (stat.isDirectory()) {
+      if (path.basename(absolute) === "node_modules") return;
+      for (const entry of fs.readdirSync(absolute)) visit(path.join(absolute, entry));
+      return;
+    }
+    let text;
+    try {
+      text = fs.readFileSync(absolute, "utf8");
+    } catch {
+      return; // unreadable or binary
+    }
+    for (const match of text.matchAll(ENV_REF_RE)) vars.add(match[1]);
+  };
+
+  for (const target of CODE_SCAN_TARGETS) visit(path.join(repoRoot, target));
   return vars;
 }
 
@@ -434,6 +464,6 @@ function main() {
   process.exit(1);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(process.argv[1] || "").href) {
   main();
 }
