@@ -94,7 +94,12 @@ function expected(route: RouteKind, origin: Origin, cred: Credential, login: boo
     case "CLIENT_API":
       if (cred === "cookie") return ALLOW("dashboard_session");
       if (cred === "manage-key" || cred === "mcp-key") return ALLOW("client_api_key");
-      return login ? REJECT(401, "AUTH_002") : ALLOW("anonymous");
+      if (login) return REJECT(401, "AUTH_002");
+      // REQUIRE_API_KEY=false means "this machine and my LAN may call without a key",
+      // never "the internet may". This row used to expect ALLOW for every origin,
+      // which encoded the open-relay defect as the contract: a published instance
+      // routed an anonymous POST /v1/chat/completions on the operator's credentials.
+      return origin === "public" ? REJECT(401, "AUTH_002") : ALLOW("anonymous");
     case "MANAGEMENT":
       if (!login) return ALLOW("anonymous");
       if (cred === "none") return REJECT(401, "AUTH_001");

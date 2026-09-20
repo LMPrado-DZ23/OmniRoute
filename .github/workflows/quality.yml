@@ -550,7 +550,12 @@ jobs:
     name: No new ESLint warnings
     needs: changes
     if: ${{ github.event_name != 'pull_request' || ((github.event.pull_request.draft == false || startsWith(github.head_ref, 'mergify/merge-queue/')) && needs.changes.outputs.code == 'true') }}
-    runs-on: ${{ (vars.USE_VPS_RUNNER == 'true' && fromJSON('["self-hosted","omni-light"]')) || 'ubuntu-latest' }}
+    # A fork PR must NEVER execute on the LAN runner (the rule this file states at the
+    # top of the self-hosted section): the pool is persistent and `npm ci` runs the
+    # fork's lifecycle scripts. Same own-origin clause as ci.yml's build job — a fork
+    # PR falls back to ubuntu-latest, and dispatch/push events are own-origin by
+    # definition.
+    runs-on: ${{ (vars.USE_VPS_RUNNER == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) && fromJSON('["self-hosted","omni-light"]') || 'ubuntu-latest' }}
     # 2026-08-30: a cold full lint with the eslint-plugin-react-hooks 7 compiler rules is
     # killed on the 7 GB hosted runner without a message (status null → exit 1, the
     # JSON never written); the box lints it in ~12 min with the heap below.

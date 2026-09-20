@@ -53,7 +53,9 @@ async function loadPolicy() {
 function ctx(headers: Headers, method = "POST", normalizedPath = "/api/v1/chat/completions") {
   const pathOnly = normalizedPath.split("?")[0];
   return {
-    request: { method, headers, url: `http://localhost${normalizedPath}` },
+    // A local caller IS loopback. Without a peer the locality helpers fail closed,
+    // which is the point of the check these tests exercise.
+    request: { method, headers, url: `http://localhost${normalizedPath}`, ip: "127.0.0.1" },
     classification: {
       routeClass: "CLIENT_API" as const,
       reason: "client_api_v1" as const,
@@ -70,7 +72,7 @@ function relativeUrlCtx(
 ) {
   const pathOnly = normalizedPath.split("?")[0];
   return {
-    request: { method, headers, url: normalizedPath },
+    request: { method, headers, url: normalizedPath, ip: "127.0.0.1" },
     classification: {
       routeClass: "CLIENT_API" as const,
       reason: "client_api_v1" as const,
