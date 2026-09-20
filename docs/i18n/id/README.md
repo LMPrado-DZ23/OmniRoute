@@ -4,6 +4,18 @@
 
 ---
 
+> **This is the maintained fork [`LMPrado-DZ23/OmniRoute`](https://github.com/LMPrado-DZ23/OmniRoute)** of the original
+> [OmniRoute by Diego Souza (`diegosouzapw`)](https://github.com/diegosouzapw/OmniRoute), MIT-licensed — full credit to the
+> original author and the 600+ upstream contributors. Builds of **this** fork are distributed as
+> [GitHub Releases](https://github.com/LMPrado-DZ23/OmniRoute/releases) (Windows / macOS / Linux installers), the container image
+> [`ghcr.io/lmprado-dz23/omniroute`](https://github.com/LMPrado-DZ23/OmniRoute/pkgs/container/omniroute) and from source.
+> The `omniroute` package on npm is published by upstream — `npm install -g omniroute` installs **upstream**, not this fork;
+> the dashboard update check and `omniroute update` know the difference and only offer releases of this repository.
+>
+> The badges further down belong to the upstream project and keep pointing at it — they are kept as credit, not as a
+> download link for this fork. This notice is in English on purpose: it must not depend on a translation staying up to
+> date, and the framing text on this page is English as well.
+
 ### Jangan pernah berhenti ngoding. Routing cerdas ke **model AI GRATIS & berbiaya rendah** dengan fallback otomatis.
 
 _Proxy API universal Anda — satu endpoint untuk 329 entri katalog penyedia, dengan fallback otomatis saat rute upstream tersedia. Kini dengan **MCP Server (107 alat, 32 cakupan)**, **Protokol A2A**, **Sistem Memori/Skill** & **Aplikasi Desktop Electron**._
