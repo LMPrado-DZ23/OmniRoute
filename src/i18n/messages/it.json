@@ -5053,7 +5053,7 @@
     "apiKeyHelp": "Una chiave API è una password per i servizi AI. Ottienine uno dal sito web del tuo provider (ad esempio platform.openai.com, console.anthropic.com).",
     "tier": {
       "subtitle": "OmniRoute organizza i fornitori in tre livelli in modo che il routing preferisca prima il percorso più affidabile e dal costo più basso.",
-      "flowCaption": "Le richieste passano prima attraverso le quote del tuo abbonamento, poi attraverso i provider economici pay-per-token, quindi attraverso i provider di livello gratuito — automatico, zero configurazione.",
+      "flowCaption": "Le richieste attraversano i livelli in ordine: prima le quote del tuo abbonamento, poi le tue chiavi API a consumo, poi i provider economici a token e infine i livelli gratuiti, passando da uno all'altro automaticamente e senza configurazione.",
       "afterSetup": "dopo la configurazione.",
       "tier1": {
         "label": "Clienti premium",
