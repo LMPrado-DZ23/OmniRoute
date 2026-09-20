@@ -5069,7 +5069,7 @@
       },
       "configure": "Configura i fornitori"
     },
-    "tierFlowDiagramAlt": "Diagramma di fallback a 3 livelli di OmniRoute",
+    "tierFlowDiagramAlt": "Diagramma di fallback a 4 livelli di OmniRoute",
     "apiKeyMgmt": "Gestione chiave API",
     "freeProviders": {
       "title": "Imposta fornitori gratuiti",

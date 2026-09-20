@@ -5069,7 +5069,7 @@
       },
       "configure": "プロバイダーの構成"
     },
-    "tierFlowDiagramAlt": "OmniRoute 3 層フォールバック図",
+    "tierFlowDiagramAlt": "OmniRoute 4 層フォールバック図",
     "apiKeyMgmt": "APIキー管理",
     "freeProviders": {
       "title": "無料プロバイダーを設定する",

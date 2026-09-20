@@ -5069,7 +5069,7 @@
       },
       "configure": "Konfigurer leverandører"
     },
-    "tierFlowDiagramAlt": "OmniRoute 3-lags reservediagram",
+    "tierFlowDiagramAlt": "OmniRoute 4-lags reservediagram",
     "apiKeyMgmt": "API Key Mgmt",
     "freeProviders": {
       "title": "Sett opp gratis leverandører",

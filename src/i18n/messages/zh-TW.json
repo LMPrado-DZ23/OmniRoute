@@ -5069,7 +5069,7 @@
       },
       "configure": "設定提供者"
     },
-    "tierFlowDiagramAlt": "OmniRoute 3 層回退圖",
+    "tierFlowDiagramAlt": "OmniRoute 4 層回退圖",
     "apiKeyMgmt": "API金鑰管理",
     "freeProviders": {
       "title": "設置免費提供者",

@@ -5069,7 +5069,7 @@
       },
       "configure": "Konfigurálja a szolgáltatókat"
     },
-    "tierFlowDiagramAlt": "OmniRoute 3-szintű tartalék diagram",
+    "tierFlowDiagramAlt": "OmniRoute 4-szintű tartalék diagram",
     "apiKeyMgmt": "API Key Mgmt",
     "freeProviders": {
       "title": "Ingyenes szolgáltatók beállítása",

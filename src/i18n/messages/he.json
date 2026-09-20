@@ -5069,7 +5069,7 @@
       },
       "configure": "הגדר ספקים"
     },
-    "tierFlowDiagramAlt": "דיאגרמת OmniRoute 3-tier fallback",
+    "tierFlowDiagramAlt": "דיאגרמת OmniRoute 4-tier fallback",
     "apiKeyMgmt": "API Key Mgmt",
     "freeProviders": {
       "title": "הגדר ספקים חינמיים",

@@ -5069,7 +5069,7 @@
       },
       "configure": "تكوين مقدمي الخدمات"
     },
-    "tierFlowDiagramAlt": "OmniRoute مخطط احتياطي ثلاثي الطبقات",
+    "tierFlowDiagramAlt": "OmniRoute مخطط احتياطي رباعي الطبقات",
     "apiKeyMgmt": "إدارة مفتاح واجهة برمجة التطبيقات (API)",
     "freeProviders": {
       "title": "إعداد مزودين مجانيين",

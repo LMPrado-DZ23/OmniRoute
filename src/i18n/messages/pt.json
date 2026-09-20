@@ -5069,7 +5069,7 @@
       },
       "configure": "Configurar provedores"
     },
-    "tierFlowDiagramAlt": "Diagrama de fallback de 3 camadas do OmniRoute",
+    "tierFlowDiagramAlt": "Diagrama de fallback de 4 camadas do OmniRoute",
     "apiKeyMgmt": "Gerenciamento de chave de API",
     "freeProviders": {
       "title": "Configurar fornecedores gratuitos",

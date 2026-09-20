@@ -5113,7 +5113,7 @@
       },
       "configure": "Configure providers"
     },
-    "tierFlowDiagramAlt": "OmniRoute 3-tier fallback diagram",
+    "tierFlowDiagramAlt": "OmniRoute 4-tier fallback diagram",
     "apiKeyMgmt": "API Key Management",
     "freeProviders": {
       "title": "Set up free providers",

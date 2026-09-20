@@ -5069,7 +5069,7 @@
       },
       "configure": "Configurar proveedores"
     },
-    "tierFlowDiagramAlt": "Diagrama alternativo de 3 niveles de OmniRoute",
+    "tierFlowDiagramAlt": "Diagrama alternativo de 4 niveles de OmniRoute",
     "apiKeyMgmt": "Gestión de claves API",
     "freeProviders": {
       "title": "Configurar proveedores gratuitos",

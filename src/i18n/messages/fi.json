@@ -5069,7 +5069,7 @@
       },
       "configure": "Määritä palveluntarjoajat"
     },
-    "tierFlowDiagramAlt": "OmniRoute 3-tasoinen varakaavio",
+    "tierFlowDiagramAlt": "OmniRoute 4-tasoinen varakaavio",
     "apiKeyMgmt": "API-avainhallinta",
     "freeProviders": {
       "title": "Aseta ilmaiset tarjoajat",
