@@ -364,32 +364,64 @@ test("changelogSha256 is line-ending independent", async () => {
   assert.notEqual(changelogSha256(lf), changelogSha256(lf.replace("a bullet", "a different")));
 });
 
-test("the ledgered reconciliations still bind the file they claim to", async () => {
-  // A record whose hashes no longer match anything is a record that stopped guarding.
-  const { changelogSha256 } = await import("../../scripts/check/check-changelog-integrity.mjs");
+test("every ledgered reconciliation is well formed", async () => {
+  // NOT "the newest record still matches CHANGELOG.md". I wrote that first and it was
+  // wrong by construction: a reconciliation is a HISTORICAL statement — "at this commit,
+  // base X became result Y" — so the very next legitimate edit to CHANGELOG.md diverges
+  // from it. The release aggregation proved it within the hour, folding 378 fragments in
+  // and failing a test that was asserting a thing that must not stay true.
+  //
+  // What IS invariant is the record's shape, and that the gate consults it by CONTENT:
+  // findLedgeredReconciliation matches on both hashes, so a record simply stops applying
+  // once the file moves on — which is correct, because the bullet it explains is no longer
+  // missing relative to the advanced base.
   const ledger = JSON.parse(
     readFileSync(
       new URL("../../config/release/changelog-reconciliations.json", import.meta.url),
       "utf8"
     )
   ) as {
-    reconciliations: { id: string; baseChangelogSha256: string; resultChangelogSha256: string }[];
+    schemaVersion: number;
+    reconciliations: {
+      id: string;
+      reason: string;
+      baseChangelogSha256: string;
+      resultChangelogSha256: string;
+      removedBullets: string[];
+      addedBullets: string[];
+    }[];
   };
 
+  assert.equal(ledger.schemaVersion, 1);
   assert.ok(ledger.reconciliations.length > 0, "the ledger must not be empty");
+
+  const seen = new Set<string>();
   for (const record of ledger.reconciliations) {
+    assert.match(record.id, /^[a-z0-9-]+$/, `${record.id}: id must be a slug`);
+    assert.ok(!seen.has(record.id), `${record.id}: duplicate id`);
+    seen.add(record.id);
+
     for (const field of ["baseChangelogSha256", "resultChangelogSha256"] as const) {
-      assert.match(record[field], /^[0-9a-f]{64}$/, `${record.id}.${field} must be a sha256 hex`);
+      assert.match(record[field], /^[0-9a-f]{64}$/, `${record.id}.${field} must be sha256 hex`);
+    }
+    assert.notEqual(
+      record.baseChangelogSha256,
+      record.resultChangelogSha256,
+      `${record.id}: a reconciliation that changed nothing explains nothing`
+    );
+
+    // The reason is the whole point of the ledger: it is what a reviewer reads instead of
+    // taking a hash on faith. A one-word reason is not a reviewed record.
+    assert.ok(
+      record.reason.trim().length >= 40,
+      `${record.id}: reason must actually explain the rewrite`
+    );
+    assert.ok(
+      record.removedBullets.length > 0,
+      `${record.id}: a reconciliation exists to explain REMOVED bullets`
+    );
+    for (const bullet of [...record.removedBullets, ...record.addedBullets]) {
+      assert.match(bullet, /^- /, `${record.id}: bullets must be recorded verbatim`);
     }
   }
-
-  // The most recent record must bind THIS working tree's CHANGELOG.md, whatever the
-  // checkout's line endings — that is the property the normalisation exists for.
-  const head = readFileSync(new URL("../../CHANGELOG.md", import.meta.url), "utf8");
-  const latest = ledger.reconciliations[ledger.reconciliations.length - 1];
-  assert.equal(
-    changelogSha256(head),
-    latest.resultChangelogSha256,
-    `${latest.id} no longer matches CHANGELOG.md — the record and the file have diverged`
-  );
 });

@@ -1,5 +1,0 @@
-- New deterministic policy modules, all off by default: an MCP review gate that denies flagged packages and forbidden capabilities and forces human re-review whenever an update broadens permissions, and a browser guard that denies any external effect whose origin is the page itself, so text read from a site cannot escalate into a submit, download, upload or purchase (#13)
-- AG-UI event contract with a sequence validator, and a `/api/loop/{id}/stream` endpoint, so an agent console can replay a Loop run deterministically (#13)
-- OpenTelemetry-lite tracing behind `OTEL_TRACING_ENABLED`: W3C Trace Context spans whose attributes pass an allowlist, so a prompt, a response or a secret never reaches telemetry (#13)
-- The PII sanitizer now recognises two Brazilian formats: CEP, and a PIX random key when the word "pix" appears nearby so unrelated UUIDs are left alone (#13)
-- The OAuth manual step can open the authorization URL in a new tab, and the callback page offers a way back to the panel when the login replaced the tab instead of opening a popup (#13)
