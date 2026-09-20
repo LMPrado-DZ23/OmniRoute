@@ -433,9 +433,18 @@ jobs:
       # when oasdiff is absent or the base spec can't be resolved — a missing
       # measurement never blocks. BASE_REF is read by the script from the env
       # (never interpolated into a shell body) — workflow-injection-safe.
+      # `origin/{0}`, matching the pr-test-policy step below. check-openapi-breaking.mjs
+      # resolves the base spec with `git show <BASE_REF>:docs/openapi.yaml`, and on a
+      # pull_request checkout (refs/pull/N/merge) there is no LOCAL branch by that name —
+      # only the remote-tracking ref. A bare `release/vX.Y.Z` would not resolve, the script
+      # would SKIP, and a skip here exits 0 by design: the gate would report green while
+      # measuring nothing. Latent rather than live — this workflow currently runs only on
+      # workflow_dispatch in this fork, where `github.base_ref` is empty and the script
+      # falls back to its package.json-derived default, which is already origin-prefixed.
+      # It is fixed now so it is correct the day ci.yml runs on a pull request again.
       - name: OpenAPI breaking-change (oasdiff, ratchet, blocking)
         env:
-          BASE_REF: ${{ github.base_ref }}
+          BASE_REF: ${{ github.base_ref && format('origin/{0}', github.base_ref) || '' }}
         run: npm run check:openapi-breaking -- --ratchet
 
   docs-sync-strict:
