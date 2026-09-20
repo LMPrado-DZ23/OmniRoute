@@ -74,7 +74,7 @@ export default function ErrorPageScaffold({
         <div className="mt-8 flex flex-col sm:flex-row gap-3">
           <Link
             href={resolvedPrimary.href}
-            className="inline-flex items-center justify-center px-6 py-3 rounded-lg text-white text-sm font-semibold bg-gradient-to-br from-primary to-primary-hover hover:shadow-elevated transition-all duration-200 motion-reduce:transition-none"
+            className="inline-flex items-center justify-center px-6 py-3 rounded-lg text-on-primary text-sm font-semibold bg-gradient-to-br from-primary to-primary-hover hover:shadow-elevated transition-all duration-200 motion-reduce:transition-none"
           >
             {resolvedPrimary.label}
           </Link>

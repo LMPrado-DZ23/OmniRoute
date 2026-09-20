@@ -2,9 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { routeExportsMethod } from "../../../scripts/check/check-fetch-targets.mjs";
+import { ROOT, matchRoute, relativeToRoot as rel, toApiPathname } from "./_helpers/appRoutes.ts";
 
 // Class of bug guarded here: a CLI command calling a route (or a verb on a
 // route) that the server does not implement. Such a call can only ever fail
@@ -19,61 +19,12 @@ import { routeExportsMethod } from "../../../scripts/check/check-fetch-targets.m
 // exports that HTTP method. Calls whose path or method is computed at runtime
 // are out of reach of a static scan and are skipped.
 //
-// KNOWN_BROKEN freezes the mismatches that pre-date this test (2026-09-19).
-// Entries may only be REMOVED: fixing a command without deleting its entry
-// fails as stale, and a new mismatch fails outright.
+// KNOWN_BROKEN froze the 39 mismatches that pre-dated this test (2026-09-19).
+// All of them have been fixed, so the list is empty and stays that way: a new
+// mismatch fails outright, and an entry that no longer reproduces fails as
+// stale. Do not add to it — fix the command, or remove it.
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
-const API_DIR = path.join(ROOT, "src", "app", "api");
-
-// The two catch-alls exist only to turn unknown paths into a JSON 404
-// (#6405 / #6424); resolving to them means "no such route".
-const NOT_FOUND_CATCH_ALLS = new Set([
-  "src/app/api/[...omnirouteApiCatchAll]/route.ts",
-  "src/app/api/v1/[...omnirouteCatchAll]/route.ts",
-]);
-
-const KNOWN_BROKEN = new Set([
-  "bin/cli/commands/cache.mjs::POST /api/cache/clear",
-  "bin/cli/commands/combo.mjs::POST /api/combos/switch",
-  "bin/cli/commands/compression.mjs::DELETE /api/compression/rules",
-  "bin/cli/commands/compression.mjs::POST /api/compression/rules",
-  "bin/cli/commands/context-eng.mjs::DELETE /api/context/rtk/filters/{}",
-  "bin/cli/commands/context-eng.mjs::POST /api/context/rtk/filters",
-  "bin/cli/commands/eval.mjs::GET /api/evals/suites",
-  "bin/cli/commands/eval.mjs::POST /api/evals/{}",
-  "bin/cli/commands/keys.mjs::DELETE /api/v1/providers/keys/{}",
-  "bin/cli/commands/keys.mjs::GET /api/v1/providers/keys",
-  "bin/cli/commands/keys.mjs::GET /api/v1/registered-keys/{}/policy",
-  "bin/cli/commands/keys.mjs::GET /api/v1/registered-keys/{}/reveal",
-  "bin/cli/commands/keys.mjs::GET /api/v1/registered-keys/{}/usage",
-  "bin/cli/commands/keys.mjs::PATCH /api/v1/registered-keys/{}/policy",
-  "bin/cli/commands/keys.mjs::POST /api/v1/providers/keys",
-  "bin/cli/commands/keys.mjs::POST /api/v1/registered-keys/{}/regenerate",
-  "bin/cli/commands/keys.mjs::POST /api/v1/registered-keys/{}/rotate",
-  "bin/cli/commands/mcp.mjs::POST /api/mcp/restart",
-  "bin/cli/commands/memory.mjs::DELETE /api/memory",
-  "bin/cli/commands/nodes.mjs::GET /api/provider-nodes/{}",
-  "bin/cli/commands/oauth.mjs::POST /api/providers/{}/auth/apply",
-  "bin/cli/commands/oauth.mjs::POST /api/providers/{}/auth/start",
-  "bin/cli/commands/oneproxy.mjs::PUT /api/settings/oneproxy",
-  "bin/cli/commands/pricing.mjs::PUT /api/pricing/defaults",
-  "bin/cli/commands/quota.mjs::GET /api/quota",
-  "bin/cli/commands/quota.mjs::GET /api/v1/providers",
-  "bin/cli/commands/sessions.mjs::DELETE /api/sessions",
-  "bin/cli/commands/skills.mjs::GET /api/skills/{}",
-  "bin/cli/commands/sync.mjs::POST /api/db-backups/exportAll",
-  "bin/cli/commands/tags.mjs::DELETE /api/tags",
-  "bin/cli/commands/tags.mjs::POST /api/tags",
-  "bin/cli/commands/tunnel.mjs::DELETE /api/tunnels/{}",
-  "bin/cli/commands/tunnel.mjs::GET /api/tunnels",
-  "bin/cli/commands/tunnel.mjs::GET /api/tunnels/{}",
-  "bin/cli/commands/tunnel.mjs::GET /api/tunnels/{}/logs",
-  "bin/cli/commands/tunnel.mjs::GET /api/tunnels/{}/status",
-  "bin/cli/commands/tunnel.mjs::POST /api/tunnels",
-  "bin/cli/commands/tunnel.mjs::POST /api/tunnels/{}/rotate",
-  "bin/cli/commands/usage.mjs::DELETE /api/usage/budget",
-]);
+const KNOWN_BROKEN = new Set<string>([]);
 
 type Call = { file: string; method: string; apiPath: string };
 
@@ -86,53 +37,16 @@ function walk(dir: string, acc: string[] = []): string[] {
   return acc;
 }
 
-function rel(file: string): string {
-  return path.relative(ROOT, file).split(path.sep).join("/");
-}
-
-const routeFiles = walk(API_DIR)
-  .filter((f) => /[\\/]route\.tsx?$/.test(f))
-  .map(rel)
-  .filter((f) => !NOT_FOUND_CATCH_ALLS.has(f));
-
-function segmentsOf(routeFile: string): string[] {
-  return routeFile
-    .replace(/^src\/app\//, "")
-    .replace(/\/route\.tsx?$/, "")
-    .split("/");
-}
-
-function matchSegments(route: string[], target: string[]): boolean {
-  if (route.length === 0) return target.length === 0;
-  const [head, ...rest] = route;
-  if (/^\[\[\.\.\..+\]\]$/.test(head)) return rest.length === 0;
-  if (/^\[\.\.\..+\]$/.test(head)) return rest.length === 0 && target.length >= 1;
-  if (target.length === 0) return false;
-  if (head !== target[0] && !/^\[.+\]$/.test(head)) return false;
-  return matchSegments(rest, target.slice(1));
-}
-
-/** Most specific route file for a concrete path (static > [param] > catch-all). */
+/** Most specific route file for a concrete path (see _helpers/appRoutes.ts). */
 function resolveRouteFile(apiPath: string): string | null {
-  const target = apiPath.replace(/^\//, "").split("/");
-  const score = (segs: string[]) =>
-    segs.reduce(
-      (s, seg) =>
-        s + (seg.startsWith("[...") || seg.startsWith("[[...") ? 0 : seg.startsWith("[") ? 1 : 2),
-      0
-    );
-  const matches = routeFiles.filter((rf) => matchSegments(segmentsOf(rf), target));
-  matches.sort((a, b) => score(segmentsOf(b)) - score(segmentsOf(a)));
-  return matches[0] ?? null;
+  return matchRoute(apiPath)?.file ?? null;
 }
 
 /** Normalises a CLI literal path: `${x}`/{x} → placeholder, drops the query, maps /v1 → /api/v1. */
 function normalisePath(raw: string): string | null {
   const noQuery = raw.replace(/[?#].*$/, "");
   const concrete = noQuery.replace(/\$\{[^}]*\}/g, "{}").replace(/\{[^}]+\}/g, "{}");
-  if (concrete.startsWith("/api/")) return concrete;
-  if (concrete === "/v1" || concrete.startsWith("/v1/")) return `/api${concrete}`;
-  return null;
+  return toApiPathname(concrete);
 }
 
 function callArgs(src: string, from: number): string {

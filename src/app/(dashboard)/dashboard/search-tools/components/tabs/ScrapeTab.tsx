@@ -82,7 +82,7 @@ export default function ScrapeTab({ configState, onMetrics }: ScrapeTabProps) {
             data-testid="url-input"
           />
           <button
-            className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 rounded-lg bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={() => void handleSubmit()}
             disabled={loading}
             data-testid="scrape-button"

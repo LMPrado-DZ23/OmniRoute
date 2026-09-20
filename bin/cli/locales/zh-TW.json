@@ -104,11 +104,8 @@
     "removeDescription": "移除提供者的 API 金鑰",
     "regenerateDescription": "重新生成 OmniRoute API 金鑰",
     "revokeDescription": "撤銷 OmniRoute API 金鑰",
-    "revealDescription": "顯示未掩碼的 API 金鑰值",
     "usageDescription": "顯示 API 金鑰的最近使用情況",
     "usageLimitOpt": "最近請求數",
-    "rotateDescription": "生成新金鑰並使舊金鑰失效",
-    "graceOpt": "舊金鑰失效前的寬限期（毫秒）",
     "stdinOpt": "從標準輸入讀取 API 金鑰而不是引數",
     "added": "已為 {provider} 新增金鑰。",
     "removed": "金鑰已移除。",
@@ -118,11 +115,8 @@
     "confirmRemove": "移除金鑰 {id}？",
     "confirmRegenerate": "重新生成金鑰 {id}？",
     "confirmRevoke": "撤銷金鑰 {id}？",
-    "confirmRotate": "輪換金鑰 {id}？（舊金鑰將在寬限期後失效）",
     "regenerated": "已重新生成。新金鑰：{key}",
     "revoked": "金鑰 {id} 已撤銷。",
-    "rotated": "金鑰 {id} 已輪換。新金鑰 ID：{newId}",
-    "revealWarning": "⚠ 這將顯示完整的未掩碼金鑰。請確保您的螢幕不被人看到。",
     "providerRequired": "需要提供者。",
     "keyRequired": "需要 API 金鑰。",
     "stdinEmpty": "未通過標準輸入提供 API 金鑰。",
@@ -143,7 +137,8 @@
       "daysOpt": "顯示 N 天內過期的金鑰",
       "none": "{days} 天內沒有金鑰過期。",
       "listTitle": "{days} 天內過期的金鑰："
-    }
+    },
+    "idSpaces": "add / list / remove 管理提供者憑證（提供者連線）。regenerate / revoke / usage / policy / expiration 接受 OmniRoute API 金鑰 id。已儲存的金鑰不會再次顯示：regenerate 只會顯示一次新值。"
   },
   "stream": {
     "description": "使用 SSE 檢查模式流式傳輸聊天響應",
@@ -169,10 +164,26 @@
       "provider": "按提供者 ID 篩選"
     },
     "budget": {
-      "description": "管理成本預算",
+      "description": "管理各 API 金鑰的花費預算",
+      "list": {
+        "description": "顯示所有 API 金鑰的預算與花費"
+      },
+      "get": {
+        "description": "顯示某個 API 金鑰的預算與花費"
+      },
       "set": {
-        "scope": "預算範圍（預設：全域性）",
-        "period": "預算週期：daily|weekly|monthly（預設：monthly）"
+        "description": "設定某個 API 金鑰的花費上限（0 表示不限制）",
+        "daily": "每日上限（美元）",
+        "weekly": "每週上限（美元）",
+        "monthly": "每月上限（美元）",
+        "warningThreshold": "達到上限的該比例時警告（0-1）",
+        "resetInterval": "重設週期：daily|weekly|monthly",
+        "nothingToSet": "未提供任何上限。請使用 --daily、--weekly 或 --monthly。",
+        "done": "已更新 {apiKeyId} 的預算"
+      },
+      "clear": {
+        "description": "解除某個 API 金鑰的所有花費上限（已記錄的花費保留）",
+        "done": "已解除 {apiKeyId} 的預算上限"
       }
     },
     "quota": {
@@ -344,7 +355,6 @@
     "title": "MCP 伺服器",
     "running": "MCP 伺服器正在執行（{transport}）",
     "stopped": "MCP 伺服器已停止。",
-    "restarted": "MCP 伺服器已重啟。",
     "call": {
       "description": "直接呼叫 MCP 工具",
       "args": "JSON 引數物件（內聯）",
@@ -431,11 +441,11 @@
       "description": "管理壓縮組合統計"
     },
     "rules": {
-      "description": "管理壓縮規則",
-      "add": {
-        "pattern": "要匹配的模式（正則或 field:pattern）",
-        "action": "操作：drop|shrink|replace"
-      }
+      "description": "檢視引擎內建的壓縮規則",
+      "list": {
+        "description": "列出內建的 caveman 規則"
+      },
+      "readOnly": "規則內建於引擎中，無法新增或刪除。要略過某條規則或保護文字，請在設定 → 壓縮中設定 cavemanConfig.skipRules / preservePatterns。"
     },
     "language_packs": {
       "description": "列出可用的壓縮語言包"
@@ -451,20 +461,15 @@
     "createDescription": "建立隧道",
     "created": "隧道已建立：{url}",
     "stopped": "隧道已停止。",
-    "confirmStop": "停止隧道 {id}？",
     "stopDescription": "停止隧道",
     "statusDescription": "顯示隧道的詳細狀態",
-    "logsDescription": "顯示隧道日誌",
     "infoDescription": "顯示隧道的配置詳情",
-    "rotateDescription": "生成新的隧道 URL",
-    "tailOpt": "顯示的日誌行數",
     "typeRequired": "需要隧道型別。",
-    "noLogs": "沒有可用日誌。",
     "notAvailable": "隧道資訊不可用。",
     "noTunnels": "沒有活動隧道。",
     "infoTitle": "隧道資訊：{type}",
-    "rotated": "隧道 URL 已輪換：{url}",
-    "confirmRotate": "輪換隧道 {type}？（將生成新 URL）"
+    "authTokenOpt": "ngrok 驗證權杖（僅 ngrok）",
+    "createdPending": "{type} 通道已啟用；尚無公開 URL"
   },
   "stop": {
     "description": "停止 OmniRoute 伺服器",
@@ -521,10 +526,11 @@
     "description": "管理 OmniRoute 技能（沙箱、內建、自定義、混合、skillssh）",
     "list": {
       "description": "列出已安裝的技能",
-      "type": "按型別篩選（sandbox|custom|builtin|hybrid|skillssh）",
+      "query": "依名稱或描述過濾",
+      "source": "依來源過濾（skillsmp|skillssh|local）",
       "enabled": "僅顯示已啟用的技能",
       "disabled": "僅顯示已停用的技能",
-      "api_key": "按 API 金鑰篩選"
+      "limit": "每頁最大結果數"
     },
     "get": {
       "description": "按 ID 獲取技能詳情"
@@ -600,12 +606,13 @@
       "token_budget": "限制結果中的總權杖數"
     },
     "add": {
-      "description": "新增新的記憶條目",
-      "content": "記憶文本內容",
+      "description": "新增一筆記憶",
+      "content": "記憶的文字內容",
+      "key": "項目的唯一鍵（必填）",
       "file": "從檔案讀取內容",
-      "type": "記憶型別（預設：user）",
-      "metadata": "JSON 後設資料物件",
-      "api_key": "關聯到 API 金鑰"
+      "type": "類型：factual、episodic、procedural 或 semantic",
+      "metadata": "JSON 中繼資料物件",
+      "api_key": "關聯到某個 API 金鑰 id"
     },
     "clear": {
       "description": "刪除匹配篩選條件的記憶條目",
@@ -719,33 +726,18 @@
       }
     },
     "run": {
-      "description": "為套件啟動評估執行",
-      "model": "要評估的模型 ID（預設：auto）",
-      "combo": "強制指定組合名稱",
-      "concurrency": "併發樣本數（預設：4）",
-      "tag": "標記此次執行以便後續篩選",
-      "watch": "觀察執行進度直至完成"
+      "description": "執行一個評估套件（同步完成）",
+      "model": "針對該模型 id 執行，而不是套件預設值",
+      "combo": "針對該組合執行",
+      "compareModel": "同時針對該模型執行並比較",
+      "apiKeyId": "將本次執行歸屬到該 API 金鑰 id"
     },
     "list": {
-      "description": "列出評估執行",
-      "suite": "按套件 ID 篩選",
-      "status": "按狀態篩選",
-      "since": "返回自此時間戳以來的執行",
-      "limit": "最大結果數（預設：50）"
-    },
-    "get": {
-      "description": "按 ID 獲取評估執行詳情"
-    },
-    "results": {
-      "description": "顯示評估執行的樣本結果",
-      "failed": "僅顯示失敗的樣本"
-    },
-    "cancel": {
-      "description": "取消正在執行的評估",
-      "yes": "跳過確認提示"
+      "description": "列出最近 20 次評估執行",
+      "suite": "依套件 id 過濾"
     },
     "scorecard": {
-      "description": "顯示已完成評估執行的記分卡"
+      "description": "顯示評估記分卡歷史"
     }
   },
   "webhooks": {
@@ -869,11 +861,7 @@
       "limit": "最大結果數"
     },
     "defaults": {
-      "description": "管理預設定價",
-      "input": "每 1M 權杖的輸入成本（美元）",
-      "output": "每 1M 權杖的輸出成本（美元）",
-      "cacheRead": "每 1M 權杖的快取讀取成本（美元）",
-      "cacheWrite": "每 1M 權杖的快取寫入成本（美元）"
+      "description": "管理預設定價"
     },
     "diff": {
       "description": "顯示與上游價格的差異",
@@ -947,8 +935,8 @@
       "description": "向節點發送測試請求"
     },
     "metrics": {
-      "description": "顯示節點指標",
-      "period": "時間範圍（例如 24h, 7d）"
+      "description": "顯示節點的請求指標（全時段，來自呼叫紀錄）",
+      "none": "{id} 沒有記錄任何指標"
     }
   },
   "context": {
@@ -973,11 +961,15 @@
         "reservePct": "保留百分比"
       },
       "filters": {
-        "description": "管理 RTK 過濾器",
-        "pattern": "過濾器模式（正則）",
-        "priority": "過濾器優先順序（預設：100）",
-        "action": "過濾器操作：drop|shrink|replace",
-        "yes": "跳過確認"
+        "description": "檢視並匯入 RTK 過濾器目錄",
+        "list": {
+          "description": "列出已載入的 RTK 過濾器"
+        },
+        "import": {
+          "description": "驗證（或安裝）filters.toml 套件",
+          "install": "安裝該套件，而不是只做驗證",
+          "overwrite": "取代既有的 filters.toml（會保留 .bak 備份）"
+        }
       },
       "test": {
         "file": "請求 JSON 檔案路徑"
@@ -994,31 +986,6 @@
       "kind": "按型別篩選（dashboard|api-key|mcp|a2a）",
       "active": "僅顯示活動會話",
       "limit": "最大結果數（預設：100）"
-    },
-    "expire": {
-      "yes": "跳過確認"
-    },
-    "expireAll": {
-      "user": "要過期其會話的使用者",
-      "yes": "跳過確認"
-    }
-  },
-  "tags": {
-    "description": "管理資源標籤",
-    "add": {
-      "color": "標籤顏色（十六進位制或名稱）",
-      "description": "標籤描述"
-    },
-    "remove": {
-      "yes": "跳過確認"
-    },
-    "assign": {
-      "tag": "標籤名稱",
-      "to": "目標資源，格式為 type:id（例如 provider:openai）"
-    },
-    "unassign": {
-      "tag": "標籤名稱",
-      "from": "來源資源，格式為 type:id"
     }
   },
   "openapi": {
@@ -1054,14 +1021,11 @@
     "noCombos": "未配置組合。",
     "confirmDelete": "刪除組合 {name}？",
     "suggest": {
-      "description": "使用 AI 評分為任務推薦最佳組合",
-      "task": "任務描述",
+      "description": "為某類任務推薦組合（MCP omniroute_best_combo_for_task）",
+      "taskType": "任務類型：coding、review、planning、analysis、debugging 或 documentation",
       "maxCost": "每次請求的最大成本（美元）",
       "maxLatencyMs": "最大延遲（毫秒）",
-      "weights": "JSON 評分權重，例如 {\"latency\":0.7,\"cost\":0.3}",
-      "top": "要顯示的候選數（預設：5）",
-      "explain": "將理由列印到 stderr",
-      "switch": "啟用排名最高的組合"
+      "useHint": "要使用它，請在請求中傳送 \"model\": \"{name}\" —— 組合依名稱逐請求選擇。"
     }
   },
   "oneproxy": {
@@ -1081,11 +1045,7 @@
       "connectionId": "要輪換的特定連線 ID"
     },
     "config": {
-      "description": "顯示或更新 OneProxy 配置",
-      "enabled": "啟用代理池（true|false）",
-      "poolSize": "池大小",
-      "providerSource": "代理提供者的 URL",
-      "rotationPolicy": "輪換策略：sticky|per-request|periodic"
+      "description": "顯示或更新 OneProxy 配置"
     },
     "pool": {
       "description": "列出當前代理池及指標"
@@ -1114,13 +1074,6 @@
       "description": "將配置推送到雲或遠端例項",
       "target": "目標（cloud 或 context:name）",
       "bundle": "要同步的包部分",
-      "dryRun": "預覽但不應用"
-    },
-    "pull": {
-      "description": "從雲或遠端拉取配置",
-      "source": "來源（cloud 或 context:name）",
-      "merge": "與現有配置合併",
-      "replace": "替換現有配置",
       "dryRun": "預覽但不應用"
     },
     "diff": {

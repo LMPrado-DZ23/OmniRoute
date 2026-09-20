@@ -43,3 +43,38 @@ export function notifyBudgetThresholdReached(alert: BudgetThresholdAlert): void 
       /* webhook delivery is best-effort */
     });
 }
+
+interface HierarchyBudgetThresholdAlert {
+  level: "project" | "workspace";
+  id: string;
+  workspaceId: string;
+  resetInterval: BudgetResetInterval;
+  spendUsd: number;
+  limitUsd: number;
+  warningThreshold: number;
+  nextResetAt: number;
+}
+
+/**
+ * Same `budget.threshold_reached` event for a project or workspace budget
+ * (`src/lib/usage/workspaceBudgets.ts`); `source` tells the levels apart. Once per level and
+ * budget period, de-duplicated by `claimWarningPeriod`. Identifiers and amounts only.
+ */
+export function notifyHierarchyBudgetThresholdReached(alert: HierarchyBudgetThresholdAlert): void {
+  const data = {
+    source: `${alert.level}_budget`,
+    ...(alert.level === "project" ? { projectId: alert.id } : {}),
+    workspaceId: alert.workspaceId,
+    resetInterval: alert.resetInterval,
+    spendUsd: roundTo(alert.spendUsd, 4),
+    limitUsd: alert.limitUsd,
+    percent: alert.limitUsd > 0 ? roundTo((alert.spendUsd / alert.limitUsd) * 100, 1) : 0,
+    warningThreshold: alert.warningThreshold,
+    nextResetAt: new Date(alert.nextResetAt).toISOString(),
+  };
+  void import("@/lib/webhookDispatcher")
+    .then(({ notifyWebhookEvent }) => notifyWebhookEvent("budget.threshold_reached", data))
+    .catch(() => {
+      /* webhook delivery is best-effort */
+    });
+}

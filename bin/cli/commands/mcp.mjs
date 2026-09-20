@@ -35,16 +35,6 @@ export function registerMcp(program) {
     });
 
   mcp
-    .command("restart")
-    .description("Restart the MCP server")
-    .action(async (opts, cmd) => {
-      const globalOpts = cmd.parent.optsWithGlobals();
-      const exitCode = await runMcpRestartCommand({ ...opts, output: globalOpts.output });
-      if (exitCode !== 0) process.exit(exitCode);
-    });
-
-  // 5.1 — mcp call + mcp scopes
-  mcp
     .command("call <tool> [argsJson]")
     .description(t("mcp.call.description"))
     .option("--args <json>", t("mcp.call.args"))
@@ -61,10 +51,15 @@ export function registerMcp(program) {
             ? JSON.parse(argsPositional)
             : {};
 
-      const exitCode = await runMcpCallCommand(tool, args, {
-        ...opts,
-        stream: opts.stream,
-      }, globalOpts);
+      const exitCode = await runMcpCallCommand(
+        tool,
+        args,
+        {
+          ...opts,
+          stream: opts.stream,
+        },
+        globalOpts
+      );
 
       if (exitCode !== 0) process.exit(exitCode);
     });
@@ -127,7 +122,9 @@ async function mcpJsonRpcCall(tool, args, { stream = false, globalOpts = {} } = 
 
   if (!initRes.ok) {
     const text = await initRes.text().catch(() => "");
-    process.stderr.write(`MCP initialize failed: HTTP ${initRes.status}${text ? ` — ${text}` : ""}\n`);
+    process.stderr.write(
+      `MCP initialize failed: HTTP ${initRes.status}${text ? ` — ${text}` : ""}\n`
+    );
     return 1;
   }
 
@@ -246,32 +243,6 @@ export async function runMcpStatusCommand(opts = {}) {
       for (const scope of status.scopes) console.log(`    - ${scope}`);
     }
     return 0;
-  } catch (err) {
-    console.error(t("common.error", { message: err instanceof Error ? err.message : String(err) }));
-    return 1;
-  }
-}
-
-export async function runMcpRestartCommand(opts = {}) {
-  const serverUp = await isServerUp();
-  if (!serverUp) {
-    console.error(t("common.serverOffline"));
-    return 1;
-  }
-
-  try {
-    const res = await apiFetch("/api/mcp/restart", {
-      method: "POST",
-      retry: false,
-      timeout: 10000,
-      acceptNotOk: true,
-    });
-    if (res.ok) {
-      console.log(t("mcp.restarted"));
-      return 0;
-    }
-    console.error(t("common.error", { message: `HTTP ${res.status}` }));
-    return 1;
   } catch (err) {
     console.error(t("common.error", { message: err instanceof Error ? err.message : String(err) }));
     return 1;

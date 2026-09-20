@@ -31,7 +31,7 @@ export function ChaosModeSelector({
           onClick={() => onChange("parallel")}
           className={`flex-1 px-3 py-2 rounded-md text-xs font-semibold transition-all ${
             mode === "parallel"
-              ? "bg-primary text-white"
+              ? "bg-primary text-on-primary"
               : "bg-black/5 dark:bg-white/5 text-text-muted hover:bg-black/10 dark:hover:bg-white/10"
           }`}
         >
@@ -46,7 +46,7 @@ export function ChaosModeSelector({
           onClick={() => onChange("collaborative")}
           className={`flex-1 px-3 py-2 rounded-md text-xs font-semibold transition-all ${
             mode === "collaborative"
-              ? "bg-primary text-white"
+              ? "bg-primary text-on-primary"
               : "bg-black/5 dark:bg-white/5 text-text-muted hover:bg-black/10 dark:hover:bg-white/10"
           }`}
         >

@@ -63,10 +63,16 @@ export const CliCatalogSchema = z.record(z.string(), CliCatalogEntrySchema);
 // +1 (2026-07-02): "codewhale" added as a dual entry alongside "deepseek-tui"
 // (CodeWhale is the actively-maintained successor to DeepSeek TUI).
 // +1 (grok-build, decolua/9router#2571): xAI Grok Build TUI coding agent.
-export const EXPECTED_CODE_COUNT = 21;
+// +1 (gemini): Gemini CLI, the first entry to use the origin-form {{baseOrigin}}
+// placeholder. Its client appends /v1beta/... to whatever base it is given.
+// +5 (cliToolsExtra.ts): aichat, shell-gpt, mods, llm and fabric — terminal
+// assistants whose custom-base-URL mechanism was verified against each tool's
+// official docs or source before being catalogued.
+export const EXPECTED_CODE_COUNT = 27;
 // +2 (#6318): "omp" (Oh My Pi) and "letta" (Letta CLI) added as agent entries.
 // Note: #6318 originally also shipped duplicate "pi"/"jcode"/"codewhale" entries —
 // those tools were already delivered by a separate PR, so only omp+letta landed here.
 // +1 (#11166): "prime-agent" (PrimeIntellect-ai/prime-agent) added as an agent entry.
 // +1 (#11578): "5dive" (5dive-ai/5dive) added as an agent entry.
-export const EXPECTED_AGENT_COUNT = 10;
+// +6 (cliToolsExtra.ts): openhands, plandex, gptme, trae, octofriend and raaid.
+export const EXPECTED_AGENT_COUNT = 16;

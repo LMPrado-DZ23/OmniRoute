@@ -75,32 +75,33 @@ export async function runQuotaCommand(opts = {}) {
     return 1;
   }
 
+  // /api/quota is the quota-sharing pool tree (pools/groups/plans) and there
+  // is no /api/v1/providers list. Provider quota lives in GET /api/usage/quota
+  // (src/shared/contracts/quota.ts), the same route the dashboard and
+  // `omniroute usage quota` read.
   let quotaData = null;
 
   try {
-    const res = await apiFetch("/api/quota", { retry: false, timeout: 5000, acceptNotOk: true });
-    if (res.ok) quotaData = await res.json();
-  } catch {}
-
-  if (!quotaData) {
-    try {
-      const res = await apiFetch("/api/v1/providers", {
-        retry: false,
-        timeout: 5000,
-        acceptNotOk: true,
-      });
-      if (res.ok) {
-        const providers = await res.json();
-        quotaData = {
-          providers: providers.map((p) => ({
-            provider: p.name || p.id,
-            quota: p.quota || p.remaining || "N/A",
-            used: p.used || 0,
-            reset: p.resetAt || "N/A",
-          })),
-        };
-      }
-    } catch {}
+    const params = opts.provider ? `?provider=${encodeURIComponent(opts.provider)}` : "";
+    const res = await apiFetch(`/api/usage/quota${params}`, {
+      retry: false,
+      timeout: 5000,
+      acceptNotOk: true,
+    });
+    if (res.ok) {
+      const payload = await res.json();
+      quotaData = {
+        providers: (payload.providers ?? []).map((entry) => ({
+          provider: entry.name || entry.provider,
+          used: entry.quotaUsed ?? 0,
+          quota: entry.quotaTotal ?? null,
+          percentRemaining: entry.percentRemaining ?? null,
+          reset: entry.resetAt ?? null,
+        })),
+      };
+    }
+  } catch {
+    // reported as "no quota information" below
   }
 
   if (opts.json || opts.output === "json") {
@@ -113,11 +114,7 @@ export async function runQuotaCommand(opts = {}) {
     return 0;
   }
 
-  let providers = quotaData.providers;
-  if (opts.provider) {
-    const filter = opts.provider.toLowerCase();
-    providers = providers.filter((p) => p.provider.toLowerCase().includes(filter));
-  }
+  const providers = quotaData.providers;
 
   console.log(`\n\x1b[1m\x1b[36mProvider Quota Usage\x1b[0m\n`);
   console.log(
@@ -142,7 +139,11 @@ export async function runQuotaCommand(opts = {}) {
   for (const p of providers) {
     const provider = (p.provider || "unknown").slice(0, 23).padEnd(25);
     const used = String(p.used || 0).padEnd(15);
-    const remaining = String(p.quota || p.remaining || "N/A")
+    const remainingValue =
+      p.quota != null ? Math.max(0, p.quota - (p.used ?? 0)) : (p.percentRemaining ?? null);
+    const remaining = String(
+      p.quota != null ? remainingValue : remainingValue != null ? `${remainingValue}%` : "N/A"
+    )
       .slice(0, 18)
       .padEnd(20);
     const reset = p.reset || "N/A";

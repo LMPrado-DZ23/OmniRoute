@@ -2,6 +2,7 @@
 import { getClaudeCodeDefaultModels } from "@omniroute/open-sse/config/providerRegistry";
 import type { CliCatalogEntry } from "@/shared/schemas/cliCatalog";
 import { GROK_BUILD_CLI_TOOL } from "@/shared/constants/cliToolsGrokBuild";
+import { EXTRA_CLI_TOOLS } from "@/shared/constants/cliToolsExtra";
 
 const _cc = getClaudeCodeDefaultModels();
 type CliModel = NonNullable<CliCatalogEntry["defaultModels"]>[number];
@@ -475,6 +476,63 @@ export const CLI_TOOLS: Record<string, CliCatalogEntry> = {
 }`,
     },
   },
+  /**
+   * ★ Gemini CLI — the first entry to use the origin-form `{{baseOrigin}}`.
+   *
+   * Verified against gemini-cli's source and @google/genai's, because this one
+   * cannot be checked by reading prose alone:
+   *
+   *  - packages/core/src/core/contentGenerator.ts — `getAuthTypeFromEnv()` returns
+   *    `AuthType.GATEWAY` when `GOOGLE_GEMINI_BASE_URL` is set, and that same
+   *    variable supplies `httpOptions.baseUrl` for USE_GEMINI and GATEWAY. The key
+   *    is read from `GEMINI_API_KEY`.
+   *  - js-genai `src/_api_client.ts` — `getRequestUrlInternal()` strips a trailing
+   *    slash and joins `{baseUrl}/{apiVersion}`, with apiVersion `v1beta` for the
+   *    Gemini API; `src/models.ts` appends `{model}:generateContent` (and
+   *    `{model}:streamGenerateContent?alt=sse` when streaming).
+   *
+   * So the client composes `{origin}/v1beta/models/{model}:generateContent`, which
+   * next.config.mjs rewrites (`/v1beta/:path*` → `/api/v1beta/:path*`) onto
+   * src/app/api/v1beta/models/[...path]/route.ts. Handing it the `{{baseUrl}}`
+   * form would produce `/v1/v1beta/...` and 404 — see the composition test in
+   * tests/unit/cli-base-origin.test.ts, which asserts the resolved path against
+   * the real route tree.
+   *
+   * Inbound auth already works: @google/genai sends the key as `x-goog-api-key`,
+   * which src/server/authz/policies/clientApi.ts accepts explicitly (issue #7034).
+   */
+  gemini: {
+    id: "gemini",
+    name: "Gemini CLI",
+    image: "/providers/gemini.svg",
+    color: "#1A73E8",
+    description: "Gemini CLI — GOOGLE_GEMINI_BASE_URL points it at OmniRoute's Gemini surface",
+    docsUrl: "https://github.com/google-gemini/gemini-cli",
+    configType: "guide",
+    category: "code",
+    vendor: "Google",
+    acpSpawnable: true,
+    baseUrlSupport: "full",
+    defaultCommand: "gemini",
+    guideSteps: [
+      { step: 1, title: "Install Gemini CLI", desc: "npm install -g @google/gemini-cli" },
+      { step: 2, title: "API Key", type: "apiKeySelector" },
+      { step: 3, title: "Base URL (origin)", value: "{{baseOrigin}}", copyable: true },
+      { step: 4, title: "Select Model", type: "modelSelector" },
+    ],
+    notes: [
+      {
+        type: "info",
+        text: "This is the origin, with no /v1 suffix: the @google/genai client appends /v1beta/models/<model>:generateContent itself. Setting GOOGLE_GEMINI_BASE_URL is also what selects Gemini CLI's gateway auth mode.",
+      },
+    ],
+    codeBlock: {
+      language: "bash",
+      code: `export GOOGLE_GEMINI_BASE_URL="{{baseOrigin}}"
+export GEMINI_API_KEY="{{apiKey}}"
+gemini -m {{model}}`,
+    },
+  },
   custom: {
     id: "custom",
     name: "Custom CLI",
@@ -729,15 +787,22 @@ aider --openai-api-base "{{baseUrl}}" --model "{{model}}"`,
     guideSteps: [
       { step: 1, title: "Install Goose", desc: "pip install goose-ai or brew install goose" },
       { step: 2, title: "API Key", type: "apiKeySelector" },
-      { step: 3, title: "Base URL", value: "{{baseUrl}}", copyable: true },
+      { step: 3, title: "Base URL (origin)", value: "{{baseOrigin}}", copyable: true },
       { step: 4, title: "Select Model", type: "modelSelector" },
+    ],
+    notes: [
+      {
+        type: "info",
+        text: "OPENAI_HOST is a host, not an OpenAI-compatible base: Goose appends OPENAI_BASE_PATH (default v1/chat/completions) to it. It therefore takes the origin, with no /v1 suffix.",
+      },
     ],
     codeBlock: {
       language: "yaml",
       code: `# ~/.config/goose/config.yaml
 GOOSE_PROVIDER: "openai"
 GOOSE_MODEL: "{{model}}"
-OPENAI_HOST: "{{baseUrl}}"
+OPENAI_HOST: "{{baseOrigin}}"
+OPENAI_BASE_PATH: "v1/chat/completions"
 OPENAI_API_KEY: "{{apiKey}}"`,
     },
   },
@@ -894,7 +959,7 @@ OPENAI_API_KEY: "{{apiKey}}"`,
         desc: "5dive's verbs act on local systemd units; there is no remote mode",
       },
       { step: 2, title: "API Key", type: "apiKeySelector" },
-      { step: 3, title: "Base URL", value: "{{baseUrl}}", copyable: true },
+      { step: 3, title: "Base URL (origin)", value: "{{baseOrigin}}", copyable: true },
       { step: 4, title: "Select Model", type: "modelSelector" },
       {
         step: 5,
@@ -907,8 +972,16 @@ OPENAI_API_KEY: "{{apiKey}}"`,
         type: "warning",
         text: "Writing a 5dive auth profile is root-only, and each agent's own runtime model pin outranks the profile's model default — pass --agent <name> to pin the seats too.",
       },
+      {
+        type: "info",
+        text: "5dive points Claude seats at OmniRoute's Anthropic surface, and Claude Code appends /v1/messages itself — so the base URL is the origin, with no /v1 suffix. `omniroute configure 5dive` already strips it; this value now matches what that command writes.",
+      },
     ],
   },
+
+  // Verified additions kept in their own module so this file stays under its
+  // file-size cap — see cliToolsExtra.ts for the per-entry verification notes.
+  ...EXTRA_CLI_TOOLS,
 };
 
 // ─── Registry helpers ────────────────────────────────────────────────────────

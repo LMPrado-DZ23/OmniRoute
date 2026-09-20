@@ -22,13 +22,19 @@ const analyticsSchema = [
 ];
 
 const budgetSchema = [
-  { key: "scope", header: "Scope", width: 25 },
-  { key: "period", header: "Period" },
-  { key: "limit", header: "Limit (USD)", formatter: (v) => `$${Number(v).toFixed(2)}` },
-  { key: "used", header: "Used (USD)", formatter: (v) => `$${Number(v).toFixed(2)}` },
-  { key: "remaining", header: "Remaining", formatter: (v) => `$${Number(v).toFixed(2)}` },
-  { key: "pct", header: "%", formatter: (v) => `${(Number(v) * 100).toFixed(1)}%` },
+  { key: "apiKeyId", header: "API key", width: 38 },
+  { key: "dailyLimitUsd", header: "Daily limit", formatter: fmtLimit },
+  { key: "weeklyLimitUsd", header: "Weekly limit", formatter: fmtLimit },
+  { key: "monthlyLimitUsd", header: "Monthly limit", formatter: fmtLimit },
+  { key: "totalCostToday", header: "Spent today", formatter: fmtCost },
+  { key: "totalCostMonth", header: "Spent month", formatter: fmtCost },
+  { key: "exceeded", header: "Over budget", formatter: (v) => (v ? "✗" : "✓") },
 ];
+
+/** 0 (and null) mean "no limit for this period" — setBudgetSchema, #3537. */
+function fmtLimit(value) {
+  return value == null || Number(value) === 0 ? "-" : `${Number(value).toFixed(2)}`;
+}
 
 const quotaSchema = [
   { key: "provider", header: "Provider", width: 20 },
@@ -64,14 +70,24 @@ export function registerUsage(program) {
 
   // budget
   const budget = usage.command("budget").description(t("usage.budget.description"));
-  budget.command("list").action(runBudgetList);
-  budget.command("get [scope]").action(runBudgetGet);
+  budget.command("list").description(t("usage.budget.list.description")).action(runBudgetList);
   budget
-    .command("set <amount>")
-    .option("--scope <s>", t("usage.budget.set.scope"), "global")
-    .option("--period <p>", t("usage.budget.set.period"), "monthly")
+    .command("get <apiKeyId>")
+    .description(t("usage.budget.get.description"))
+    .action(runBudgetGet);
+  budget
+    .command("set <apiKeyId>")
+    .description(t("usage.budget.set.description"))
+    .option("--daily <usd>", t("usage.budget.set.daily"), parseFloat)
+    .option("--weekly <usd>", t("usage.budget.set.weekly"), parseFloat)
+    .option("--monthly <usd>", t("usage.budget.set.monthly"), parseFloat)
+    .option("--warning-threshold <ratio>", t("usage.budget.set.warningThreshold"), parseFloat)
+    .option("--reset-interval <p>", t("usage.budget.set.resetInterval"))
     .action(runBudgetSet);
-  budget.command("reset [scope]").action(runBudgetReset);
+  budget
+    .command("clear <apiKeyId>")
+    .description(t("usage.budget.clear.description"))
+    .action(runBudgetClear);
 
   // quota
   usage
@@ -132,31 +148,59 @@ export async function runUsageAnalytics(opts, cmd) {
 
 export async function runBudgetList(opts, cmd) {
   const globalOpts = cmd.optsWithGlobals();
-  const res = await fetchOrExit("/api/usage/budget", globalOpts);
+  // GET /api/usage/budget needs an apiKeyId; the per-key summary for every key
+  // is the bulk route (what the dashboard's budget tab lists).
+  const res = await fetchOrExit("/api/usage/budget/bulk", globalOpts);
   const data = await res.json();
-  const rows = normalizeBudgetRows(data);
+  const rows = Object.entries(data.budgets ?? {}).map(([apiKeyId, summary]) =>
+    budgetRow(apiKeyId, summary)
+  );
   emit(rows, globalOpts, budgetSchema);
 }
 
-export async function runBudgetGet(scope, opts, cmd) {
+export async function runBudgetGet(apiKeyId, opts, cmd) {
   const globalOpts = cmd.optsWithGlobals();
-  const p = new URLSearchParams();
-  if (scope) p.set("scope", scope);
+  const p = new URLSearchParams({ apiKeyId });
   const res = await fetchOrExit(`/api/usage/budget?${p}`, globalOpts);
   const data = await res.json();
-  const rows = normalizeBudgetRows(data);
-  emit(rows, globalOpts, budgetSchema);
+  emit([budgetRow(apiKeyId, data)], globalOpts, budgetSchema);
 }
 
-export async function runBudgetSet(amount, opts, cmd) {
+export async function runBudgetSet(apiKeyId, opts, cmd) {
+  const globalOpts = cmd.optsWithGlobals();
+  const body = { apiKeyId };
+  if (opts.daily != null) body.dailyLimitUsd = Number(opts.daily);
+  if (opts.weekly != null) body.weeklyLimitUsd = Number(opts.weekly);
+  if (opts.monthly != null) body.monthlyLimitUsd = Number(opts.monthly);
+  if (opts.warningThreshold != null) body.warningThreshold = Number(opts.warningThreshold);
+  if (opts.resetInterval) body.resetInterval = opts.resetInterval;
+  if (Object.keys(body).length === 1) {
+    process.stderr.write(`${t("usage.budget.set.nothingToSet")}\n`);
+    process.exit(2);
+    return;
+  }
+  const res = await apiFetch("/api/usage/budget", {
+    method: "POST",
+    body,
+    timeout: globalOpts.timeout,
+    acceptNotOk: true,
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    process.stderr.write(`[error] HTTP ${res.status}: ${txt.slice(0, 200)}\n`);
+    process.exit(res.exitCode ?? 1);
+  }
+  if (!globalOpts.quiet) process.stdout.write(`${t("usage.budget.set.done", { apiKeyId })}\n`);
+}
+
+// There is no DELETE: a limit of 0 means "no limit for this period"
+// (setBudgetSchema, #3537), so clearing the caps is a POST of zeroes. Recorded
+// spend is not erased — only the limits are lifted.
+export async function runBudgetClear(apiKeyId, opts, cmd) {
   const globalOpts = cmd.optsWithGlobals();
   const res = await apiFetch("/api/usage/budget", {
     method: "POST",
-    body: {
-      amount: Number(amount),
-      scope: opts.scope ?? "global",
-      period: opts.period ?? "monthly",
-    },
+    body: { apiKeyId, dailyLimitUsd: 0, weeklyLimitUsd: 0, monthlyLimitUsd: 0 },
     timeout: globalOpts.timeout,
     acceptNotOk: true,
   });
@@ -165,26 +209,7 @@ export async function runBudgetSet(amount, opts, cmd) {
     process.stderr.write(`[error] HTTP ${res.status}: ${txt.slice(0, 200)}\n`);
     process.exit(res.exitCode ?? 1);
   }
-  if (!globalOpts.quiet)
-    process.stdout.write(
-      `Budget set: $${Number(amount).toFixed(2)} / ${opts.scope ?? "global"} / ${opts.period ?? "monthly"}\n`
-    );
-}
-
-export async function runBudgetReset(scope, opts, cmd) {
-  const globalOpts = cmd.optsWithGlobals();
-  const res = await apiFetch("/api/usage/budget", {
-    method: "DELETE",
-    body: { scope: scope ?? "global" },
-    timeout: globalOpts.timeout,
-    acceptNotOk: true,
-  });
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    process.stderr.write(`[error] HTTP ${res.status}: ${txt.slice(0, 200)}\n`);
-    process.exit(res.exitCode ?? 1);
-  }
-  if (!globalOpts.quiet) process.stdout.write(`Budget reset: ${scope ?? "global"}\n`);
+  if (!globalOpts.quiet) process.stdout.write(`${t("usage.budget.clear.done", { apiKeyId })}\n`);
 }
 
 export async function runUsageQuota(opts, cmd) {
@@ -301,16 +326,16 @@ function toLogRows(items) {
   }));
 }
 
-function normalizeBudgetRows(data) {
-  const items = toArray(data.budgets ?? data.items ?? (Array.isArray(data) ? data : [data]));
-  return items.map((r) => ({
-    scope: r.scope ?? r.scopeId ?? "global",
-    period: r.period ?? "monthly",
-    limit: r.limit ?? r.amount ?? 0,
-    used: r.used ?? r.spent ?? 0,
-    remaining: r.remaining ?? Math.max(0, (r.limit ?? 0) - (r.used ?? 0)),
-    pct: r.pct ?? (r.limit > 0 ? (r.used ?? 0) / r.limit : 0),
-  }));
+function budgetRow(apiKeyId, summary) {
+  return {
+    apiKeyId,
+    dailyLimitUsd: summary.dailyLimitUsd ?? null,
+    weeklyLimitUsd: summary.weeklyLimitUsd ?? null,
+    monthlyLimitUsd: summary.monthlyLimitUsd ?? null,
+    totalCostToday: summary.totalCostToday ?? 0,
+    totalCostMonth: summary.totalCostMonth ?? 0,
+    exceeded: summary.budgetCheck?.exceeded ?? false,
+  };
 }
 
 async function fetchOrExit(path, globalOpts) {

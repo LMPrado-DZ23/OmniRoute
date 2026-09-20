@@ -10,6 +10,7 @@
 
 import { checkLockout } from "./lockoutPolicy";
 import { checkBudget } from "./costRules";
+import { checkHierarchyBudget } from "@/lib/usage/workspaceBudgets";
 import { resolveFallbackChain } from "./fallbackPolicy";
 
 interface PolicyRequest {
@@ -67,6 +68,15 @@ export function evaluateRequest(request: PolicyRequest): PolicyVerdict {
       return {
         allowed: false,
         reason: `Budget exceeded: ${budget.reason || "daily limit reached"}`,
+        adjustments: {},
+        policyPhase: "budget",
+      };
+    }
+    const hierarchy = checkHierarchyBudget(apiKeyId);
+    if (!hierarchy.allowed) {
+      return {
+        allowed: false,
+        reason: `Budget exceeded: ${hierarchy.reason}`,
         adjustments: {},
         policyPhase: "budget",
       };

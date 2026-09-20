@@ -17,7 +17,6 @@ import { registerNodes } from "./nodes.mjs";
 import { registerSync } from "./sync.mjs";
 import { registerContextEng } from "./context-eng.mjs";
 import { registerSessions } from "./sessions.mjs";
-import { registerTags } from "./tags.mjs";
 import { registerOpenapi } from "./openapi.mjs";
 import { registerOneProxy } from "./oneproxy.mjs";
 import { registerTelemetry } from "./telemetry.mjs";
@@ -103,7 +102,6 @@ export function registerCommands(program) {
   registerSync(program);
   registerContextEng(program);
   registerSessions(program);
-  registerTags(program);
   registerOpenapi(program);
   registerOneProxy(program);
   registerTelemetry(program);

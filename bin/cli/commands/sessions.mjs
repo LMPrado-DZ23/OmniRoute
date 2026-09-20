@@ -1,4 +1,3 @@
-import { createInterface } from "node:readline";
 import { apiFetch } from "../api.mjs";
 import { emit } from "../output.mjs";
 import { t } from "../i18n.mjs";
@@ -12,16 +11,6 @@ function truncate(v, max = 30) {
   if (!v) return "-";
   const s = String(v);
   return s.length > max ? s.slice(0, max - 1) + "…" : s;
-}
-
-async function confirm(q) {
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise((resolve) => {
-    rl.question(`${q} [y/N] `, (a) => {
-      rl.close();
-      resolve(a.trim().toLowerCase() === "y");
-    });
-  });
 }
 
 const sessionSchema = [
@@ -65,37 +54,6 @@ export function registerSessions(program) {
     }
     emit(await res.json(), cmd.optsWithGlobals());
   });
-
-  s.command("expire <sessionId>")
-    .option("--yes", t("sessions.expire.yes"))
-    .action(async (id, opts, cmd) => {
-      if (!opts.yes) {
-        const ok = await confirm(`Expire session ${id}?`);
-        if (!ok) return;
-      }
-      const res = await apiFetch(`/api/sessions?id=${id}`, { method: "DELETE" });
-      if (!res.ok) {
-        process.stderr.write(`Error: ${res.status}\n`);
-        process.exit(1);
-      }
-      process.stdout.write("Expired\n");
-    });
-
-  s.command("expire-all")
-    .requiredOption("--user <u>", t("sessions.expireAll.user"))
-    .option("--yes", t("sessions.expireAll.yes"))
-    .action(async (opts, cmd) => {
-      if (!opts.yes) {
-        const ok = await confirm(`Expire ALL sessions for ${opts.user}?`);
-        if (!ok) return;
-      }
-      const res = await apiFetch(`/api/sessions?user=${opts.user}`, { method: "DELETE" });
-      if (!res.ok) {
-        process.stderr.write(`Error: ${res.status}\n`);
-        process.exit(1);
-      }
-      process.stdout.write("Expired all\n");
-    });
 
   s.command("current").action(async (opts, cmd) => {
     const res = await apiFetch("/api/sessions?current=true");

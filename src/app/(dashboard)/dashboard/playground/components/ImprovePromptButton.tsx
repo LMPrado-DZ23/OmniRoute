@@ -120,7 +120,7 @@ export default function ImprovePromptButton({
               </button>
               <button
                 onClick={() => void handleConfirm()}
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded bg-primary text-white hover:bg-primary/90 transition-colors"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded bg-primary text-on-primary hover:bg-primary/90 transition-colors"
               >
                 <span className="text-[12px]">✨</span>
                 {t("improveConfirm")}

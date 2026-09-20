@@ -76,7 +76,7 @@ function GlobalErrorContent({ error, reset }: GlobalErrorProps) {
         <button
           onClick={reset}
           aria-label={t("globalError.retryAriaLabel")}
-          className="px-8 py-3 rounded-[10px] text-white border-none text-sm font-semibold cursor-pointer transition-transform duration-200 motion-reduce:transition-none motion-reduce:transform-none shadow-warm hover:-translate-y-0.5 bg-gradient-to-br from-primary to-primary-hover focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+          className="px-8 py-3 rounded-[10px] text-on-primary border-none text-sm font-semibold cursor-pointer transition-transform duration-200 motion-reduce:transition-none motion-reduce:transform-none shadow-warm hover:-translate-y-0.5 bg-gradient-to-br from-primary to-primary-hover focus:outline-2 focus:outline-offset-2 focus:outline-primary"
         >
           {t("globalError.tryAgain")}
         </button>

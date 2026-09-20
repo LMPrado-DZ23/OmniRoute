@@ -46,7 +46,16 @@
      --color-primary, so the brand colour is unchanged; only the text on top of it gets
      the accessible shade. Derived from --color-primary rather than hard-coded so it also
      follows a custom preset written inline on <html> by themeStore (Phase 9). */
-  --color-primary-on-tint: color-mix(in srgb, var(--color-primary) 80%, #000000);
+  /* A colour preset writes --preset-primary-on-tint-light on <html> when its hue needs a
+     different shade than this coral-tuned 80% mix (green measured 2.95:1 here). */
+  --color-primary-on-tint: var(
+    --preset-primary-on-tint-light,
+    color-mix(in srgb, var(--color-primary) 80%, #000000)
+  );
+  /* TEXT on a SOLID primary surface (buttons, active pills, step badges): call sites use
+     `text-on-primary`, never `text-white`. White on this theme's #b83242 is 5.9:1. A colour
+     preset written inline on <html> by themeStore sets its own value for that colour. */
+  --color-on-primary: #ffffff;
 
   /* Accent - Indigo/Violet (buttons, links, gradients) */
   --color-accent: #6366f1;
@@ -145,11 +154,20 @@
   /* The light-theme primary is darkened for contrast; on dark surfaces the original
      coral already passes (5.1:1 on --color-bg) and a darker shade would not. */
   --color-primary: #e54d5e;
-  --color-primary-hover: #c93d4e;
+  /* The brand coral is too light for white text (#ffffff on #e54d5e = 3.78:1, under AA), so
+     the dark theme keeps the brand fill and flips the TEXT on it to black: 5.6:1 on
+     #e54d5e and 4.7:1 on the bg-primary/90 hover fills painted over --color-bg/--color-card.
+     The hover shade therefore lightens instead of darkening (black on the old #c93d4e was
+     only 4.3:1); it is derived from --color-primary so it never drifts from the brand. */
+  --color-primary-hover: color-mix(in srgb, var(--color-primary) 85%, #ffffff);
+  --color-on-primary: #000000;
   /* Dark counterpart: #e54d5e as text on bg-primary/10 over --color-sidebar measured
      4.43:1, just under AA. Lightening instead of darkening clears 4.5:1 on every primary
      tint here (5.0:1 on the worst one). */
-  --color-primary-on-tint: color-mix(in srgb, var(--color-primary) 80%, #ffffff);
+  --color-primary-on-tint: var(
+    --preset-primary-on-tint-dark,
+    color-mix(in srgb, var(--color-primary) 80%, #ffffff)
+  );
   /* On dark surfaces the semantic fills already read well as text. */
   --color-warning-strong: #fbbf24;
   --color-error-strong: #f87171;
@@ -213,6 +231,10 @@
   --color-primary: var(--color-primary);
   --color-primary-hover: var(--color-primary-hover);
   --color-primary-on-tint: var(--color-primary-on-tint);
+  --color-on-primary: var(--color-on-primary);
+  /* shadcn-style alias: a few call sites already used `text-primary-foreground`, which had
+     no token behind it and silently inherited the surrounding text colour. */
+  --color-primary-foreground: var(--color-on-primary);
 
   /* Accent */
   --color-accent: var(--color-accent);

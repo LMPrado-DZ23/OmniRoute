@@ -54,7 +54,7 @@ describe("VALID_TYPES", () => {
     try {
       const { runMemoryAdd } = await import("../../bin/cli/commands/memory.mjs");
       const cmd = { optsWithGlobals: () => ({ output: "json", quiet: false }) };
-      await runMemoryAdd({ content: "test content", type: "user" }, cmd).catch(() => {});
+      await runMemoryAdd({ content: "test content", key: "types-test", type: "user" }, cmd).catch(() => {});
     } finally {
       process.stderr.write = origWrite;
       globalThis.fetch = origFetch;
@@ -92,7 +92,7 @@ describe("legacy type deprecation warning", () => {
       try {
         const { runMemoryAdd } = await import("../../bin/cli/commands/memory.mjs");
         const cmd = { optsWithGlobals: () => ({ output: "json", quiet: false }) };
-        await runMemoryAdd({ content: "some content", type: legacyType }, cmd).catch(() => {});
+        await runMemoryAdd({ content: "some content", key: "types-test", type: legacyType }, cmd).catch(() => {});
       } finally {
         process.stderr.write = origWrite;
         globalThis.fetch = origFetch;
@@ -141,7 +141,7 @@ describe("legacy type mapping", () => {
     try {
       const { runMemoryAdd } = await import("../../bin/cli/commands/memory.mjs");
       const cmd = { optsWithGlobals: () => ({ output: "json", quiet: false }) };
-      await runMemoryAdd({ content: "test content", type: "user" }, cmd).catch(() => {});
+      await runMemoryAdd({ content: "test content", key: "types-test", type: "user" }, cmd).catch(() => {});
     } finally {
       globalThis.fetch = origFetch;
       process.stderr.write = origStderr;
@@ -183,7 +183,7 @@ describe("default type", () => {
       const { runMemoryAdd } = await import("../../bin/cli/commands/memory.mjs");
       const cmd = { optsWithGlobals: () => ({ output: "json", quiet: false }) };
       // No type passed — should default to "factual"
-      await runMemoryAdd({ content: "default type test" }, cmd).catch(() => {});
+      await runMemoryAdd({ content: "default type test", key: "types-test" }, cmd).catch(() => {});
     } finally {
       globalThis.fetch = origFetch;
       process.stderr.write = origStderr;
@@ -232,7 +232,7 @@ describe("valid new types", () => {
       try {
         const { runMemoryAdd } = await import("../../bin/cli/commands/memory.mjs");
         const cmd = { optsWithGlobals: () => ({ output: "json", quiet: false }) };
-        await runMemoryAdd({ content: "valid type test", type: validType }, cmd).catch(() => {});
+        await runMemoryAdd({ content: "valid type test", key: "types-test", type: validType }, cmd).catch(() => {});
       } finally {
         globalThis.fetch = origFetch;
         process.stderr.write = origStderr;

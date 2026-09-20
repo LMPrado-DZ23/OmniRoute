@@ -1,6 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+// The eval routes are: GET /api/evals (suites + recent runs + scorecard),
+// POST /api/evals (run a suite, synchronously, body = evalRunSuiteSchema),
+// POST /api/evals/suites (create) and GET/PUT/DELETE /api/evals/suites/{id}.
+// These fixtures pin the request/response shapes the CLI relies on; the
+// commands are also run against the real handlers in
+// tests/unit/cli/cli-eval-routes.test.ts.
+
 const SUITE = {
   id: "suite-001",
   name: "Chat quality",
@@ -19,10 +26,15 @@ const RUN = {
   startedAt: "2026-05-14T10:00:00Z",
 };
 
-const SAMPLES = [
-  { id: "s1", score: 0.9, passed: true, input: "Hello", output: "Hi there" },
-  { id: "s2", score: 0.4, passed: false, input: "2+2=?", output: "5" },
-];
+const OVERVIEW = {
+  suites: [SUITE],
+  recentRuns: [RUN, { ...RUN, id: "run-002", suiteId: "suite-002" }],
+  scorecard: { score: 0.87, passed: 43, total: 50, metrics: { accuracy: 0.87 } },
+  targets: [],
+  apiKeys: [],
+};
+
+type Captured = { url: string; method: string; body: unknown };
 
 function makeResp(data: unknown, status = 200) {
   const obj = {
@@ -38,182 +50,129 @@ function makeResp(data: unknown, status = 200) {
   return obj;
 }
 
-async function captureStdout(fn: () => Promise<void>): Promise<string> {
+function mockFetch(t: test.TestContext, payload: unknown, captured: Captured[]) {
+  t.mock.method(globalThis, "fetch", (url: string | URL, init?: RequestInit) => {
+    captured.push({
+      url: String(url),
+      method: init?.method ?? "GET",
+      body: typeof init?.body === "string" ? JSON.parse(init.body) : null,
+    });
+    return Promise.resolve(makeResp(payload));
+  });
+}
+
+function captureStdout(t: test.TestContext): string[] {
   const chunks: string[] = [];
-  const orig = process.stdout.write.bind(process.stdout);
-  process.stdout.write = (c: string | Uint8Array) => {
-    if (typeof c === "string") chunks.push(c);
+  t.mock.method(process.stdout, "write", (chunk: string | Uint8Array) => {
+    chunks.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
     return true;
-  };
-  try {
-    await fn();
-  } finally {
-    process.stdout.write = orig;
-  }
-  return chunks.join("");
+  });
+  return chunks;
 }
 
 function makeCmd(output = "json") {
   return { optsWithGlobals: () => ({ output, quiet: output !== "table" }) };
 }
 
-test("runEvalSuitesList retorna lista de suites", async () => {
-  const origFetch = globalThis.fetch;
-  globalThis.fetch = ((url: string) => {
-    assert.ok(url.includes("/api/evals/suites"));
-    return Promise.resolve(makeResp({ items: [SUITE] }));
-  }) as any;
+test("runEvalSuitesList prints the suites from the overview route", async (t) => {
+  const captured: Captured[] = [];
+  mockFetch(t, OVERVIEW, captured);
+  const out = captureStdout(t);
 
   const { runEvalSuitesList } = await import("../../bin/cli/commands/eval.mjs");
-  const out = await captureStdout(() => runEvalSuitesList({}, makeCmd() as any));
+  await runEvalSuitesList({}, makeCmd());
 
-  globalThis.fetch = origFetch;
-  const parsed = JSON.parse(out);
-  assert.ok(Array.isArray(parsed));
-  assert.equal(parsed[0].id, "suite-001");
+  assert.equal(new URL(captured[0].url).pathname, "/api/evals");
+  assert.equal(captured[0].method, "GET");
+  const parsed: unknown = JSON.parse(out.join(""));
+  assert.deepEqual(parsed, [SUITE]);
 });
 
-test("runEvalSuitesGet busca suite por id", async () => {
-  let capturedUrl = "";
-  const origFetch = globalThis.fetch;
-  globalThis.fetch = ((url: string) => {
-    capturedUrl = url;
-    return Promise.resolve(makeResp(SUITE));
-  }) as any;
-
-  const { runEvalSuitesGet } = await import("../../bin/cli/commands/eval.mjs");
-  const out = await captureStdout(() => runEvalSuitesGet("suite-001", {}, makeCmd() as any));
-
-  globalThis.fetch = origFetch;
-  assert.ok(capturedUrl.includes("/api/evals/suites/suite-001"));
-  const parsed = JSON.parse(out);
-  assert.equal(parsed.id, "suite-001");
-});
-
-test("runEvalRun envia suiteId e model no body", async () => {
-  let capturedBody: any = null;
-  let capturedUrl = "";
-  const origFetch = globalThis.fetch;
-  globalThis.fetch = ((url: string, opts: any) => {
-    capturedUrl = url;
-    if (opts?.body) capturedBody = JSON.parse(opts.body);
-    return Promise.resolve(makeResp(RUN));
-  }) as any;
+test("runEvalRun sends evalRunSuiteSchema's target shape", async (t) => {
+  const captured: Captured[] = [];
+  mockFetch(t, { suiteId: "suite-001", runs: [RUN], scorecard: null }, captured);
+  captureStdout(t);
 
   const { runEvalRun } = await import("../../bin/cli/commands/eval.mjs");
-  await captureStdout(() =>
-    runEvalRun("suite-001", { model: "gpt-4o", concurrency: 4 }, makeCmd() as any)
-  );
+  await runEvalRun("suite-001", { model: "gpt-4o" }, makeCmd());
 
-  globalThis.fetch = origFetch;
-  assert.ok(capturedUrl.includes("/api/evals"));
-  assert.equal(capturedBody.suiteId, "suite-001");
-  assert.equal(capturedBody.model, "gpt-4o");
-  assert.equal(capturedBody.concurrency, 4);
+  assert.equal(captured[0].method, "POST");
+  assert.deepEqual(captured[0].body, {
+    suiteId: "suite-001",
+    target: { type: "model", id: "gpt-4o" },
+  });
 });
 
-test("runEvalList envia filtros na query", async () => {
-  let capturedUrl = "";
-  const origFetch = globalThis.fetch;
-  globalThis.fetch = ((url: string) => {
-    capturedUrl = url;
-    return Promise.resolve(makeResp({ items: [RUN] }));
-  }) as any;
+test("runEvalRun maps --combo and --compare-model onto targets", async (t) => {
+  const captured: Captured[] = [];
+  mockFetch(t, { runs: [RUN] }, captured);
+  captureStdout(t);
+
+  const { runEvalRun } = await import("../../bin/cli/commands/eval.mjs");
+  await runEvalRun("suite-001", { combo: "fast", compareModel: "gpt-4o-mini" }, makeCmd());
+
+  assert.deepEqual(captured[0].body, {
+    suiteId: "suite-001",
+    target: { type: "combo", id: "fast" },
+    compareTarget: { type: "model", id: "gpt-4o-mini" },
+  });
+});
+
+test("runEvalRun prints the runs the server returned", async (t) => {
+  const captured: Captured[] = [];
+  mockFetch(t, { runs: [RUN], scorecard: null }, captured);
+  const out = captureStdout(t);
+
+  const { runEvalRun } = await import("../../bin/cli/commands/eval.mjs");
+  await runEvalRun("suite-001", {}, makeCmd());
+
+  assert.deepEqual(JSON.parse(out.join("")), [RUN]);
+});
+
+test("runEvalList reads recentRuns and filters by suite locally", async (t) => {
+  const captured: Captured[] = [];
+  mockFetch(t, OVERVIEW, captured);
+  const out = captureStdout(t);
 
   const { runEvalList } = await import("../../bin/cli/commands/eval.mjs");
-  await captureStdout(() =>
-    runEvalList({ suite: "suite-001", status: "completed", limit: 25 }, makeCmd() as any)
-  );
+  await runEvalList({ suite: "suite-002" }, makeCmd());
 
-  globalThis.fetch = origFetch;
-  assert.ok(capturedUrl.includes("suiteId=suite-001"));
-  assert.ok(capturedUrl.includes("status=completed"));
-  assert.ok(capturedUrl.includes("limit=25"));
+  assert.equal(new URL(captured[0].url).pathname, "/api/evals");
+  assert.equal(new URL(captured[0].url).search, "", "the route takes no filters");
+  const rows: unknown = JSON.parse(out.join(""));
+  assert.ok(Array.isArray(rows) && rows.length === 1);
+  assert.equal(rows[0].id, "run-002");
 });
 
-test("runEvalGet busca run por id", async () => {
-  let capturedUrl = "";
-  const origFetch = globalThis.fetch;
-  globalThis.fetch = ((url: string) => {
-    capturedUrl = url;
-    return Promise.resolve(makeResp(RUN));
-  }) as any;
-
-  const { runEvalGet } = await import("../../bin/cli/commands/eval.mjs");
-  const out = await captureStdout(() => runEvalGet("run-001", {}, makeCmd() as any));
-
-  globalThis.fetch = origFetch;
-  assert.ok(capturedUrl.includes("/api/evals/run-001"));
-  const parsed = JSON.parse(out);
-  assert.equal(parsed.id, "run-001");
-});
-
-test("runEvalResults mostra amostras", async () => {
-  const origFetch = globalThis.fetch;
-  globalThis.fetch = ((_url: string) => {
-    return Promise.resolve(makeResp({ samples: SAMPLES }));
-  }) as any;
-
-  const { runEvalResults } = await import("../../bin/cli/commands/eval.mjs");
-  const out = await captureStdout(() => runEvalResults("run-001", {}, makeCmd() as any));
-
-  globalThis.fetch = origFetch;
-  const parsed = JSON.parse(out);
-  assert.ok(Array.isArray(parsed));
-  assert.equal(parsed.length, 2);
-});
-
-test("runEvalResults com --failed envia filter=failed na query", async () => {
-  let capturedUrl = "";
-  const origFetch = globalThis.fetch;
-  globalThis.fetch = ((url: string) => {
-    capturedUrl = url;
-    return Promise.resolve(makeResp({ samples: SAMPLES.filter((s) => !s.passed) }));
-  }) as any;
-
-  const { runEvalResults } = await import("../../bin/cli/commands/eval.mjs");
-  await captureStdout(() => runEvalResults("run-001", { failed: true }, makeCmd() as any));
-
-  globalThis.fetch = origFetch;
-  assert.ok(capturedUrl.includes("filter=failed"));
-});
-
-test("runEvalCancel com --yes envia op: cancel", async () => {
-  let capturedBody: any = null;
-  const origFetch = globalThis.fetch;
-  globalThis.fetch = ((_url: string, opts: any) => {
-    if (opts?.body) capturedBody = JSON.parse(opts.body);
-    return Promise.resolve(makeResp({}));
-  }) as any;
-
-  const out = await captureStdout(async () => {
-    const { runEvalCancel } = await import("../../bin/cli/commands/eval.mjs");
-    await runEvalCancel("run-001", { yes: true }, makeCmd() as any);
-  });
-
-  globalThis.fetch = origFetch;
-  assert.equal(capturedBody.op, "cancel");
-  assert.ok(out.includes("Cancelled"));
-});
-
-test("runEvalScorecard renderiza scorecard em modo table", async () => {
-  const scoreData = {
-    score: 0.87,
-    passed: 43,
-    total: 50,
-    metrics: { accuracy: 0.87, fluency: 0.92 },
-  };
-  const origFetch = globalThis.fetch;
-  globalThis.fetch = ((_url: string) => {
-    return Promise.resolve(makeResp(scoreData));
-  }) as any;
+test("runEvalScorecard renders the scorecard history in table mode", async (t) => {
+  const captured: Captured[] = [];
+  mockFetch(t, OVERVIEW, captured);
+  const out = captureStdout(t);
 
   const { runEvalScorecard } = await import("../../bin/cli/commands/eval.mjs");
-  const out = await captureStdout(() =>
-    runEvalScorecard("run-001", {}, { optsWithGlobals: () => ({ output: "table" }) } as any)
-  );
+  await runEvalScorecard({}, makeCmd("table"));
 
-  globalThis.fetch = origFetch;
-  assert.ok(out.includes("87.0%") || out.includes("Scorecard"));
-  assert.ok(out.includes("43/50") || out.includes("43"));
+  assert.equal(new URL(captured[0].url).pathname, "/api/evals");
+  const text = out.join("");
+  assert.match(text, /Scorecard/);
+  assert.match(text, /Overall score: 87\.0%/);
+});
+
+test("runEvalSuitesCreate posts the suite file to /api/evals/suites", async (t) => {
+  const { writeFileSync, mkdtempSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const { tmpdir } = await import("node:os");
+  const file = join(mkdtempSync(join(tmpdir(), "eval-cli-")), "suite.json");
+  writeFileSync(file, JSON.stringify({ name: "New suite", cases: [] }));
+
+  const captured: Captured[] = [];
+  mockFetch(t, { suite: SUITE }, captured);
+  captureStdout(t);
+
+  const { runEvalSuitesCreate } = await import("../../bin/cli/commands/eval.mjs");
+  await runEvalSuitesCreate({ file }, makeCmd());
+
+  assert.equal(new URL(captured[0].url).pathname, "/api/evals/suites");
+  assert.equal(captured[0].method, "POST");
+  assert.deepEqual(captured[0].body, { name: "New suite", cases: [] });
 });

@@ -176,7 +176,7 @@ export function SetupWizard({
                   i < stepIndex
                     ? "bg-emerald-500 text-white"
                     : i === stepIndex
-                      ? "bg-primary text-white"
+                      ? "bg-primary text-on-primary"
                       : "bg-surface text-text-muted border border-border/50"
                 }`}
               >
@@ -341,7 +341,7 @@ export function SetupWizard({
               <button
                 type="button"
                 onClick={() => setStep("dns")}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 transition-colors"
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:bg-primary/90 transition-colors"
               >
                 {t("next")}{" "}
                 <span className="material-symbols-outlined text-[14px] ml-1">arrow_forward</span>
@@ -354,7 +354,7 @@ export function SetupWizard({
                   <button
                     type="button"
                     onClick={() => setStep("mappings")}
-                    className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 transition-colors"
+                    className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:bg-primary/90 transition-colors"
                   >
                     {t("next")}
                   </button>
@@ -363,7 +363,7 @@ export function SetupWizard({
                     type="button"
                     onClick={handleEnableDns}
                     disabled={enablingDns}
-                    className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:bg-primary/90 transition-colors disabled:opacity-50"
                   >
                     {enablingDns ? t("enablingDns") : t("wizardEnableDns")}
                   </button>
@@ -377,7 +377,7 @@ export function SetupWizard({
                   <button
                     type="button"
                     onClick={handleAddSelectedModels}
-                    className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 transition-colors"
+                    className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:bg-primary/90 transition-colors"
                   >
                     Add {selectedModels.size} model{selectedModels.size !== 1 ? "s" : ""}
                   </button>
