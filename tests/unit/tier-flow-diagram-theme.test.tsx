@@ -32,8 +32,7 @@ vi.mock("next-intl", () => ({
 
 vi.mock("next/image", () => ({
   default: ({ src, alt, className }: { src: string; alt: string; className?: string }) => (
-    // eslint-disable-next-line @next/next/no-img-element -- this IS the next/image stub;
-    // the rule's advice (use next/image) is what the component under test already does.
+    // eslint-disable-next-line @next/next/no-img-element -- this IS the next/image stub; the rule's advice is what the component already does
     <img src={src} alt={alt} className={className} />
   ),
 }));
