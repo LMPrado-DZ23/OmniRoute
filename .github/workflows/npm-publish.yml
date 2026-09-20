@@ -609,7 +609,13 @@ jobs:
 
       - name: Install plugin dependencies
         working-directory: "@omniroute/opencode-plugin"
-        run: npm install --no-audit --no-fund
+        # `ci --ignore-scripts`, not `install`: this job holds `id-token: write` and ends
+        # in `npm publish --provenance`. A postinstall anywhere in the dependency tree
+        # would run with that token in scope, and `install` would also let a drifted
+        # lockfile resolve a different tree than the one that was reviewed. The
+        # auto-bump above uses `npm version --no-git-tag-version`, which updates the
+        # lockfile too, so `ci` stays in sync with it.
+        run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Build plugin
         working-directory: "@omniroute/opencode-plugin"
@@ -700,7 +706,9 @@ jobs:
 
       - name: Install plugin-v2 dependencies
         working-directory: "@omniroute/opencode-plugin-v2"
-        run: npm install --no-audit --no-fund
+        # Same reasoning as the plugin job above: provenance token in scope, so no
+        # dependency script runs and the lockfile decides the tree.
+        run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Build plugin-v2
         working-directory: "@omniroute/opencode-plugin-v2"
