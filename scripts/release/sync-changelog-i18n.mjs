@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 function sectionRange(text, ver, nextVer) {
   const lines = text.split("\n");
@@ -46,7 +47,11 @@ export function syncChangelogSection(root, ver, nextVer) {
   return n;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// pathToFileURL, not `file://${argv[1]}`: on Windows argv[1] is "C:\path\to.mjs" while
+// import.meta.url is "file:///C:/path/to.mjs", so the two NEVER matched and this CLI was a
+// silent no-op — `npm run release:sync-changelog-i18n` printed nothing and mirrored nothing,
+// which is how a release ships 42 changelogs still saying "TBD".
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const [ver, nextVer] = process.argv.slice(2);
   if (!ver || !nextVer) {
     console.error("usage: sync-changelog-i18n.mjs <ver> <nextVer>");

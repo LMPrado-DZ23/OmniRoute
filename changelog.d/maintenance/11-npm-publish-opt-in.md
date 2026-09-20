@@ -1,1 +1,0 @@
-- The npm publish leg of the desktop release is now opt-in behind the repository variable `ENABLE_NPM_PUBLISH` and off by default: this fork does not own the `omniroute` name on npm, and its only previous brake — a check for whether the version is already published — would not have held, since upstream is on 3.8.50 while this repository is at 3.8.51 (#11)

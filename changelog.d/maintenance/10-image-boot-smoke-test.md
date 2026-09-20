@@ -1,3 +1,0 @@
-- The Docker publish job now boots the image it just published and requires the dashboard's own `/healthz` probe to answer, plus a real HTTP status from `/v1/models`, before the tag is left in place — previously the job validated manifests and scanned for CVEs but never started the artifact (#10)
-- README and Quick Start no longer point at a container tag this fork has never published: every documented `docker run` names `ghcr.io/lmprado-dz23/omniroute:next`, the only channel on GHCR until a version is released (#10)
-- The npm badges are labelled as upstream, since they measure the `omniroute` package published by the original author rather than this fork, and the Electron-downloads badge is gone until installers exist (#10)

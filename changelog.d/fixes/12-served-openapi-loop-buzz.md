@@ -1,2 +1,0 @@
-- The API reference rendered at `/api/docs` now documents the six Loop Engine and Buzz Hub endpoints. They had been added to `docs/openapi.yaml` only, while the page users actually open is served from `public/openapi.yaml`, so the new routes were invisible there (#12)
-- That served spec now states its own scope: it covers a subset of the API, its `version` is the release it was last synced at rather than the one you are running, and `docs/openapi.yaml` is the complete current spec (#12)
