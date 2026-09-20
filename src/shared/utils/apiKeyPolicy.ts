@@ -14,6 +14,7 @@ import { getComboByName } from "@/lib/db/combos";
 import { isDashboardSessionAuthenticated } from "./apiAuth";
 import { resolveComboForModel } from "@/lib/db/modelComboMappings";
 import { checkBudget } from "@/domain/costRules";
+import { checkHierarchyBudget } from "@/lib/usage/workspaceBudgets";
 import { checkTokenLimits } from "@omniroute/open-sse/services/tokenLimitCounter.ts";
 import {
   errorResponse,
@@ -579,9 +580,14 @@ function validateBudget(context: PolicyContext): Response | null {
   if (!apiKeyInfo.id) return null;
   try {
     const budgetOk = checkBudget(apiKeyInfo.id);
-    return budgetOk.allowed
+    if (!budgetOk.allowed) {
+      return errorResponse(HTTP_STATUS.RATE_LIMITED, budgetOk.reason || "Budget limit exceeded");
+    }
+    // Key -> project -> workspace: a key with no project returns `allowed` without a budget read.
+    const hierarchy = checkHierarchyBudget(apiKeyInfo.id);
+    return hierarchy.allowed
       ? null
-      : errorResponse(HTTP_STATUS.RATE_LIMITED, budgetOk.reason || "Budget limit exceeded");
+      : errorResponse(HTTP_STATUS.RATE_LIMITED, hierarchy.reason || "Budget limit exceeded");
   } catch (error) {
     log.error("API_POLICY", "Budget check failed. Request blocked.", { error });
     return errorResponse(HTTP_STATUS.SERVICE_UNAVAILABLE, "Budget policy unavailable");

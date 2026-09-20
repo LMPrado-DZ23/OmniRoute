@@ -489,6 +489,15 @@ const COSTS_ITEMS: readonly SidebarItemDefinition[] = [
     icon: "savings",
   },
   {
+    id: "costs-workspaces",
+    href: "/dashboard/costs/workspaces",
+    i18nKey: "costsWorkspaces",
+    subtitleKey: "costsWorkspacesSubtitle",
+    icon: "workspaces",
+    labelFallback: "Workspaces",
+    subtitleFallback: "Shared budgets",
+  },
+  {
     id: "costs-free-tiers",
     href: "/dashboard/free-tiers",
     i18nKey: "costsFreeTiers",
