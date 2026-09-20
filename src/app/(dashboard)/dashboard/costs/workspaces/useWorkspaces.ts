@@ -7,6 +7,44 @@ import * as api from "./workspaceApi";
 
 type Notify = (message: string) => unknown;
 
+/**
+ * The refusal codes `/api/workspaces/**` can answer with, each with a message key under
+ * `workspaces.errors`. A code that is NOT listed here falls back to the server's English
+ * `message`, so an error added on the server is never swallowed into a blank toast — it is
+ * just untranslated until it is added here.
+ */
+export const WORKSPACE_ERROR_CODES = [
+  "authentication_required",
+  "viewer_readonly",
+  "workspace_not_found",
+  "project_not_found",
+  "member_not_found",
+  "name_taken",
+  "budget_exceeds_parent",
+  "workspace_not_empty",
+  "project_not_empty",
+  "key_in_other_workspace",
+  "invalid_json",
+  "internal_error",
+] as const;
+
+const KNOWN_CODES: ReadonlySet<string> = new Set(WORKSPACE_ERROR_CODES);
+
+/**
+ * Turn a thrown request failure into the sentence the user reads.
+ *
+ * Exported for tests: the whole point of the codes is that this mapping is the ONLY place
+ * that decides an error's wording, so it is the place worth asserting on.
+ */
+export function workspaceErrorMessage(
+  error: unknown,
+  translateCode: (code: string) => string
+): string {
+  const code = error instanceof api.WorkspaceApiError ? error.code : undefined;
+  if (code && KNOWN_CODES.has(code)) return translateCode(code);
+  return error instanceof Error ? error.message : String(error);
+}
+
 /** What the page reads: the visible workspaces, the API keys, and the selected workspace. */
 function useWorkspaceData(selectedId: string | null, notifyError: Notify, loadErrorText: string) {
   const [workspaces, setWorkspaces] = useState<api.WorkspaceView[]>([]);
@@ -71,13 +109,21 @@ interface RunnerDeps {
   notifySuccess: Notify;
   notifyError: Notify;
   requestErrorText: (message: string) => string;
+  describeError: (error: unknown) => string;
 }
 
 /** Runs one mutation: report it, refresh what it changed, resolve `true` on success. */
 function useMutationRunner(deps: RunnerDeps) {
   const [busy, setBusy] = useState(false);
-  const { reloadDetail, reloadList, selectedId, notifyError, notifySuccess, requestErrorText } =
-    deps;
+  const {
+    reloadDetail,
+    reloadList,
+    selectedId,
+    notifyError,
+    notifySuccess,
+    requestErrorText,
+    describeError,
+  } = deps;
 
   const run = useCallback(
     async (action: () => Promise<unknown>, doneMessage: string): Promise<boolean> => {
@@ -88,13 +134,21 @@ function useMutationRunner(deps: RunnerDeps) {
         await Promise.all([reloadList(), reloadDetail(selectedId)]);
         return true;
       } catch (error) {
-        notifyError(requestErrorText(error instanceof Error ? error.message : String(error)));
+        notifyError(requestErrorText(describeError(error)));
         return false;
       } finally {
         setBusy(false);
       }
     },
-    [notifyError, notifySuccess, reloadDetail, reloadList, requestErrorText, selectedId]
+    [
+      describeError,
+      notifyError,
+      notifySuccess,
+      reloadDetail,
+      reloadList,
+      requestErrorText,
+      selectedId,
+    ]
   );
 
   return { busy, run };
@@ -108,6 +162,10 @@ export function useWorkspaces() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const data = useWorkspaceData(selectedId, notifyError, t("loadError"));
   const requestErrorText = useCallback((message: string) => t("requestError", { message }), [t]);
+  const describeError = useCallback(
+    (error: unknown) => workspaceErrorMessage(error, (code) => t(`errors.${code}`)),
+    [t]
+  );
   const { busy, run } = useMutationRunner({
     reloadList: data.reloadList,
     reloadDetail: data.reloadDetail,
@@ -115,6 +173,7 @@ export function useWorkspaces() {
     notifySuccess,
     notifyError,
     requestErrorText,
+    describeError,
   });
   const workspace = () => selectedId ?? "";
 

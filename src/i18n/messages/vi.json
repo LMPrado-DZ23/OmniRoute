@@ -14519,6 +14519,20 @@
     "createdMessage": "Đã tạo.",
     "deletedMessage": "Đã xóa.",
     "loadError": "Không thể tải không gian làm việc.",
-    "requestError": "Thay đổi chưa được lưu: {message}"
+    "requestError": "Thay đổi chưa được lưu: {message}",
+    "errors": {
+      "authentication_required": "Phiên đăng nhập đã kết thúc. Hãy đăng nhập lại và thử lại.",
+      "viewer_readonly": "Vai trò của bạn trong workspace này là người xem, không thể thay đổi.",
+      "workspace_not_found": "Workspace này không còn tồn tại, hoặc bạn không có quyền truy cập.",
+      "project_not_found": "Dự án này không còn tồn tại.",
+      "member_not_found": "Thành viên này không có trong workspace.",
+      "name_taken": "Tên này đã được sử dụng.",
+      "budget_exceeds_parent": "Ngân sách của dự án không được vượt ngân sách workspace trong cùng chu kỳ.",
+      "workspace_not_empty": "Hãy xóa các dự án của workspace trước.",
+      "project_not_empty": "Hãy bỏ gán các khóa API của dự án trước.",
+      "key_in_other_workspace": "Khóa API này đang được gán cho một dự án ở workspace khác.",
+      "invalid_json": "Không đọc được yêu cầu. Hãy tải lại trang và thử lại.",
+      "internal_error": "Máy chủ không hoàn tất được thay đổi. Hãy thử lại sau giây lát."
+    }
   }
 }
