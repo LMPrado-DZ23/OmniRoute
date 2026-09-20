@@ -36,16 +36,23 @@ export type RoutingExclusionReason =
 export type RoutingQuotaState = "available" | "low" | "exhausted" | "unknown";
 
 /**
- * Optional per-request limits. Today they are read by route previews (candidates over a limit are
- * excluded as `cost_over_budget` / `latency_over_budget`) and by the `planNextAttempt()` /
- * `checkFailoverBudget()` library in `open-sse/services/routing/attemptPolicy.ts`. Live traffic has
- * no per-request budget input: the live auto combo enforces only the combo's own `budgetCap` (see
- * docs/routing/ROUTING_CONTRACT.md, "Guarantees").
+ * Optional per-request limits, read by route previews (candidates over a limit are excluded as
+ * `cost_over_budget` / `latency_over_budget`) and by the `planNextAttempt()` /
+ * `checkFailoverBudget()` library in `open-sse/services/routing/attemptPolicy.ts`.
+ *
+ * Live traffic takes `maxLatencyMs` from the `X-OmniRoute-Latency-Budget` header and enforces it
+ * on the auto combo: an over-budget candidate is excluded from selection and from the failover
+ * chain. It has no per-request `maxCost` input — the live cost limit is the combo's own
+ * `budgetCap` (see docs/routing/ROUTING_CONTRACT.md, "Guarantees").
  */
 export interface RoutingBudget {
   /** Maximum estimated cost of the request in USD, summed over its attempts. */
   maxCost?: number;
-  /** Maximum latency of the request in milliseconds, summed over its attempts. */
+  /**
+   * Maximum latency of the request in milliseconds. The library functions sum it over the
+   * request's attempts; live selection applies it per attempt, to each candidate's
+   * `estimatedLatencyMs`.
+   */
   maxLatencyMs?: number;
 }
 

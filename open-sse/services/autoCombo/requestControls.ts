@@ -7,11 +7,13 @@
  *   X-OmniRoute-Mode:            fast | balanced | quality | <raw mode-pack name>  (#6024/#6025)
  *   X-OmniRoute-Budget:          <max USD per request>                             (#6023)
  *   X-OmniRoute-Budget-Fallback: cheapest | strict                                 (#3470)
+ *   X-OmniRoute-Latency-Budget:  <max estimated latency per attempt, ms>
  *
  * All resolvers are pure so they can be unit-tested and reused by the entry
  * handler (src/sse/handlers/chat.ts) and the combo router (open-sse/services/combo.ts).
  * The resolved values feed the auto-combo engine's existing `config.modePack` /
- * `config.budgetCap` / `config.budgetFallback` inputs.
+ * `config.budgetCap` / `config.budgetFallback` inputs, and the latency budget feeds
+ * `RoutingBudget.maxLatencyMs` for the request.
  */
 
 import { MODE_PACKS } from "./modePacks";
@@ -71,11 +73,20 @@ export function resolveRequestModePack(input: unknown): RequestModePack {
  */
 export function parseRequestBudgetCap(input: unknown): number | undefined {
   const n =
-    typeof input === "number"
-      ? input
-      : typeof input === "string"
-        ? Number(input.trim())
-        : NaN;
+    typeof input === "number" ? input : typeof input === "string" ? Number(input.trim()) : NaN;
+  if (!Number.isFinite(n) || n <= 0) return undefined;
+  return n;
+}
+
+/**
+ * Parse the `X-OmniRoute-Latency-Budget` header into a hard per-request latency ceiling in
+ * milliseconds (`RoutingBudget.maxLatencyMs`). Only a finite, strictly-positive duration is
+ * accepted; anything else returns `undefined`, and the request then routes with no latency budget
+ * at all — there is no stored combo-level latency budget to fall back to.
+ */
+export function parseRequestLatencyBudgetMs(input: unknown): number | undefined {
+  const n =
+    typeof input === "number" ? input : typeof input === "string" ? Number(input.trim()) : NaN;
   if (!Number.isFinite(n) || n <= 0) return undefined;
   return n;
 }
@@ -101,6 +112,8 @@ export interface PerRequestAutoControls {
   mode?: string;
   budgetCap?: number;
   budgetFallback?: RequestBudgetFallback;
+  /** `RoutingBudget.maxLatencyMs` for this request; absent means no latency budget. */
+  latencyBudgetMs?: number;
 }
 
 /**
@@ -116,14 +129,17 @@ export function resolveRequestAutoControls(headers: {
   const modeHeader = headers.get("x-omniroute-mode")?.trim() || null;
   const budgetHeader = headers.get("x-omniroute-budget")?.trim() || null;
   const budgetFallbackHeader = headers.get("x-omniroute-budget-fallback")?.trim() || null;
+  const latencyBudgetHeader = headers.get("x-omniroute-latency-budget")?.trim() || null;
 
   const mode = resolveRequestModePack(modeHeader);
   const budgetCap = parseRequestBudgetCap(budgetHeader);
   const budgetFallback = parseRequestBudgetFallback(budgetFallbackHeader);
+  const latencyBudgetMs = parseRequestLatencyBudgetMs(latencyBudgetHeader);
 
   return {
     ...(mode.override && modeHeader ? { mode: modeHeader } : {}),
     ...(budgetCap !== undefined ? { budgetCap } : {}),
     ...(budgetFallback !== undefined ? { budgetFallback } : {}),
+    ...(latencyBudgetMs !== undefined ? { latencyBudgetMs } : {}),
   };
 }

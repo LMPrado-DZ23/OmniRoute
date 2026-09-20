@@ -5,12 +5,16 @@
  * Permanent failures (bad credentials, unknown model, invalid request, exhausted quota) are never
  * retried on the same candidate: repeating them cannot succeed and only burns quota and time.
  *
- * What live traffic uses: only `isRetryableAttemptStatus()`. The combo loops (open-sse/services/
- * combo.ts) retry the same target only on 408, 429, 500, 502, 503 and 504, so 400/401/403/404
- * responses are never retried on the same target. The rest of this module
- * (`classifyAttemptOutcome`, `isPermanentAttemptOutcome`, `canRetrySameCandidate`,
- * `checkFailoverBudget`, `planNextAttempt`) is a tested library that no live request path calls
- * yet: there is no live per-request cost or latency budget, and no cumulative spend check.
+ * What live traffic uses: `isRetryableAttemptStatus()` and `exceedsLatencyBudget()`. The combo
+ * loops (open-sse/services/combo.ts) retry the same target only on 408, 429, 500, 502, 503 and
+ * 504, so 400/401/403/404 responses are never retried on the same target; and a request that sets
+ * `RoutingBudget.maxLatencyMs` has every candidate over that budget excluded from selection and
+ * from its failover chain (open-sse/services/combo/latencyBudget.ts).
+ *
+ * The rest of this module (`classifyAttemptOutcome`, `isPermanentAttemptOutcome`,
+ * `canRetrySameCandidate`, `checkFailoverBudget`, `planNextAttempt`) is a tested library that no
+ * live request path calls yet: the live budget checks are per attempt against the candidate's
+ * estimate, so there is still no cumulative spend check and no elapsed-time check across attempts.
  */
 import type {
   ProviderAttempt,
@@ -102,6 +106,22 @@ type BudgetExclusionReason = Extract<
 export interface FailoverBudgetVerdict {
   allowed: boolean;
   reason: BudgetExclusionReason | null;
+}
+
+/**
+ * Whether an estimated latency is over the request's `maxLatencyMs`. The single definition of the
+ * `latency_over_budget` test: route previews, the recorded decision's exclusion reasons and the
+ * live candidate filter all ask this, so a candidate can never be excluded by one and kept by
+ * another. No budget never excludes, and an unknown estimate never blocks (same rule as
+ * `checkFailoverBudget`).
+ */
+export function exceedsLatencyBudget(
+  estimatedLatencyMs: number | null | undefined,
+  maxLatencyMs: number | undefined
+): boolean {
+  if (maxLatencyMs === undefined) return false;
+  if (estimatedLatencyMs === null || estimatedLatencyMs === undefined) return false;
+  return Number.isFinite(estimatedLatencyMs) && estimatedLatencyMs > maxLatencyMs;
 }
 
 /**

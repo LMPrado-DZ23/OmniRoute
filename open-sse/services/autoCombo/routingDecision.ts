@@ -19,6 +19,7 @@ import type {
   RoutingQuotaState,
   RoutingRequest,
 } from "@/shared/contracts/routing";
+import { exceedsLatencyBudget } from "../routing/attemptPolicy";
 import type { ProviderCandidate, ScoredProvider, ScoringWeights } from "./scoring";
 import {
   BudgetExceededError,
@@ -98,8 +99,7 @@ export function hardExclusionReasons(
   if (maxCost !== undefined && estimateAutoRequestCostUsd(candidate.costPer1MTokens) > maxCost) {
     reasons.push("cost_over_budget");
   }
-  const maxLatencyMs = request.budget?.maxLatencyMs;
-  if (maxLatencyMs !== undefined && candidate.p95LatencyMs > maxLatencyMs) {
+  if (exceedsLatencyBudget(candidate.p95LatencyMs, request.budget?.maxLatencyMs)) {
     reasons.push("latency_over_budget");
   }
   return reasons;

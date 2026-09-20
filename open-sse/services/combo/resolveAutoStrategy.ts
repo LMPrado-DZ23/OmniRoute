@@ -9,6 +9,7 @@ import {
   resolveRequestModePack,
   parseRequestBudgetCap,
   parseRequestBudgetFallback,
+  parseRequestLatencyBudgetMs,
 } from "../autoCombo/requestControls.ts";
 import { selectWithStrategy } from "../autoCombo/routerStrategy.ts";
 import { buildComplexityRoutingHint } from "../autoCombo/complexityRouter";
@@ -28,6 +29,7 @@ import {
   selectAutoProviderWithDecision,
 } from "./autoRoutingDecision.ts";
 import { dedupeTargetsByExecutionKey } from "./comboData.ts";
+import { candidatesWithinLatencyBudget, dropTargetsOverLatencyBudget } from "./latencyBudget.ts";
 import {
   getModelContextLimitForModelString,
   providerSupportsEmulatedToolCalling,
@@ -80,6 +82,8 @@ export interface ResolveAutoStrategyDeps {
     budgetCap?: number | null;
     /** Per-request X-OmniRoute-Budget-Fallback value ("cheapest" | "strict") — #3470. */
     budgetFallback?: "cheapest" | "strict" | null;
+    /** Per-request X-OmniRoute-Latency-Budget value in ms (`RoutingBudget.maxLatencyMs`). */
+    latencyBudgetMs?: number | null;
   } | null;
   resilienceSettings: ResilienceSettings;
   log: ComboLogger;
@@ -101,6 +105,11 @@ export interface EvaluateAutoCandidatesOptions {
   resilienceSettings?: ResilienceSettings | null;
   manifestHint?: RoutingHint | null;
   buildAutoCandidates: BuildAutoCandidates;
+  /**
+   * `RoutingBudget.maxLatencyMs` for this request. Undefined (the default) keeps every candidate
+   * the quota cutoff left routable, which is how every request behaved before latency budgets.
+   */
+  latencyBudgetMs?: number;
 }
 
 export async function evaluateAutoCandidates(options: EvaluateAutoCandidatesOptions) {
@@ -120,12 +129,19 @@ export async function evaluateAutoCandidates(options: EvaluateAutoCandidatesOpti
     ...candidate,
     cacheAffinity: cacheAffinityScores.get(promptCacheTargetIdentity(candidate)) ?? 0,
   }));
-  const routableCandidates = candidates.filter(
+  const quotaRoutableCandidates = candidates.filter(
     (candidate) => candidate.quotaCutoffBlocked !== true
+  );
+  // The latency budget narrows the pool after the quota cutoff, so the caller can tell a request
+  // with nothing left because every account is out of quota from one with nothing fast enough.
+  const routableCandidates = candidatesWithinLatencyBudget(
+    quotaRoutableCandidates,
+    options.latencyBudgetMs
   );
   return {
     sourceCandidates: builtCandidates,
     candidates,
+    quotaRoutableCandidates,
     routableCandidates,
     scoredTargets: scoreAutoTargets(
       options.targets,
@@ -271,6 +287,11 @@ export async function resolveAutoStrategyOrder(
   const budgetCap = requestBudgetCap ?? configBudgetCap;
   const requestBudgetFallback = parseRequestBudgetFallback(relayOptions?.budgetFallback);
   const budgetFallback = requestBudgetFallback ?? configBudgetFallback;
+  // The latency budget is per request only: there is no stored combo-level latency cap to fall
+  // back to, so an absent or unparseable header leaves the request with no latency budget at all.
+  const latencyBudgetMs = parseRequestLatencyBudgetMs(relayOptions?.latencyBudgetMs);
+  const requestBudget =
+    latencyBudgetMs !== undefined ? { maxLatencyMs: latencyBudgetMs } : undefined;
   const requestModePack = resolveRequestModePack(relayOptions?.mode);
   const modePack = requestModePack.override ? requestModePack.modePack : configModePack;
   // #7008: `weights` must track the *effective* (post-override) modePack, not just
@@ -287,13 +308,14 @@ export async function resolveAutoStrategyOrder(
   if (
     requestModePack.override ||
     requestBudgetCap !== undefined ||
-    requestBudgetFallback !== undefined
+    requestBudgetFallback !== undefined ||
+    latencyBudgetMs !== undefined
   ) {
     log.debug?.(
       "COMBO",
       `Auto strategy: per-request controls applied (mode=${
         requestModePack.override ? (requestModePack.modePack ?? "balanced") : "—"
-      }, budgetCap=${requestBudgetCap ?? "—"}, budgetFallback=${requestBudgetFallback ?? "—"})`
+      }, budgetCap=${requestBudgetCap ?? "—"}, budgetFallback=${requestBudgetFallback ?? "—"}, maxLatencyMs=${latencyBudgetMs ?? "—"})`
     );
   }
 
@@ -328,36 +350,59 @@ export async function resolveAutoStrategyOrder(
         )
       : null;
 
-  const { sourceCandidates, candidates, routableCandidates, scoredTargets } =
-    await evaluateAutoCandidates({
-      targets: eligibleTargets,
-      comboName: combo.name,
-      body,
-      taskType,
-      weights,
-      sessionId: relayOptions?.sessionId,
-      resetWindowConfig,
-      resilienceSettings: autoCandidateResilienceSettings,
-      manifestHint: autoManifestHint,
-      buildAutoCandidates,
-    });
+  const {
+    sourceCandidates,
+    candidates,
+    quotaRoutableCandidates,
+    routableCandidates,
+    scoredTargets,
+  } = await evaluateAutoCandidates({
+    targets: eligibleTargets,
+    comboName: combo.name,
+    body,
+    taskType,
+    weights,
+    sessionId: relayOptions?.sessionId,
+    resetWindowConfig,
+    resilienceSettings: autoCandidateResilienceSettings,
+    manifestHint: autoManifestHint,
+    buildAutoCandidates,
+    latencyBudgetMs,
+  });
   for (let index = 0; index < sourceCandidates.length; index += 1) {
     sourceCandidates[index].cacheAffinity = candidates[index]?.cacheAffinity;
   }
-  const quotaBlockedCount = candidates.length - routableCandidates.length;
+  const quotaBlockedCount = candidates.length - quotaRoutableCandidates.length;
   if (quotaBlockedCount > 0) {
     log.info(
       "COMBO",
       `Auto strategy: quota cutoff skipped ${quotaBlockedCount}/${candidates.length} account candidates`
     );
   }
+  const latencyBlockedCount = quotaRoutableCandidates.length - routableCandidates.length;
+  if (latencyBlockedCount > 0) {
+    log.info(
+      "COMBO",
+      `Auto strategy: latency budget ${latencyBudgetMs}ms excluded ${latencyBlockedCount}/${quotaRoutableCandidates.length} candidates`
+    );
+  }
   // G2: Register candidates so chatCore can mark quotaSoftPenalty via setCandidateQuotaSoftPenalty.
   _registerExecutionCandidates(routableCandidates);
-  if (candidates.length > 0 && routableCandidates.length === 0) {
+  if (candidates.length > 0 && quotaRoutableCandidates.length === 0) {
     return {
       earlyResponse: unavailableResponse(
         429,
         "All auto strategy candidates are below configured quota cutoffs"
+      ),
+    };
+  }
+  // Nothing fast enough. Answering with a slower target would break the budget the caller asked
+  // for, so the request is refused with the reason instead of being served over it.
+  if (quotaRoutableCandidates.length > 0 && routableCandidates.length === 0) {
+    return {
+      earlyResponse: unavailableResponse(
+        503,
+        `No auto strategy candidate fits the request latency budget of ${latencyBudgetMs}ms`
       ),
     };
   }
@@ -381,7 +426,14 @@ export async function resolveAutoStrategyOrder(
       explorationRate,
       routerStrategy: routingStrategy,
     };
-    const decisionContext = { config: autoConfig, candidates, routableCandidates, taskType, body };
+    const decisionContext = {
+      config: autoConfig,
+      candidates,
+      routableCandidates,
+      taskType,
+      body,
+      ...(requestBudget ? { budget: requestBudget } : {}),
+    };
 
     if (routingStrategy !== "rules") {
       try {
@@ -478,6 +530,25 @@ export async function resolveAutoStrategyOrder(
       failoverBudgetCap,
       budgetFallback
     );
+    // The latency budget binds every router strategy and the whole chain, not just the first pick:
+    // the tail of `failoverTargets` is the raw eligible list, which still holds the targets the
+    // budget excluded from selection, and trying one of those on failover would spend more than
+    // the caller allowed. Unlike the cost cap this never merely reorders — over-budget targets are
+    // dropped, so there is no path back over the budget.
+    const withinLatencyBudget = dropTargetsOverLatencyBudget(
+      orderedTargets,
+      candidates,
+      latencyBudgetMs
+    );
+    if (latencyBudgetMs !== undefined && withinLatencyBudget.length === 0) {
+      return {
+        earlyResponse: unavailableResponse(
+          503,
+          `No auto strategy candidate fits the request latency budget of ${latencyBudgetMs}ms`
+        ),
+      };
+    }
+    orderedTargets = withinLatencyBudget;
 
     log.info(
       "COMBO",
