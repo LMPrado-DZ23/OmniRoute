@@ -6357,6 +6357,8 @@
     "bedrockModelPlaceholder": "antropikus.claude-szonett-4-6",
     "addProviderSessionCookieTitle": "{provider} munkamenet-cookie hozzáadása",
     "openWebProviderSite": "Open {host}",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "{provider} web token hozzáadása",
     "addProviderConnectionTitle": "{provider} kapcsolat hozzáadása",
     "webTokenCredentialLabel": "Webes munkamenet token",

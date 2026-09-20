@@ -6357,6 +6357,8 @@
     "bedrockModelPlaceholder": "anthropic.claude-sonnet-4-6",
     "addProviderSessionCookieTitle": "أضف {provider} ملف تعريف الارتباط للجلسة",
     "openWebProviderSite": "فتح {host}",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "أضف {provider} رمز الويب المميز",
     "addProviderConnectionTitle": "أضف اتصال {provider}",
     "webTokenCredentialLabel": "رمز جلسة الويب",

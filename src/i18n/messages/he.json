@@ -6357,6 +6357,8 @@
     "bedrockModelPlaceholder": "anthropic.claude-sonnet-4-6",
     "addProviderSessionCookieTitle": "הוסף קובץ Cookie של {provider} הפעלה",
     "openWebProviderSite": "פתח את {host}",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "הוסף אסימון אינטרנט {provider}",
     "addProviderConnectionTitle": "הוסף חיבור {provider}",
     "webTokenCredentialLabel": "אסימון הפעלת אינטרנט",

@@ -6496,6 +6496,8 @@
     "bedrockModelPlaceholder": "anthropic.claude-sonnet-4-6",
     "addProviderSessionCookieTitle": "Add {provider} session cookie",
     "openWebProviderSite": "Open {host}",
+    "getApiKeyAtHost": "Get your API key at {host}",
+    "openProviderSiteForApiKey": "Open {host} to find your API key",
     "addProviderWebTokenTitle": "Add {provider} web token",
     "addProviderConnectionTitle": "Add {provider} connection",
     "webTokenCredentialLabel": "Web session token",
