@@ -133,17 +133,58 @@ test("reset-aware fetch scope is family-wide for Antigravity and * otherwise", (
   assert.equal(getQuotaFetchScope("codex", "gpt-5"), "*");
 });
 
-test("buildAutoCandidates uses the shared Antigravity fetch-scope helper", () => {
-  const combo = fs.readFileSync(new URL("../../open-sse/services/combo.ts", import.meta.url), "utf8");
+test("buildAutoCandidates scopes the quota fetch per model family, not per model", async () => {
+  // Behavioural replacement for the old source-text scan of combo.ts: the builder moved to
+  // combo/autoCandidates.ts (#3501) and a regex over a file path breaks on the next move. What
+  // matters is that one build asks an account for its quota once per FAMILY scope
+  // (getQuotaFetchScope), so a Claude-empty Antigravity account does not hide its Gemini window.
+  const { registerQuotaFetcher } = preflightModule;
+  const { resolveProviderId } = await import("../../src/shared/constants/providers.ts");
+  const { buildAutoCandidates } = await import("../../open-sse/services/combo/autoCandidates.ts");
+
+  const calls: string[] = [];
+  registerQuotaFetcher(resolveProviderId("agy"), async (connectionId: string) => {
+    calls.push(connectionId);
+    return null;
+  });
+  // Caching off, so every distinct scope the builder derives is one visible fetch.
+  const noCache = { ...resolveResetAwareConfig({}), quotaCacheTtlMs: 0, quotaCacheMaxStaleMs: 0 };
+
+  const target = (model: string) => ({
+    kind: "model" as const,
+    stepId: `s-${model}`,
+    executionKey: `agy>${model}`,
+    modelStr: `agy/${model}`,
+    provider: "agy",
+    providerId: null,
+    connectionId: "conn-agy",
+    weight: 1,
+    label: null,
+  });
+
+  calls.length = 0;
+  await buildAutoCandidates(
+    [target("gemini-3.7-flash-high"), target("claude-opus-4-6-thinking")],
+    "family-scope-combo",
+    null,
+    noCache
+  );
+  assert.equal(calls.length, 2, "two families on one account are two quota fetches");
+
+  calls.length = 0;
+  await buildAutoCandidates(
+    [target("gemini-3.7-flash-high"), target("gemini-3.7-pro")],
+    "family-scope-combo",
+    null,
+    noCache
+  );
+  assert.equal(calls.length, 1, "two models of one family share a single quota fetch");
+});
+
+test("the fetch-scope helper has exactly one definition, used by the reset-aware fetcher", () => {
   const strategies = fs.readFileSync(
     new URL("../../open-sse/services/combo/quotaStrategies.ts", import.meta.url),
     "utf8"
-  );
-
-  assert.match(combo, /getQuotaFetchScope\(/);
-  assert.doesNotMatch(
-    combo,
-    /provider === "antigravity" \|\| provider === "agy"\s*\n\s*\? getQuotaScopedModelForProvider/
   );
   assert.match(strategies, /getQuotaFetchScope\(/);
   assert.doesNotMatch(strategies, /function getQuotaFetchScope/);

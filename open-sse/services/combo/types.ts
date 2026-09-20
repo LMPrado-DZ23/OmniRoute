@@ -84,6 +84,8 @@ export type ComboRelayOptions = {
   budgetCap?: number | null;
   /** Per-request X-OmniRoute-Budget-Fallback value ("cheapest" | "strict") — #3470. */
   budgetFallback?: "cheapest" | "strict" | null;
+  /** Per-request X-OmniRoute-Latency-Budget value (`RoutingBudget.maxLatencyMs`). */
+  latencyBudgetMs?: number | null;
   [key: string]: unknown;
 };
 
