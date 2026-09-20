@@ -35,8 +35,12 @@ const guardSrc = fs.readFileSync(ROUTE_GUARD_PATH, "utf-8");
 // /api/oauth/cursor/auto-import entry, and the reason regex patterns could not
 // be parsed at all before.
 function extractArrayBody(name) {
+  // `\n];` for a plain array, `\n]);` for a `new Set([...])`.
+  // LOCAL_ONLY_API_GET_EXEMPTIONS is declared the second way, and matching only the
+  // first made it unreadable — which is how the method-aware exemption stayed invisible
+  // to this checker for as long as it did.
   const m = guardSrc.match(
-    new RegExp(`export const ${name}\\b[\\s\\S]*?=\\s*\\[([\\s\\S]*?)\\n\\];`)
+    new RegExp(`export const ${name}\\b[\\s\\S]*?=\\s*(?:new Set\\()?\\[([\\s\\S]*?)\\n\\]\\)?;`)
   );
   return m ? m[1] : null;
 }
@@ -106,6 +110,14 @@ function parsePatterns(name) {
   return out;
 }
 
+// isLocalOnlyPath() takes a METHOD, and returns false for a safe method on an exempted
+// path. Reading only the prefix/pattern arrays made this checker method-blind, so a GET
+// that the guard deliberately lets through still "had" to carry x-loopback-only — and two
+// of them did, promising a restriction the guard does not enforce. Neither the forward nor
+// the reverse pass could ever have caught that (audit B-M2).
+const LOCAL_ONLY_GET_EXEMPTIONS = new Set(parsePrefixes("LOCAL_ONLY_API_GET_EXEMPTIONS"));
+const SAFE_METHODS = new Set(["get", "head", "options"]);
+
 const LOCAL_ONLY_PREFIXES = parsePrefixes("LOCAL_ONLY_API_PREFIXES");
 const LOCAL_ONLY_PATTERNS = parsePatterns("LOCAL_ONLY_API_PATTERNS");
 const ALWAYS_PROTECTED_PATHS = parsePrefixes("ALWAYS_PROTECTED_API_PATHS");
@@ -140,8 +152,13 @@ const matchesPrefix = (concrete) =>
     return concrete === norm || concrete.startsWith(`${norm}/`);
   });
 
-function coveredByLocalOnly(pathStr) {
+function coveredByLocalOnly(pathStr, method) {
   const concrete = concretize(pathStr);
+  // Mirror of routeGuard.isLocalOnlyPath(): a safe method on an exempted path is NOT
+  // local-only. With no method the conservative answer stands, as it does there.
+  if (method && SAFE_METHODS.has(method) && LOCAL_ONLY_GET_EXEMPTIONS.has(concrete)) {
+    return false;
+  }
   return matchesPrefix(concrete) || LOCAL_ONLY_PATTERNS.some((re) => re.test(concrete));
 }
 
@@ -163,7 +180,7 @@ for (const [pathStr, methods] of Object.entries(paths)) {
   for (const [method, spec] of Object.entries(methods)) {
     if (!["get", "post", "put", "patch", "delete"].includes(method) || !spec) continue;
 
-    if (spec["x-loopback-only"] === true && !coveredByLocalOnly(pathStr)) {
+    if (spec["x-loopback-only"] === true && !coveredByLocalOnly(pathStr, method)) {
       errors.push(
         `${method.toUpperCase()} ${pathStr}: has x-loopback-only but is NOT covered by ` +
           `LOCAL_ONLY_API_PREFIXES or LOCAL_ONLY_API_PATTERNS`
@@ -188,6 +205,8 @@ for (const [pathStr, methods] of Object.entries(paths)) {
   if (!matchesPrefix(concretize(pathStr))) continue;
   for (const [method, spec] of Object.entries(methods)) {
     if (!["get", "post", "put", "patch", "delete"].includes(method) || !spec) continue;
+    // An exempted safe method must NOT be told to claim the annotation.
+    if (!coveredByLocalOnly(pathStr, method)) continue;
     if (spec["x-loopback-only"] !== true) {
       reverseWarnings.push(
         `${method.toUpperCase()} ${pathStr}: falls under LOCAL_ONLY_API_PREFIXES ` +
