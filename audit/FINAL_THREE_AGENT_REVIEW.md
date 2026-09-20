@@ -61,8 +61,27 @@ existe para cobrir isso, mas em `push` roda `--quick`, que pula as suítes.
 Três disparos completos morreram idênticos: `exit 143`, aos 60 minutos, **sem nenhuma saída** — o passo
 redirecionava o log para arquivo e só o imprimia com um `cat` final que nunca era alcançado.
 **[#70](https://github.com/LMPrado-DZ23/OmniRoute/pull/70)** faz o log sair ao vivo; isso não conserta a
-morte, conserta a cegueira. **Este HIGH permanece em aberto** e é o único item que separa esta linha do
-portão CRITICAL 0 / HIGH 0.
+morte, conserta a cegueira.
+
+Com o log visível, a causa ficou clara — e ela **não** era a que eu supus. A
+**[#76](https://github.com/LMPrado-DZ23/OmniRoute/pull/76)** deu `timeout-minutes: 180` aos dois jobs,
+partindo da hipótese de que o job herdava um teto por não declarar nenhum. A execução
+[35496465106](https://github.com/LMPrado-DZ23/OmniRoute/actions/runs/35496465106) refutou isso: foi
+disparada em `450d6586f`, que **já continha** os 180 minutos, e morreu às 08:17:37 — **60m11s** depois
+de começar, a mesma marca das três anteriores. Todos os gates estáticos e de deriva passaram até
+07:23:23; as quatro suítes seriais então rodaram 54 minutos sem uma linha de saída e o processo levou
+SIGTERM. A execução 35468579833 já tinha registrado o motivo em palavras: _"The runner has received a
+shutdown signal"_.
+
+Ou seja: **o runner hospedado para em ~60 minutos**, e os tetos das próprias suítes somam 155 minutos
+no pior caso em modo serial. Duas saídas reais, nenhuma alcançável por edição de workflow:
+
+- ligar a variável `USE_VPS_RUNNER` numa janela de release — o workflow já a honra e tira a varredura
+  do runner hospedado;
+- fatiar as suítes lentas em jobs separados, de modo que nenhum precise de mais de uma hora.
+
+**Este HIGH permanece em aberto** e é o único item que separa esta linha do portão CRITICAL 0 / HIGH 0.
+O que mudou é que agora se sabe por quê, e que aumentar o número de novo não resolve.
 
 **B-H1 — PR de fork executava no runner LAN persistente do mantenedor.**
 `quality.yml:553` selecionava o pool `self-hosted` sem a cláusula de origem própria que `ci.yml:650`
