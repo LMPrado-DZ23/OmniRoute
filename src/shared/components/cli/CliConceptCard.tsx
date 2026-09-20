@@ -31,7 +31,7 @@ export default function CliConceptCard({ currentType }: CliConceptCardProps) {
         {/* Current type — highlighted */}
         <div className="flex flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-primary">
+            <span className="text-xs font-semibold uppercase tracking-wider text-primary-on-tint">
               {t(`concept.${currentType}.title`)}
             </span>
             {currentType === "acp" && (
