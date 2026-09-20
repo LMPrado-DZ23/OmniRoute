@@ -14,7 +14,8 @@ import { isFeatureFlagEnabled } from "@/shared/utils/featureFlags";
 import { loginSchema } from "@/shared/validation/schemas";
 import { isValidationFailure, validateBody } from "@/shared/validation/helpers";
 import { checkLoginGuard, clearLoginAttempts, recordLoginFailure } from "@/server/auth/loginGuard";
-import { AUTHZ_HEADER_TRUSTED_PEER_IP } from "@/server/authz/headers";
+import { AUTHZ_HEADER_TRUSTED_PEER_IP, VIA_PROXY_HEADER } from "@/server/authz/headers";
+import { resolveStampedViaProxy } from "@/server/authz/peerStamp";
 
 // SECURITY: No hardcoded fallback — JWT_SECRET must be configured.
 if (!process.env.JWT_SECRET) {
@@ -80,7 +81,23 @@ export async function POST(request: NextRequest) {
     const trustedPeerIp = process.env.OMNIROUTE_PEER_STAMP_TOKEN
       ? request.headers.get(AUTHZ_HEADER_TRUSTED_PEER_IP)
       : null;
-    const clientIp = trustedPeerIp || auditContext.ipAddress || null;
+    // Behind a reverse proxy the socket peer is the PROXY, not the end user — every
+    // internet client presents the same loopback address. Keying the brute-force guard
+    // on it put them all in one bucket, so five wrong passwords from anywhere locked
+    // the operator out of their own dashboard for 15 minutes, renewable indefinitely
+    // by a stranger. The authz pipeline already made this exact call for the IP filter
+    // (`checkRequestIP(request, viaProxy ? null : trustedPeerIp)`); this route simply
+    // never consulted the marker. Not a brute-force relaxation: with no proxy the
+    // unspoofable socket peer still keys the guard, and the module's own docstring
+    // places volumetric defence at the proxy, which is where a forged
+    // `X-Forwarded-For` would have to be stopped anyway.
+    const viaProxy = resolveStampedViaProxy(
+      request.headers.get(VIA_PROXY_HEADER),
+      process.env.OMNIROUTE_PEER_STAMP_TOKEN
+    );
+    const clientIp = viaProxy
+      ? auditContext.ipAddress || null
+      : trustedPeerIp || auditContext.ipAddress || null;
     const oidcDisabledPassword =
       settings.oidcEnabled === true &&
       (settings.oidcDisablePasswordLogin === true ||
