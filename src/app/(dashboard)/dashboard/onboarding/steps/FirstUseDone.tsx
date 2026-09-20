@@ -147,9 +147,15 @@ export function FirstUseDone({
   modelId: string | null;
 }) {
   const t = useTranslations("onboarding");
+  // `clientModelId` is null when no connection was made or no model was picked — the
+  // state a user reaches by skipping the provider step. Claiming the instance is
+  // "configured and ready to proxy AI requests" there contradicts step 5, which has
+  // just told them no provider exists, and sends them off to debug a gateway that
+  // cannot route anything. `noProviderFound` is already translated in every locale.
+  const hasRoutableModel = Boolean(modelId);
   return (
     <div className="space-y-4 text-center">
-      <p className="text-text-muted">{t("doneDesc")}</p>
+      <p className="text-text-muted">{hasRoutableModel ? t("doneDesc") : t("noProviderFound")}</p>
       <ClientConfig apiEndpoint={apiEndpoint} modelId={modelId} />
       <FirstRequest />
       <a
