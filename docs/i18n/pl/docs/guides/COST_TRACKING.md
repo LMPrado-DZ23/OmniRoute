@@ -229,9 +229,10 @@ omniroute usage proxy-logs [--limit 100]
 
 # Budgets
 omniroute usage budget list
-omniroute usage budget get [scope]
-omniroute usage budget set <amount> [--scope global] [--period monthly]
-omniroute usage budget reset [scope]
+omniroute usage budget get <apiKeyId>
+omniroute usage budget set <apiKeyId> [--daily <usd>] [--weekly <usd>] [--monthly <usd>] \
+                                      [--warning-threshold <ratio>] [--reset-interval daily|weekly|monthly]
+omniroute usage budget clear <apiKeyId>   # lifts every limit; recorded spend is kept
 ```
 
 ### `omniroute pricing`
@@ -242,7 +243,6 @@ omniroute pricing get <model>
 omniroute pricing sync [--provider <p>] [--force]   # POST /api/pricing/sync
 omniroute pricing diff [--model <m>]
 omniroute pricing defaults show
-omniroute pricing defaults set [--input <p>] [--output <p>] [--cache-read <p>] [--cache-write <p>]
 ```
 
 > `pricing defaults show` czyta `GET /api/pricing/defaults`. Aby edytować ceny
