@@ -5069,7 +5069,7 @@
       },
       "configure": "Nakonfigurujte poskytovatele"
     },
-    "tierFlowDiagramAlt": "Třívrstvý záložní diagram OmniRoute",
+    "tierFlowDiagramAlt": "Čtyřvrstvý záložní diagram OmniRoute",
     "apiKeyMgmt": "Správa API klíčů",
     "freeProviders": {
       "title": "Nastavit bezplatné poskytovatele",

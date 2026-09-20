@@ -5069,7 +5069,7 @@
       },
       "configure": "Конфигурирайте доставчици"
     },
-    "tierFlowDiagramAlt": "3-степенна резервна диаграма на OmniRoute",
+    "tierFlowDiagramAlt": "4-степенна резервна диаграма на OmniRoute",
     "apiKeyMgmt": "API Key Mgmt",
     "freeProviders": {
       "title": "Настройте безплатни доставчици",

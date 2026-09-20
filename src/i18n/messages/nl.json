@@ -5069,7 +5069,7 @@
       },
       "configure": "Configureer aanbieders"
     },
-    "tierFlowDiagramAlt": "OmniRoute fallback-diagram met 3 niveaus",
+    "tierFlowDiagramAlt": "OmniRoute fallback-diagram met 4 niveaus",
     "apiKeyMgmt": "API-sleutelbeheer",
     "freeProviders": {
       "title": "Stel gratis providers in",

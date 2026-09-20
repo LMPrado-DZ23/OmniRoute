@@ -5069,7 +5069,7 @@
       },
       "configure": "Konfigurasikan penyedia"
     },
-    "tierFlowDiagramAlt": "Diagram cadangan 3 tingkat OmniRoute",
+    "tierFlowDiagramAlt": "Diagram cadangan 4 tingkat OmniRoute",
     "apiKeyMgmt": "Manajemen Kunci API",
     "freeProviders": {
       "title": "Atur penyedia gratis",

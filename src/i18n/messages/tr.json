@@ -5069,7 +5069,7 @@
       },
       "configure": "Sağlayıcıları yapılandırma"
     },
-    "tierFlowDiagramAlt": "OmniRoute 3 katmanlı geri dönüş diyagramı",
+    "tierFlowDiagramAlt": "OmniRoute 4 katmanlı geri dönüş diyagramı",
     "apiKeyMgmt": "API Anahtarı Yönetimi",
     "freeProviders": {
       "title": "Ücretsiz sağlayıcıları ayarlayın",

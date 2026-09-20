@@ -5069,7 +5069,7 @@
       },
       "configure": "Konfigurer udbydere"
     },
-    "tierFlowDiagramAlt": "OmniRoute 3-tiers fallback diagram",
+    "tierFlowDiagramAlt": "OmniRoute 4-tiers fallback diagram",
     "apiKeyMgmt": "API Key Mgmt",
     "freeProviders": {
       "title": "Opsæt gratis udbydere",

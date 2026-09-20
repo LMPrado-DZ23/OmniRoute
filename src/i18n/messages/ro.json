@@ -5069,7 +5069,7 @@
       },
       "configure": "Configurați furnizorii"
     },
-    "tierFlowDiagramAlt": "Diagrama de rezervă pe 3 niveluri OmniRoute",
+    "tierFlowDiagramAlt": "Diagrama de rezervă pe 4 niveluri OmniRoute",
     "apiKeyMgmt": "Gestiunea cheii API",
     "freeProviders": {
       "title": "Configurați furnizori gratuiti",

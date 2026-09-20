@@ -5069,7 +5069,7 @@
       },
       "configure": "Nakonfigurujte poskytovateľov"
     },
-    "tierFlowDiagramAlt": "3-vrstvový záložný diagram OmniRoute",
+    "tierFlowDiagramAlt": "4-vrstvový záložný diagram OmniRoute",
     "apiKeyMgmt": "API kľúč Mgmt",
     "freeProviders": {
       "title": "Nastavte bezplatných poskytovateľov",

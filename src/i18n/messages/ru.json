@@ -5069,7 +5069,7 @@
       },
       "configure": "Настройка поставщиков"
     },
-    "tierFlowDiagramAlt": "Трехуровневая резервная схема OmniRoute",
+    "tierFlowDiagramAlt": "Четырехуровневая резервная схема OmniRoute",
     "apiKeyMgmt": "Управление ключами API",
     "freeProviders": {
       "title": "Настроить бесплатных провайдеров",

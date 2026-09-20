@@ -5069,7 +5069,7 @@
       },
       "configure": "Anbieter konfigurieren"
     },
-    "tierFlowDiagramAlt": "OmniRoute 3-Stufen-Fallback-Diagramm",
+    "tierFlowDiagramAlt": "OmniRoute 4-Stufen-Fallback-Diagramm",
     "apiKeyMgmt": "API-Schlüsselverwaltung",
     "freeProviders": {
       "title": "Kostenlose Anbieter einrichten",

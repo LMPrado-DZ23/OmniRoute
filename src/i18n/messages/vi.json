@@ -5113,7 +5113,7 @@
       },
       "configure": "Cấu hình nhà cung cấp"
     },
-    "tierFlowDiagramAlt": "Sơ đồ dự phòng 3 cấp của OmniRoute",
+    "tierFlowDiagramAlt": "Sơ đồ dự phòng 4 cấp của OmniRoute",
     "apiKeyMgmt": "Quản lý khóa API",
     "freeProviders": {
       "title": "Thiết lập nhà cung cấp miễn phí",

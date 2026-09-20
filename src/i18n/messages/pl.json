@@ -5069,7 +5069,7 @@
       },
       "configure": "Skonfiguruj providers"
     },
-    "tierFlowDiagramAlt": "Schemat fallback 3-poziomowego OmniRoute",
+    "tierFlowDiagramAlt": "Schemat fallback 4-poziomowego OmniRoute",
     "apiKeyMgmt": "Zarządzanie kluczami API",
     "freeProviders": {
       "title": "Skonfiguruj darmowych dostawców",

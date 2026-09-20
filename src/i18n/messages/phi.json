@@ -5069,7 +5069,7 @@
       },
       "configure": "I-configure ang mga provider"
     },
-    "tierFlowDiagramAlt": "OmniRoute 3-tier fallback diagram",
+    "tierFlowDiagramAlt": "OmniRoute 4-tier fallback diagram",
     "apiKeyMgmt": "API Key Mgmt",
     "freeProviders": {
       "title": "I-set up ang mga libreng provider",
