@@ -22,11 +22,11 @@ resultado inesperado **é** o achado principal da auditoria.
 
 ### Vereditos
 
-| Auditor | Lane                     | CRITICAL | HIGH |
-| ------- | ------------------------ | -------- | ---- |
-| A       | Arquitetura e engenharia | 0        | 1    |
-| B       | Segurança e DevSecOps    | 1        | 1    |
-| C       | Produto, QA e UX         | 0        | 1    |
+| Auditor | Lane                     | CRITICAL | HIGH                     |
+| ------- | ------------------------ | -------- | ------------------------ |
+| A       | Arquitetura e engenharia | 0        | 1 (fechado — ver abaixo) |
+| B       | Segurança e DevSecOps    | 1        | 1                        |
+| C       | Produto, QA e UX         | 0        | 1                        |
 
 ### CRITICAL
 
@@ -80,8 +80,60 @@ no pior caso em modo serial. Duas saídas reais, nenhuma alcançável por ediç�
   do runner hospedado;
 - fatiar as suítes lentas em jobs separados, de modo que nenhum precise de mais de uma hora.
 
-**Este HIGH permanece em aberto** e é o único item que separa esta linha do portão CRITICAL 0 / HIGH 0.
-O que mudou é que agora se sabe por quê, e que aumentar o número de novo não resolve.
+**Resolvido em [#87](https://github.com/LMPrado-DZ23/OmniRoute/pull/87) — a segunda saída, a que eu
+tinha escrito como "não alcançável por edição de workflow", era alcançável.** A varredura deixou de
+ser um job: `resolve` (o branch vira **um** SHA exato) → sete jobs `slow-suite` (unit ×4, integration
+×2, vitest, cada um abaixo do teto) → o agregador, que roda os gates estáticos/deriva/full-ci e
+**funde** os relatórios dos shards no veredito. Todo job faz checkout do SHA que `resolve` produziu,
+então o relatório fundido pertence a um commit só.
+
+Os shards **medem e não julgam**: uma suíte vermelha ainda sai 0 para que seu relatório chegue, e o
+agregador roda com `!cancelled()` em vez de `success()`, de modo que um shard **morto** ainda tem seu
+veredito pronunciado. O risco novo dessa forma — um job verde sem ter medido nada — é o que
+`--expect-slow` guarda: ele nomeia **cada id de shard** que a matriz produz, e uma suíte sem relatório
+vira falha HARD dizendo _"it did not run, so it is NOT green"_.
+
+### O primeiro veredito completo desta linha, e o que ele encontrou
+
+Execução [35501782210](https://github.com/LMPrado-DZ23/OmniRoute/actions/runs/35501782210): unit ×4 e
+vitest verdes (7–9 min cada, contra os 60 que matavam o job único); **os dois shards de integration
+vermelhos**. Os dois achados eram reais:
+
+- `tests/integration/api-routes-critical.test.ts` fazia uma requisição HTTPS **ao vivo para
+  `aihorde.net`** em toda execução — `GET /api/v1/models` atualiza o catálogo de imagens da AI Horde
+  sempre que `aihorde` está ativo, e ele está ativo por padrão porque é provedor no-auth e não tem
+  linha de conexão para desligar;
+- `tests/integration/api-keys.test.ts` era **falso positivo da guarda de rede que eu mesmo escrevi**
+  na #56: o teste aponta `CLOUD_URL` para `http://cloud.example` de propósito, e `.example` é
+  reservado por RFC 2606 / 6761 — não resolve em lugar nenhum. A primeira correção que escrevi para
+  isso estava errada e três testes existentes a pegaram: eu isentei nomes reservados de serem
+  **bloqueados**, o que deixava a conexão seguir até um DNS real. Bloquear e contabilizar são duas
+  decisões; hoje o nome reservado continua recusado e só a contagem muda.
+
+Ambos corrigidos em **[#96](https://github.com/LMPrado-DZ23/OmniRoute/pull/96)**. Na segunda varredura
+([35504173140](https://github.com/LMPrado-DZ23/OmniRoute/actions/runs/35504173140)) **os sete shards
+passaram**.
+
+### O que ainda impede um verde completo — e não é fatiável
+
+O agregador das duas varreduras passou em **todos** os gates (typecheck, ESLint 0 erros, DB rules,
+public creds, complexidade, test-masking, dead-code, type coverage, compressão, cobertura OpenAPI,
+workflow lint, CodeQL, docs-sync) e então morreu no `check:pack-artifact`: seis minutos de silêncio e
+`exit 143`, nas duas. Não é teto de tempo — o job tem 55 minutos de orçamento.
+
+`check:pack-artifact` cai num `next build` completo, e **o runner hospedado não comporta esta
+árvore**. O repositório já sabia disso: `build.yml` é manual-only desde a #11946 porque 19 das suas 30
+últimas execuções morreram com _"the runner has received a shutdown signal"_ (VM sem memória) ~8 min
+dentro daquele build, e o cabeçalho do arquivo diz que o bundle é validado "onde um build realmente
+cabe" — o pool self-hosted.
+
+**[#99](https://github.com/LMPrado-DZ23/OmniRoute/pull/99)** conserta o desperdício, não o build: em
+runner hospedado o gate não é mais tentado e passa a ser **registrado como não-medido**, falha HARD
+com motivo e remédio, em vez de levar treze gates verdes e sete suítes verdes junto com o 143.
+
+**O que resta é dependência externa, não trabalho pendente:** um veredito _totalmente_ verde para esta
+linha exige `USE_VPS_RUNNER=true` com aquele runner ligado, e isso é decisão do dono. O melhor
+veredito honesto disponível hoje é "tudo verde, exceto o artefato de pacote, que não foi medido aqui".
 
 **B-H1 — PR de fork executava no runner LAN persistente do mantenedor.**
 `quality.yml:553` selecionava o pool `self-hosted` sem a cláusula de origem própria que `ci.yml:650`
