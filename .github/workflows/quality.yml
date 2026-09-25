@@ -194,6 +194,16 @@ jobs:
           node-version: ${{ env.CI_NODE_VERSION }}
           cache: npm
       - uses: ./.github/actions/npm-ci-retry
+      # This guard used to run ONLY as `prebuild`, i.e. inside a full `next build` — which no PR
+      # job ever executes. So when the runner's npm began enforcing `allowScripts` between
+      # 2026-09-19 and 2026-09-20, dropped the optional @huggingface/transformers (its
+      # dependency onnxruntime-node carries the install script) and still exited 0, nothing
+      # reported it until the v3.8.55 tag's installer build failed. The check itself is a
+      # cheap Node script over the installed tree: it belongs right after the install, where a
+      # lockfile-only PR (which the classifier counts as code) would have tripped it five days
+      # earlier instead of a release.
+      - name: Native dependencies resolve (check:native-deps)
+        run: npm run check:native-deps
       - name: Restore ESLint file cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
