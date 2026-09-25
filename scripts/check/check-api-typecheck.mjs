@@ -15,7 +15,7 @@
 //   node scripts/check/check-api-typecheck.mjs
 //   node scripts/check/check-api-typecheck.mjs --update
 
-import { execFileSync } from "node:child_process";
+import { runBuildTool } from "../build/buildToolRunner.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -30,11 +30,13 @@ const UPDATE = process.argv.includes("--update");
 
 function runTsc() {
   try {
-    return execFileSync(
-      process.platform === "win32" ? "npx.cmd" : "npx",
-      ["tsc", "--pretty", "false", "--noEmit", "-p", TSCONFIG],
-      { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, cwd: ROOT }
-    );
+    // Through the shared runner, never `npx.cmd` (EINVAL on Node >= 20 / Windows, see
+    // scripts/build/buildToolRunner.mjs).
+    return runBuildTool("typescript", "tsc", ["--pretty", "false", "--noEmit", "-p", TSCONFIG], {
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+      cwd: ROOT,
+    });
   } catch (err) {
     if (err.stdout) return String(err.stdout);
     throw err;
