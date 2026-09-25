@@ -598,11 +598,17 @@ export function mergeSlowReports(reports, expected) {
  *
  * A gate that CANNOT run in this environment is not a defect and is not drift — it is
  * unmeasured, and the one thing it must never be is silently absent. `check:pack-artifact`
- * is the live case: it falls back to a full `next build`, which the 16 GB hosted runner
- * cannot fit (build.yml is manual-only since #11946 for exactly that — 19 of 30 runs died
- * with "the runner has received a shutdown signal"). Both sweeps on 2026-09-20 died there
- * at exit 143, six minutes in, and threw away thirteen green gates and seven green suites
- * with them.
+ * is the live case: it falls back to a full `next build` when `dist/` is absent, and both
+ * sweeps on 2026-09-20 died there at exit 143, six minutes in, throwing away thirteen green
+ * gates and seven green suites with them.
+ *
+ * CORRECTION: an earlier version of this comment said a hosted runner "cannot fit" that
+ * build. That was wrong, and it was stated without measuring. `build:release` completed in
+ * 7m17s on a hosted `ubuntu-latest` runner once 10 GB of swap was provisioned (run
+ * 36199521486), and the electron workflow's Next build completes there too. The cause of the
+ * 143 is still a hypothesis — missing swap — which the workflow now provisions and the next
+ * sweep tests. This flag is for a gate that genuinely cannot run HERE; whether that is true
+ * of the artifact gate is a question the sweep answers, not one this comment should assert.
  *
  * Recorded as HARD on purpose: the sweep is genuinely NOT release-green when a required
  * gate did not run, and saying so in one line — with the reason and the remedy — is the

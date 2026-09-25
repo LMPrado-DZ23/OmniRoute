@@ -844,9 +844,11 @@ test("absent, it records nothing at all", () => {
   assert.deepEqual(unmeasured(["--json", "--full-ci"]), []);
 });
 
-test("the sweep states pack-artifact as unmeasured on a hosted runner", async () => {
-  // The workflow half of the same contract: if the hosted branch ever stops saying so,
-  // the sweep would silently drop the artifact gate and still print a verdict.
+test("the sweep runs pack-artifact when swap is provisioned, else states it unmeasured", async () => {
+  // The workflow half of the same contract. Two ways to get this wrong, both silent: the
+  // fallback branch stops naming the gate (the sweep drops it and still prints a verdict),
+  // or the run condition stops being tied to a runner that can actually build (it dies at
+  // exit 143 and discards every gate that already passed, as both sweeps of 2026-09-20 did).
   const fs = await import("node:fs");
   const wf = fs.readFileSync(
     new URL("../../.github/workflows/nightly-release-green.yml", import.meta.url),
@@ -856,7 +858,71 @@ test("the sweep states pack-artifact as unmeasured on a hosted runner", async ()
   assert.match(wf, /--unmeasured=pack-boot:/);
   assert.match(
     wf,
-    /if \[ "\$\{USE_VPS_RUNNER:-\}" = "true" \]/,
-    "the artifact gate must run when a runner that fits the build is selected"
+    /if \[ "\$\{USE_VPS_RUNNER:-\}" = "true" \] \|\| \[ "\$\{SWAP_PROVISIONED:-\}" = "true" \]/,
+    "the artifact gate must run when a self-hosted runner is selected OR swap was provisioned"
+  );
+});
+
+test("the swap step marks itself provisioned only when swapon actually succeeded", async () => {
+  // `provisioned` is what turns the artifact gate on. If it were set before (or regardless of)
+  // swapon, a runner that could not provide swap would run the build anyway and be killed.
+  const fs = await import("node:fs");
+  const yaml = await import("yaml");
+  const wf = yaml.parse(
+    fs.readFileSync(
+      new URL("../../.github/workflows/nightly-release-green.yml", import.meta.url),
+      "utf8"
+    )
+  ) as {
+    jobs: Record<
+      string,
+      {
+        steps?: {
+          id?: string;
+          run?: string;
+          if?: string;
+          env?: Record<string, string>;
+          "continue-on-error"?: boolean;
+        }[];
+      }
+    >;
+  };
+  const steps = wf.jobs["release-green"]?.steps ?? [];
+  const swap = steps.find((s) => s.id === "swap");
+  assert.ok(swap?.run, "release-green must have a step with id `swap`");
+  const run = swap.run as string;
+
+  const swapon = run.indexOf("swapon /mnt/swapfile");
+  const provisioned = run.indexOf("provisioned=true");
+  assert.ok(swapon >= 0 && provisioned >= 0);
+  assert.ok(provisioned > swapon, "provisioned=true must come AFTER swapon");
+  assert.match(run, /if sudo swapon \/mnt\/swapfile; then[\s\S]*?echo "provisioned=true"/);
+  assert.equal(swap["continue-on-error"], true, "a runner without swap must not fail the sweep");
+  assert.match(String(swap.if), /USE_VPS_RUNNER != 'true'/, "self-hosted runners do not need it");
+
+  const validate = steps.find((s) => s.id === "validate");
+  assert.equal(
+    validate?.env?.SWAP_PROVISIONED,
+    "${{ steps.swap.outputs.provisioned }}",
+    "the validation step must read what the swap step actually reported"
+  );
+  const validateIdx = steps.findIndex((s) => s.id === "validate");
+  const swapIdx = steps.findIndex((s) => s.id === "swap");
+  assert.ok(swapIdx >= 0 && swapIdx < validateIdx, "swap must be provisioned BEFORE the gates run");
+});
+
+test("the workflow no longer asserts a hosted runner cannot build this tree", async () => {
+  // I wrote that, it was wrong, and it was never measured. The claim must not come back as
+  // a fact — it may be RETRACTED in a comment, but not asserted in a reason string that ends up
+  // in a release verdict.
+  const fs = await import("node:fs");
+  const wf = fs.readFileSync(
+    new URL("../../.github/workflows/nightly-release-green.yml", import.meta.url),
+    "utf8"
+  );
+  assert.doesNotMatch(
+    wf,
+    /--unmeasured=pack-artifact:a full next build does not fit the hosted runner/,
+    "the unmeasured reason must not assert an unmeasured impossibility"
   );
 });
