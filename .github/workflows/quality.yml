@@ -194,16 +194,6 @@ jobs:
           node-version: ${{ env.CI_NODE_VERSION }}
           cache: npm
       - uses: ./.github/actions/npm-ci-retry
-      # This guard used to run ONLY as `prebuild`, i.e. inside a full `next build` — which no PR
-      # job ever executes. So when the runner's npm began enforcing `allowScripts` between
-      # 2026-09-19 and 2026-09-20, dropped the optional @huggingface/transformers (its
-      # dependency onnxruntime-node carries the install script) and still exited 0, nothing
-      # reported it until the v3.8.55 tag's installer build failed. The check itself is a
-      # cheap Node script over the installed tree: it belongs right after the install, where a
-      # lockfile-only PR (which the classifier counts as code) would have tripped it five days
-      # earlier instead of a release.
-      - name: Native dependencies resolve (check:native-deps)
-        run: npm run check:native-deps
       - name: Restore ESLint file cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
@@ -294,6 +284,15 @@ jobs:
         run: |
           set -uo pipefail
           gates=(
+            # native-deps runs FIRST, and as part of this aggregated loop rather than as its own
+            # step: it used to run only as `prebuild`, inside a full `next build` that no PR job
+            # executes. So when the runner's npm began enforcing `allowScripts` between
+            # 2026-09-19 and 2026-09-20, dropped the optional @huggingface/transformers (its
+            # dependency onnxruntime-node carries the install script) and still exited 0, nothing
+            # reported it until the v3.8.55 tag's installer build failed. It is a cheap Node check
+            # over the installed tree. A standalone step would fail-fast into every later gate —
+            # the #8542 mechanism tests/unit/repro-8542.test.ts guards — so it lives here.
+            native-deps
             provider-consistency provider-asset-provenance fetch-targets deps file-size error-helper
             migration-numbering public-creds db-rules known-symbols
             route-guard-membership api-governance test-discovery test-runner-api
