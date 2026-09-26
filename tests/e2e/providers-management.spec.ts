@@ -267,14 +267,19 @@ test.describe("Providers management", () => {
     await expect(page.getByText("Primary OpenAI")).toBeVisible();
     await expect.poll(async () => (await readProviderMockState(page)).connections.length).toBe(1);
 
-    // After save, the UI opens a model-import modal (setShowImportModal). The sync-models
-    // endpoint is mocked to return instantly (0 models), so the modal reaches "done" phase
-    // and shows a Close button. Dismiss it before interacting with the connection list.
-    const importDialog = page.getByRole("dialog");
-    // The Modal renders two "Close" elements (header X + footer button) — use .first()
-    await expect(importDialog.getByRole("button", { name: "Close" }).first()).toBeVisible({ timeout: 15_000 });
-    await importDialog.getByRole("button", { name: "Close" }).first().click();
-    await expect(importDialog).not.toBeVisible();
+    // The model-import modal used to open by itself after a save. Auto-fetch is opt-in now (the page
+    // shows "Auto-fetch upstream models" switched off, #11805/#12098) and the CI screenshot shows the
+    // connection list straight after the save, so waiting 15 s for a Close button that never comes
+    // failed the test. Dismiss the modal if it does appear; do not require it.
+    const importClose = page.getByRole("dialog").getByRole("button", { name: "Close" }).first();
+    const importShown = await importClose
+      .waitFor({ state: "visible", timeout: 3_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (importShown) {
+      await importClose.click();
+      await expect(page.getByRole("dialog")).not.toBeVisible();
+    }
 
     await page.getByTitle(/^edit$/i).click();
     const editDialog = page.getByRole("dialog");
