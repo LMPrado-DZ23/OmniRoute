@@ -182,9 +182,13 @@ describe("useProviderModels upstream auto-fetch", () => {
     const mounted = await renderProviderModels();
     await flushQueuedSync();
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/providers/connection-active/sync-models?mode=sync",
-      { method: "POST" }
+    // The sync is queued behind the connections fetch; on a loaded runner one flush was not always
+    // enough (it failed here in some runs and passed in others), so wait for the call.
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/providers/connection-active/sync-models?mode=sync",
+        { method: "POST" }
+      )
     );
     mounted.unmount();
 
