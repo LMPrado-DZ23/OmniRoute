@@ -15,10 +15,11 @@ const LANGUAGE_HINTS: Record<string, RegExp[]> = {
 /**
  * Score each language by the NUMBER of native-keyword hits and pick the highest
  * (English-ambiguous words are excluded from the hint lists, so a lone shared word
- * never misclassifies English). Highest score wins; ties keep the earlier language;
- * zero hits → English. (B-LANG-DETECTOR)
+ * never misclassifies English). Highest score wins; ties keep the earlier language.
+ * Returns null when nothing matched: "no evidence" is not the same as "English", and a
+ * caller that has a configured default must be able to tell the two apart. (B-LANG-DETECTOR)
  */
-export function detectCompressionLanguage(text: string): string {
+export function detectCompressionLanguageOrNull(text: string): string | null {
   // CJK disambiguation: Han ideographs (U+4E00–U+9FFF) are shared by Chinese and Japanese, but
   // kana (U+3040–U+30FF) is Japanese-exclusive. Text with Han and no kana is Chinese (zh); text
   // with kana falls through to the scorer below, where the `ja` kana hint catches it. Keeping zh
@@ -27,7 +28,7 @@ export function detectCompressionLanguage(text: string): string {
     return "zh";
   }
 
-  let best = "en";
+  let best: string | null = null;
   let bestScore = 0;
   for (const [language, patterns] of Object.entries(LANGUAGE_HINTS)) {
     let score = 0;
@@ -44,6 +45,11 @@ export function detectCompressionLanguage(text: string): string {
     }
   }
   return best;
+}
+
+/** Zero hits → English. Input engines have no configured language to fall back to. */
+export function detectCompressionLanguage(text: string): string {
+  return detectCompressionLanguageOrNull(text) ?? "en";
 }
 
 export function listSupportedCompressionLanguages(): string[] {

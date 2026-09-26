@@ -911,6 +911,45 @@ test("the swap step marks itself provisioned only when swapon actually succeeded
   assert.ok(swapIdx >= 0 && swapIdx < validateIdx, "swap must be provisioned BEFORE the gates run");
 });
 
+test("the sweep stamps its artifact and names the branch under test for the provenance guard", async () => {
+  // The first sweep that had swap finished its build (no more exit 143) and then failed
+  // "Build provenance check failed": check:pack-artifact's fallback runs `build:cli`, which never
+  // writes dist/BUILD_SHA, and the guard defaults to ancestry against origin/main, which a
+  // release/v* line is not an ancestor of. Both are the workflow's to provide, as ci.yml does.
+  const fs = await import("node:fs");
+  const yaml = await import("yaml");
+  const wf = yaml.parse(
+    fs.readFileSync(
+      new URL("../../.github/workflows/nightly-release-green.yml", import.meta.url),
+      "utf8"
+    )
+  ) as {
+    jobs: Record<
+      string,
+      { steps?: { id?: string; name?: string; run?: string; if?: string; env?: Record<string, string> }[] }
+    >;
+  };
+  const steps = wf.jobs["release-green"]?.steps ?? [];
+  const build = steps.find((s) => s.name === "Build the stamped release artifact");
+  assert.ok(build, "release-green must build a stamped artifact before the artifact gate");
+  assert.equal(build.run, "npm run build:release", "build:release is what writes dist/BUILD_SHA");
+  assert.match(String(build.if), /steps\.swap\.outputs\.provisioned == 'true'/);
+  assert.match(String(build.if), /USE_VPS_RUNNER == 'true'/);
+  assert.match(String(build.if), /github\.event_name != 'push'/, "--quick never runs the gate");
+
+  const buildIdx = steps.findIndex((s) => s.name === "Build the stamped release artifact");
+  const swapIdx = steps.findIndex((s) => s.id === "swap");
+  const validateIdx = steps.findIndex((s) => s.id === "validate");
+  assert.ok(swapIdx < buildIdx && buildIdx < validateIdx, "swap, then build, then the gates");
+
+  const validate = steps.find((s) => s.id === "validate");
+  assert.equal(
+    validate?.env?.OMNIROUTE_RELEASE_REF,
+    "origin/${{ steps.branch.outputs.target }}",
+    "the guard must check ancestry against the branch under test, not origin/main"
+  );
+});
+
 test("the workflow no longer asserts a hosted runner cannot build this tree", async () => {
   // I wrote that, it was wrong, and it was never measured. The claim must not come back as
   // a fact — it may be RETRACTED in a comment, but not asserted in a reason string that ends up
