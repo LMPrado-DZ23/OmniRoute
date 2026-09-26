@@ -1,5 +1,5 @@
 import { SHARED_BOUNDARIES, shouldBypassCavemanOutputMode } from "../outputMode.ts";
-import { detectCompressionLanguage } from "../languageDetector.ts";
+import { detectCompressionLanguageOrNull } from "../languageDetector.ts";
 import { OUTPUT_STYLE_IDS, outputStyleMeta } from "./catalog.ts";
 
 export type OutputStyleLevel = "lite" | "full" | "ultra";
@@ -61,7 +61,9 @@ function lastUserText(body: ChatRequestBody): string {
 /**
  * Resolve which language the output-style instructions inject in.
  * Disabled → en. autoDetect → language of the latest user message (the input
- * engines already use the same detector); otherwise the configured default.
+ * engines already use the same detector) WHEN the detector found evidence; a message
+ * with no recognised keywords says nothing about its language, so it keeps the
+ * configured default rather than being read as English and overriding a pinned pack.
  */
 export function resolveOutputStyleLanguage(
   languageConfig: OutputStyleLanguageConfig | undefined,
@@ -70,7 +72,8 @@ export function resolveOutputStyleLanguage(
   if (languageConfig?.enabled !== true) return "en";
   if (languageConfig.autoDetect === true) {
     const text = lastUserText(body);
-    if (text) return detectCompressionLanguage(text);
+    const detected = text ? detectCompressionLanguageOrNull(text) : null;
+    if (detected) return detected;
   }
   return languageConfig.defaultLanguage || "en";
 }

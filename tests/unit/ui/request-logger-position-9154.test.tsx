@@ -161,7 +161,7 @@ function assertRetainedView(scrollContainer: HTMLDivElement) {
   const search = container.querySelector<HTMLInputElement>(
     'input[placeholder="searchPlaceholder"]'
   );
-  const sort = container.querySelector<HTMLSelectElement>('select[title="sortLogs"]');
+  const sort = container.querySelector<HTMLSelectElement>('select#request-logger-sort');
   const successFilter = findButton("statusFilters.success");
   const rows = container.querySelectorAll("tbody tr");
 
@@ -188,7 +188,7 @@ async function renderExpandedView() {
     'input[placeholder="searchPlaceholder"]'
   );
   const successFilter = findButton("statusFilters.success");
-  const sort = container.querySelector<HTMLSelectElement>('select[title="sortLogs"]');
+  const sort = container.querySelector<HTMLSelectElement>('select#request-logger-sort');
   expect(search).not.toBeNull();
   expect(successFilter).not.toBeUndefined();
   expect(sort).not.toBeNull();

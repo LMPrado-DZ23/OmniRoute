@@ -7,6 +7,12 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { unlinkSync, existsSync } from "node:fs";
+import { liveSkipReason } from "../helpers/liveOptIn.ts";
+
+// These suites fetch models.dev for real, so they are live tests: collected with the local ones by
+// `npm run test:integration`, they must not run unless RUN_LIVE_TESTS=1 opts in. Without the opt-in
+// the network guard (rightly) fails the file for reaching models.dev:443.
+const LIVE_SKIP = liveSkipReason({ requiredEnv: [] });
 
 // Point DB at a temp file
 const TEST_DB = "/tmp/omniroute-test-modelsdev.sqlite";
@@ -21,7 +27,7 @@ after(() => {
   if (existsSync(TEST_DB)) unlinkSync(TEST_DB);
 });
 
-describe("modelsDevSync — integration: live fetch → DB → retrieve", () => {
+describe("modelsDevSync — integration: live fetch → DB → retrieve", { skip: LIVE_SKIP }, () => {
   it("fetches, saves pricing, and retrieves from DB", async () => {
     const {
       syncModelsDev,
@@ -131,7 +137,7 @@ describe("modelsDevSync — integration: live fetch → DB → retrieve", () => 
   });
 });
 
-describe("modelsDevSync — resolution order: user > models.dev > LiteLLM > default", () => {
+describe("modelsDevSync — resolution order: user > models.dev > LiteLLM > default", { skip: LIVE_SKIP }, () => {
   it("returns models.dev pricing when no user override exists", async () => {
     const { syncModelsDev, getModelsDevPricing, clearModelsDevPricing } =
       await import("../../src/lib/modelsDevSync.ts");

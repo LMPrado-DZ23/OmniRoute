@@ -233,10 +233,16 @@ test.describe("Onboarding first use", () => {
       };
       expect(settings.setupComplete, "not re-forced on the next read").toBe(false);
 
-      await page.goto("/dashboard/onboarding", { waitUntil: "domcontentloaded" });
-      await expect(page.getByRole("button", { name: "Get Started" })).toBeVisible({
-        timeout: 120_000,
-      });
+      // The first navigation can be interrupted by a redirect to /home (run 36234258639: "Navigation to
+      // /dashboard/onboarding is interrupted by another navigation to /home") when the settings the
+      // redirect reads have not caught up with the PATCH yet; a second attempt lands on the wizard.
+      // Retry the navigation together with its check instead of failing on the first race.
+      await expect(async () => {
+        await page.goto("/dashboard/onboarding", { waitUntil: "domcontentloaded" }).catch(() => {});
+        await expect(page.getByRole("button", { name: "Get Started" })).toBeVisible({
+          timeout: 10_000,
+        });
+      }).toPass({ timeout: 120_000 });
       await page.getByRole("button", { name: "Skip wizard entirely" }).click();
       await page.waitForURL(/\/dashboard\/?$/);
       const after = (await (await page.request.get("/api/settings")).json()) as {

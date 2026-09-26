@@ -47,6 +47,15 @@ if (!process.env.DATA_DIR) {
 // installCert/uninstallCert/installTproxyCa/uninstallTproxyCa no-op under this.
 process.env.OMNIROUTE_SKIP_SYSTEM_TRUST = "1";
 
+// Egress-echo guard: a chat dispatch warms the egress IP (chatHelpers -> proxyEgress) by asking
+// api64.ipify.org / api4.ipify.org what address the upstream would see. In the suite that is a
+// live request to a third party from every combo/pipeline test — 22 integration files failed the
+// network guard on it in the release-green sweep. OMNIROUTE_PROXY_ECHO_URL is the documented
+// per-deployment override and pins exactly one target; point it at a closed loopback port so the
+// probe is refused immediately and never leaves the machine. Tests of the echo selection itself pass
+// an explicit env to resolveEgressEchoUrls, so they are unaffected.
+process.env.OMNIROUTE_PROXY_ECHO_URL ||= "http://127.0.0.1:9/?format=json";
+
 // DNS-write guard: the suite must NEVER mutate /etc/hosts. Tests that exercise
 // the real MITM path call addDNSEntries(); this env var makes it a no-op.
 process.env.OMNIROUTE_SKIP_DNS_WRITE = "1";

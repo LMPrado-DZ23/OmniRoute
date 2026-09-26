@@ -254,11 +254,55 @@ jobs:
 
       - uses: ./.github/actions/npm-ci-retry
 
+      # A hosted runner needs swap before a full `next build`. --max-old-space-size only bounds
+      # V8's JS heap, never Turbopack's native (Rust) allocation (#6409), and swap is what
+      # absorbs that peak. build.yml provisions exactly this, and with it `build:release` (Next
+      # build + CLI bundle + SHA) completed in 7m17s on a hosted ubuntu-latest runner
+      # (run 36199521486, dispatched on v3.8.55) — while this job, which provisioned nothing,
+      # died at exit 143 about six minutes into `check:pack-artifact` in both sweeps of
+      # 2026-09-20. It is a hypothesis that the missing swap is the difference, and the next
+      # sweep is what tests it. `provisioned` is set ONLY if swapon succeeded: a runner that
+      # cannot provide swap falls back to recording the artifact gate as unmeasured instead of
+      # being killed mid-gate and discarding every gate that already passed.
+      - name: Expand virtual memory (10 GB swap)
+        id: swap
+        if: ${{ vars.USE_VPS_RUNNER != 'true' }}
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          sudo swapoff -a || true
+          sudo rm -f /mnt/swapfile /swapfile
+          sudo fallocate -l 10G /mnt/swapfile || sudo dd if=/dev/zero of=/mnt/swapfile bs=1M count=10240
+          sudo chmod 600 /mnt/swapfile
+          sudo mkswap /mnt/swapfile
+          if sudo swapon /mnt/swapfile; then
+            echo "provisioned=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::swapon failed — the artifact gate will be recorded as unmeasured"
+          fi
+          free -h
+
+      # The first sweep that had swap (run 36200666574) no longer died at exit 143 — the build
+      # finished in ~8.5 minutes — and then failed `Build provenance check failed` instead. That
+      # is a defect in this workflow, not in the release line: check:pack-artifact's own fallback
+      # runs `build:cli`, which never writes dist/BUILD_SHA (only `build:release` does), and the
+      # guard (#10427) then has no commit to trace. Build the stamped artifact the way
+      # npm-publish and ci.yml do, so the gate finds a complete dist/ and does not rebuild. HEAD
+      # is the resolved target SHA (checked out above), which is on origin/<target>.
+      - name: Build the stamped release artifact
+        if: ${{ github.event_name != 'push' && (vars.USE_VPS_RUNNER == 'true' || steps.swap.outputs.provisioned == 'true') }}
+        run: npm run build:release
+
       - name: Release-green validation (full)
         id: validate
         env:
           EVENT_NAME: ${{ github.event_name }}
           USE_VPS_RUNNER: ${{ vars.USE_VPS_RUNNER }}
+          SWAP_PROVISIONED: ${{ steps.swap.outputs.provisioned }}
+          # The provenance guard defaults to origin/main. This sweep validates a release/v* line
+          # that is not an ancestor of main, so name the branch under test explicitly (the same
+          # thing ci.yml does for pull requests).
+          OMNIROUTE_RELEASE_REF: origin/${{ steps.branch.outputs.target }}
         run: |
           set +e
           # --hermetic: scrub live-test trigger vars (self-hosted runner may carry
@@ -276,19 +320,21 @@ jobs:
             # static + drift + full-ci gate, builds and boots the package artifact, and
             # merges their reports. --expect-slow names the suites that MUST be present:
             # a shard that produced no report is a HARD failure here, never silence.
-            # check:pack-artifact falls back to a full `next build`, which the hosted
-            # runner cannot fit — build.yml has been manual-only since #11946 for exactly
-            # that reason (19 of 30 runs died with "the runner has received a shutdown
-            # signal", VM out of memory). Both sweeps on 2026-09-20 died there at exit
-            # 143 six minutes in, taking thirteen green gates and seven green suites with
-            # them. On a hosted runner the artifact gate is therefore NOT run — and is
-            # recorded as unmeasured, which is a HARD failure, because a sweep missing a
-            # required gate is not release-green and must not read as if it were.
-            if [ "${USE_VPS_RUNNER:-}" = "true" ]; then
+            # check:pack-artifact falls back to a full `next build` when dist/ is absent. Both
+            # sweeps on 2026-09-20 died at exit 143 about six minutes into it, taking thirteen
+            # green gates and seven green suites with them. That is NOT evidence that a hosted
+            # runner cannot build this tree — I first wrote that it could not, and it was wrong:
+            # electron-release.yml's Next build completes on ubuntu-latest, and `build:release`
+            # completed in 7m17s there once swap was provisioned (see the swap step above).
+            # So the gate runs whenever swap was provisioned (or a self-hosted runner is
+            # selected). Only if neither holds is it recorded as unmeasured, which is a HARD
+            # failure: a sweep missing a required gate is not release-green and must not read
+            # as if it were.
+            if [ "${USE_VPS_RUNNER:-}" = "true" ] || [ "${SWAP_PROVISIONED:-}" = "true" ]; then
               MODE="--with-build --full-ci --slow-gates=pack-artifact"
             else
               MODE="--full-ci --slow-gates=none"
-              MODE="$MODE --unmeasured=pack-artifact:a full next build does not fit the hosted runner (build.yml is manual-only since #11946); set USE_VPS_RUNNER=true for a release-window verdict"
+              MODE="$MODE --unmeasured=pack-artifact:no swap could be provisioned on this runner, and a full Next build without it was killed at exit 143 about six minutes in on both sweeps of 2026-09-20; a self-hosted runner (USE_VPS_RUNNER=true) also avoids it"
               MODE="$MODE --unmeasured=pack-boot:skipped with pack-artifact — the boot smoke needs the tarball it builds"
             fi
             # EVERY shard id from the slow-suite matrix, not just the suite names: with

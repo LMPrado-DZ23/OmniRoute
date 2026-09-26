@@ -22,10 +22,13 @@ test.describe("API Health Checks", () => {
     } else {
       expect([401, 403, 307]).toContain(res.status());
       if (res.status() === 401) {
-        // Positive anchor: it must be the catalog's auth gate answering, not some
-        // unrelated 401 from a misrouted request.
-        const body = (await res.json()) as { error?: { type?: string } };
-        expect(body.error?.type).toBe("invalid_api_key");
+        // Positive anchor: it must be an auth gate answering, not some unrelated 401 from a
+        // misrouted request. Either the catalog's own gate (`type: invalid_api_key`) or the client-API
+        // authz policy in front of it (`code: AUTH_002`): since REQUIRE_API_KEY=false stopped meaning
+        // "any caller", an anonymous /v1 request whose peer cannot be proven local — this harness
+        // runs plain `next dev`, which stamps no peer — is refused by the policy first.
+        const body = (await res.json()) as { error?: { type?: string; code?: string } };
+        expect(String(body.error?.type ?? body.error?.code)).toMatch(/^(invalid_api_key|AUTH_002)$/);
       }
     }
   });

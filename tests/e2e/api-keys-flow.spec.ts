@@ -214,10 +214,13 @@ test.describe("API keys flow", () => {
     // shown once in the created dialog above.
     await expect(keyRow.getByRole("button", { name: /copy/i })).toHaveCount(0);
 
-    page.once("dialog", async (dialog) => {
-      await dialog.accept();
-    });
+    // Deleting asks for confirmation in the shared ConfirmModal (U5, d4d8918ad) rather than the
+    // browser's native confirm(), so a page.once("dialog") handler never fires and the DELETE was
+    // never sent.
     await keyRow.locator("button[title]").last().click({ force: true });
+    const confirmDialog = page.getByRole("dialog").filter({ hasText: /delete this api key/i });
+    await expect(confirmDialog).toBeVisible({ timeout: 10_000 });
+    await confirmDialog.getByRole("button", { name: /^(delete|confirm)$/i }).click();
 
     await expect.poll(() => state.deleteCalls).toBe(1);
     await expect(page.getByText("Team Key")).toHaveCount(0);
@@ -1033,6 +1036,10 @@ test.describe("API keys flow", () => {
     expect(denyAllPatch.modelAccessMode).toBe("restricted");
     expect(denyAllPatch.allowedModels).toEqual([]);
 
+    // Let the dialog finish closing before clicking again, as the first reopen above does. The forced
+    // click landed while it was still on screen, was swallowed by it, and no dialog ever reopened
+    // (the CI screenshot shows the row already at "0 selected" with the button merely hovered).
+    await expect(reopened).not.toBeVisible({ timeout: UI_STABILITY_TIMEOUT_MS });
     await keyRow.locator('button[title="Edit permissions"]').click({ force: true });
     const denyAllReopened = page.getByRole("dialog", {
       name: /permissions: provider scope key/i,

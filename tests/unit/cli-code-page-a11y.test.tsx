@@ -67,7 +67,7 @@ test("the cli-code page reports zero axe violations", async () => {
       nodes: violation.nodes.map((node) => node.target.join(" ")),
     }))
   ).toEqual([]);
-});
+}, 30_000); // axe over the whole page exceeds the 5 s default on a hosted runner
 
 test("every filter select has an accessible name", async () => {
   root = createRoot(container);

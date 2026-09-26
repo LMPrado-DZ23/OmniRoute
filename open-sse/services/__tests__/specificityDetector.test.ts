@@ -230,9 +230,16 @@ describe("SpecificityDetector", () => {
         content:
           "Write a function that implements merge sort with O(n log n) complexity. Step 1: divide array. Therefore, use recursion.",
       });
-      const t0 = performance.now();
+      // One timed call on a shared CI runner measures the scheduler as much as the code (11.7 ms was
+      // seen against a 5 ms bound). Warm up once and take the best of five: a real regression makes
+      // every run slow, a noisy neighbour only some.
       analyzeSpecificity({ messages: msgs });
-      const elapsed = performance.now() - t0;
+      const runs = Array.from({ length: 5 }, () => {
+        const t0 = performance.now();
+        analyzeSpecificity({ messages: msgs });
+        return performance.now() - t0;
+      });
+      const elapsed = Math.min(...runs);
       expect(elapsed, `Expected < 5ms, got ${elapsed.toFixed(2)}ms`).toBeLessThan(5);
     });
   });

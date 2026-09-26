@@ -176,6 +176,23 @@ test("resolveOutputStyleLanguage: detects the last user message language when au
   assert.equal(resolveOutputStyleLanguage({ enabled: true, autoDetect: true, defaultLanguage: "en" }, ru), "ru");
 });
 
+test("resolveOutputStyleLanguage: text with no recognised keywords keeps the pinned default", () => {
+  // "Resuma esta implementacao." carries no hint word, so the detector has no evidence. That is
+  // not evidence of English: reading it as "en" overrode a combo that pinned pt-BR and shipped the
+  // English instruction to a Portuguese user (the chatCore integration reds in the sweep).
+  const noEvidence = { messages: [{ role: "user", content: "Resuma esta implementacao." }] };
+  assert.equal(
+    resolveOutputStyleLanguage({ enabled: true, autoDetect: true, defaultLanguage: "pt-BR" }, noEvidence),
+    "pt-BR"
+  );
+  // Positive evidence still wins over the default.
+  const de = { messages: [{ role: "user", content: "Bitte behebe den Fehler." }] };
+  assert.equal(
+    resolveOutputStyleLanguage({ enabled: true, autoDetect: true, defaultLanguage: "pt-BR" }, de),
+    "de"
+  );
+});
+
 test("resolveOutputStyleLanguage: falls back to defaultLanguage when there is no user text", () => {
   assert.equal(
     resolveOutputStyleLanguage({ enabled: true, autoDetect: true, defaultLanguage: "ja" }, { messages: [] }),

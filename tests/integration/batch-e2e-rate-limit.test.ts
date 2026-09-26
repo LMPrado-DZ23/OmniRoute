@@ -7,8 +7,11 @@ import http from "node:http";
 import net from "node:net";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { createLocalPeerStamp } from "../helpers/localPeerStamp.ts";
 
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-batch-e2e-rl-"));
+// Anonymous /v1 needs a provable local peer; see tests/helpers/localPeerStamp.ts.
+const peer = createLocalPeerStamp();
 const REPO_ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const RELAY_PORT = await getFreePort();
 const SERVER_PORT = await getFreePort();
@@ -175,6 +178,7 @@ function createServerProcess() {
       API_PORT: String(SERVER_PORT),
       HOST: "127.0.0.1",
       REQUIRE_API_KEY: "false",
+      ...peer.env,
       API_KEY_SECRET: "batch-e2e-rl-secret",
       DISABLE_SQLITE_AUTO_BACKUP: "true",
       INITIAL_PASSWORD: "",
@@ -230,7 +234,7 @@ async function waitForServer(baseUrl: string, proc: ReturnType<typeof createServ
     }
     try {
       for (const readinessPath of ["/api/health/ping", "/api/monitoring/health"]) {
-        const resp = await fetch(`${baseUrl}${readinessPath}`, {
+        const resp = await peer.fetch(`${baseUrl}${readinessPath}`, {
           signal: AbortSignal.timeout(probeTimeoutMs),
         });
         if (resp.ok) return;
@@ -280,6 +284,10 @@ async function removeDirWithRetry(dir: string) {
 /* ---------- Test ---------- */
 const relay = createFakeEmbeddingRelay();
 let app: ReturnType<typeof createServerProcess>;
+// The batch processor calls this server's own /v1 endpoint from inside it, with the API key stored on
+// the batch. `next dev` stamps no peer, so an anonymous internal call is refused (AUTH_002) and the
+// items never reach the relay — no rate-limit headers, one "no headers" throttle log instead of two.
+let batchApiKey = "";
 const RELAY_BASE = `http://127.0.0.1:${RELAY_PORT}`;
 
 test.before(async () => {
@@ -289,7 +297,7 @@ test.before(async () => {
   await waitForServer(app.baseUrl, app);
 
   // Seed a provider_node via the API (don't open DB in this process)
-  const nodeResp = await fetch(`${app.baseUrl}/api/provider-nodes`, {
+  const nodeResp = await peer.fetch(`${app.baseUrl}/api/provider-nodes`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -307,6 +315,15 @@ test.before(async () => {
       `Failed to create provider node: ${nodeResp.status} ${JSON.stringify(nodeBody)}`
     );
   }
+
+  const keyResp = await peer.fetch(`${app.baseUrl}/api/keys`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "batch-e2e" }),
+  });
+  const keyBody = keyResp.ok ? ((await keyResp.json()) as { key?: string }) : null;
+  if (!keyBody?.key) throw new Error(`Failed to create API key: ${keyResp.status}`);
+  batchApiKey = keyBody.key;
 });
 
 test.after(async () => {
@@ -346,8 +363,9 @@ test("batch E2E: upload file, create batch, verify rate-limit logs appear", asyn
   );
   formData.append("purpose", "batch");
 
-  const uploadResp = await fetch(`${app.baseUrl}/api/v1/files`, {
+  const uploadResp = await peer.fetch(`${app.baseUrl}/api/v1/files`, {
     method: "POST",
+    headers: { Authorization: `Bearer ${batchApiKey}` },
     body: formData,
   });
   assert.match(
@@ -360,9 +378,9 @@ test("batch E2E: upload file, create batch, verify rate-limit logs appear", asyn
   assert.ok(fileId, "file id missing from upload response");
 
   // 2. Create batch via HTTP POST
-  const batchResp = await fetch(`${app.baseUrl}/api/v1/batches`, {
+  const batchResp = await peer.fetch(`${app.baseUrl}/api/v1/batches`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${batchApiKey}` },
     body: JSON.stringify({
       input_file_id: fileId,
       endpoint: "/v1/embeddings",
@@ -381,7 +399,9 @@ test("batch E2E: upload file, create batch, verify rate-limit logs appear", asyn
   while (attempts < maxAttempts) {
     await sleep(2_000);
     attempts++;
-    const sr = await fetch(`${app.baseUrl}/api/v1/batches/${batchId}`);
+    const sr = await peer.fetch(`${app.baseUrl}/api/v1/batches/${batchId}`, {
+      headers: { Authorization: `Bearer ${batchApiKey}` },
+    });
     const text = await sr.text();
     let sb: BatchResponse;
     try {
@@ -433,7 +453,9 @@ test("batch E2E: upload file, create batch, verify rate-limit logs appear", asyn
   );
 
   // 5. Verify batch results
-  const finalResp = await fetch(`${app.baseUrl}/api/v1/batches/${batchId}`);
+  const finalResp = await peer.fetch(`${app.baseUrl}/api/v1/batches/${batchId}`, {
+    headers: { Authorization: `Bearer ${batchApiKey}` },
+  });
   const finalBody = await readJsonForTest<BatchResponse>(finalResp, "Final batch fetch", app);
   assert.equal(
     finalBody.request_counts?.completed,

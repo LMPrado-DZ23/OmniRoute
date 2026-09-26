@@ -692,6 +692,23 @@ jobs:
       # /api/monitoring/health 200). Downstream jobs (e2e ×9, package-artifact,
       # electron-package-smoke) consume this artifact, so a green run here validates
       # the Turbopack artifact end-to-end.
+      # A hosted 16 GB runner is shut down mid-build when Turbopack's native allocation peak (the
+      # comment above: 14-16 GB RSS) has nowhere to go — the job then reports its `npm run build` step
+      # as cancelled, on every full run of this branch. Heap flags cannot bound native memory (#6409);
+      # swap can. Same step as build.yml and the Release-Green sweep, whose `build:release` completed on
+      # a hosted runner once it had 10 GB. Best-effort: without swap the build simply runs as before.
+      - name: Expand virtual memory (10 GB swap)
+        if: ${{ vars.USE_VPS_RUNNER != 'true' }}
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          sudo swapoff -a || true
+          sudo rm -f /mnt/swapfile /swapfile
+          sudo fallocate -l 10G /mnt/swapfile || sudo dd if=/dev/zero of=/mnt/swapfile bs=1M count=10240
+          sudo chmod 600 /mnt/swapfile
+          sudo mkswap /mnt/swapfile
+          sudo swapon /mnt/swapfile
+          free -h
       - run: npm run build
         env:
           OMNIROUTE_USE_TURBOPACK: "1"
@@ -1324,6 +1341,18 @@ jobs:
             echo "[e2e-balance] balancer unavailable — plain --shard fallback"
             npx playwright test tests/e2e/*.spec.ts --shard="$SHARD"/9 --reporter=line,junit
           fi
+      # Playwright writes a screenshot, a trace-less DOM snapshot (error-context.md) and the video of
+      # every failed test into test-results/, and the shard used to throw all of it away: four e2e
+      # failures could only be described by their assertion message. Kept for a week, failures only.
+      - name: Upload Playwright failure artifacts
+        if: ${{ failure() }}
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: e2e-failures-${{ matrix.shard }}
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
       # WS5.2/5.3: Trunk Flaky Tests upload — advisory, own-origin only, SHA-pinned.
       - name: Upload test results to Trunk (advisory)
         if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}

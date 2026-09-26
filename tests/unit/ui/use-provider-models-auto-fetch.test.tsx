@@ -119,9 +119,13 @@ describe("useProviderModels upstream auto-fetch", () => {
     const mounted = await renderProviderModels();
     await flushQueuedSync();
 
-    expect(fetchMock).toHaveBeenCalledWith("/api/providers/connection-1/sync-models?mode=sync", {
-      method: "POST",
-    });
+    // The hook queues the sync in a timer; one 10 ms flush is not always enough under the full
+    // suite's workers, so wait for the call (same as the "inactive opt-outs" case below).
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith("/api/providers/connection-1/sync-models?mode=sync", {
+        method: "POST",
+      })
+    );
     mounted.unmount();
   });
 
@@ -182,9 +186,13 @@ describe("useProviderModels upstream auto-fetch", () => {
     const mounted = await renderProviderModels();
     await flushQueuedSync();
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/providers/connection-active/sync-models?mode=sync",
-      { method: "POST" }
+    // The sync is queued behind the connections fetch; on a loaded runner one flush was not always
+    // enough (it failed here in some runs and passed in others), so wait for the call.
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/providers/connection-active/sync-models?mode=sync",
+        { method: "POST" }
+      )
     );
     mounted.unmount();
 

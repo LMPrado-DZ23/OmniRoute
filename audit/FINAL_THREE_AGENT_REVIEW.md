@@ -135,6 +135,31 @@ com motivo e remédio, em vez de levar treze gates verdes e sete suítes verdes 
 linha exige `USE_VPS_RUNNER=true` com aquele runner ligado, e isso é decisão do dono. O melhor
 veredito honesto disponível hoje é "tudo verde, exceto o artefato de pacote, que não foi medido aqui".
 
+> **Correção (2026-09-25) — a seção acima afirma como fato algo que eu não tinha medido, e estava
+> errado.** Escrevi que _"o runner hospedado não comporta esta árvore"_ e que o remédio era um runner
+> self-hosted. Isso só se sustenta se um `next build` completo não fecha em `ubuntu-latest`, e ele fecha:
+>
+> - o job `Build shared Next standalone` do `electron-release.yml` roda `npm run build` em
+>   `ubuntu-latest` e **passou em 11m29s** na v3.8.55 (e na v3.8.54 no dia anterior);
+> - o `build.yml` disparado à mão na tag (run 36199521486) completou o `build:release` — Next, bundle da
+>   CLI e SHA — em **7m17s**, com 10 GB de swap e heap de 12 GB.
+>
+> Eu tinha a evidência contrária diante de mim: o comentário do `quality.yml` sobre o job `Build
+(advisory)` diz que o `build.yml` passou 24 de 25 execuções em ~15 min no `ubuntu-latest`. Li aquilo,
+> não o reconciliei com o cabeçalho do `build.yml` (que diz o oposto) e repeti a versão que já estava
+> documentada, em vez de medir. O quadro honesto é **OOM intermitente, não impossibilidade**.
+>
+> O que segue verdadeiro: não há runner self-hosted registrado (`total_count: 0`), então
+> `USE_VPS_RUNNER` é uma flag morta — o "remédio" que sugeri não existia. A causa do `exit 143` da
+> varredura continua **hipótese**: o job não provisionava swap, e o swap é o que absorve o pico nativo
+> do Turbopack (#6409). O workflow agora provisiona esse swap e só liga o gate de artefato se o
+> `swapon` de fato der certo; senão, registra o gate como não-medido com o motivo real. A próxima
+> varredura é o teste dessa hipótese.
+>
+> Metade do gate já era medida sem build algum: `check:pack-artifact --policy-only` (arquivos
+> inesperados, vazamento de testes, fechamento do MCP) roda em todo PR pela entrada `pack-policy` do
+> `fast-gates` e passa. Só os arquivos de runtime e a proveniência do build precisam de `dist/`.
+
 **B-H1 — PR de fork executava no runner LAN persistente do mantenedor.**
 `quality.yml:553` selecionava o pool `self-hosted` sem a cláusula de origem própria que `ci.yml:650`
 tem, rodando `npm ci` — sem `--ignore-scripts` — contra o lockfile do fork. Execução arbitrária de

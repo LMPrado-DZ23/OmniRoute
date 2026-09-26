@@ -8,12 +8,15 @@ import net from "node:net";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { MockUpstreamServer, buildCompletion } from "../e2e/helpers/mockUpstreamServer.ts";
+import { createLocalPeerStamp } from "../helpers/localPeerStamp.ts";
 
 // #5521 — E2E test for fingerprint-based combo expansion.
 // Seeds a mimocode connection with 3 fingerprints, creates a round-robin combo,
 // and verifies that requests route through the combo successfully.
 
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-fingerprint-e2e-"));
+// Anonymous /v1 needs a provable local peer; see tests/helpers/localPeerStamp.ts.
+const peer = createLocalPeerStamp();
 const DASHBOARD_PORT = await getFreePort();
 const REPO_ROOT = fileURLToPath(new URL("../..", import.meta.url));
 
@@ -65,6 +68,7 @@ function createServerProcess(dataDir: string, port: number) {
       API_PORT: String(port),
       HOST: "127.0.0.1",
       REQUIRE_API_KEY: "false",
+      ...peer.env,
       API_KEY_SECRET: process.env.API_KEY_SECRET || "fingerprint-e2e-secret",
       DISABLE_SQLITE_AUTO_BACKUP: "true",
       INITIAL_PASSWORD: "",
@@ -126,7 +130,7 @@ async function waitForServer(
       );
     }
     try {
-      const response = await fetch(`${baseUrl}/api/monitoring/health`, {
+      const response = await peer.fetch(`${baseUrl}/api/monitoring/health`, {
         signal: AbortSignal.timeout(5_000),
       });
       if (response.ok) return;
@@ -161,7 +165,7 @@ async function stopProcess(child: ReturnType<typeof spawn>) {
 }
 
 async function postChat(baseUrl: string, model: string, content: string) {
-  const response = await fetch(`${baseUrl}/api/v1/chat/completions`, {
+  const response = await peer.fetch(`${baseUrl}/api/v1/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

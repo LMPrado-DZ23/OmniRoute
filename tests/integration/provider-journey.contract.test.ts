@@ -119,6 +119,19 @@ async function fetchCatalog(
   return { status: response.status, models: asArray<CatalogModel>(body.data), body };
 }
 
+// GET /api/v1/models refreshes the AI Horde image catalog whenever `aihorde` is active, which it
+// is by default (a no-auth provider has no connection row to switch off) — a live request to
+// aihorde.net from this file, caught by tests/_setup/blockNetwork.ts. Inject an empty catalog, the
+// same way api-routes-critical.test.ts does; the route keeps the last good snapshot on any failure.
+const { aiHordeImageCatalog } = await import("@omniroute/open-sse/services/aihordeImageCatalog");
+aiHordeImageCatalog.setFetch(
+  async () =>
+    new Response(JSON.stringify([]), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    })
+);
+
 test.before(async () => {
   core.resetDbInstance();
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
@@ -143,7 +156,7 @@ test.describe("provider journey — in-process contract (#8330)", () => {
           name: CONFIGURED_NAME,
           prefix: CONFIGURED_PREFIX,
           apiType: "chat",
-          baseUrl: "https://proxy.journey.example.com/v1",
+          baseUrl: "https://proxy.journey.test/v1",
         },
       })
     );
@@ -416,7 +429,7 @@ test.describe("provider journey — live over-the-wire (opt-in, RUN_CONTRACT_INT
         name: CONFIGURED_NAME,
         prefix: `${CONFIGURED_PREFIX}-live`,
         apiType: "chat",
-        baseUrl: "https://proxy.journey.example.com/v1",
+        baseUrl: "https://proxy.journey.test/v1",
       },
     });
     assert.equal(status, 201, `create node failed: ${JSON.stringify(body)}`);

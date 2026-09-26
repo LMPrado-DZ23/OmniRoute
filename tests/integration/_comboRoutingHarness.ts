@@ -52,6 +52,18 @@ export type ResponseScript = (call: DispatchCall) => Response | undefined;
 export async function createComboRoutingHarness(prefix: string) {
   const base = await createChatPipelineHarness(prefix);
 
+  // A combo can leave upstream attempts running after its test has finished (hedged/speculative
+  // dispatch, the transparent early retry), and `base.resetStorage()` puts the REAL fetch back. The
+  // late attempt then reaches api.anthropic.com / generativelanguage.googleapis.com with a fake key —
+  // a live request from an offline suite that fails the whole file under the network guard
+  // (ordered.test.ts: 10 attempts across the strategy tests). Between tests, leave a fetch that
+  // refuses instead of the real one; every test installs its own recording fetch before it sends.
+  const quarantineFetch = (async () =>
+    new Response(JSON.stringify({ error: { message: "no upstream between tests" } }), {
+      status: 503,
+      headers: { "Content-Type": "application/json" },
+    })) as typeof fetch;
+
   // Records every upstream call in dispatch order.
   const calls: DispatchCall[] = [];
 
@@ -99,6 +111,19 @@ export async function createComboRoutingHarness(prefix: string) {
 
   return {
     ...base,
+    resetStorage: async () => {
+      // `base.resetStorage()` assigns the REAL fetch back first and then awaits, so a late attempt
+      // fired in that gap still reached the network (the run that added the quarantine above still
+      // reported "asynchronous activity after the test ended: TypeError: fetch failed"). Ignore that
+      // assignment while it runs, then leave the quarantine as a plain writable property.
+      const own = { configurable: true, enumerable: true } as const;
+      Object.defineProperty(globalThis, "fetch", { ...own, get: () => quarantineFetch, set: () => {} });
+      try {
+        await base.resetStorage();
+      } finally {
+        Object.defineProperty(globalThis, "fetch", { ...own, writable: true, value: quarantineFetch });
+      }
+    },
     calls,
     installRecordingFetch,
     failure,

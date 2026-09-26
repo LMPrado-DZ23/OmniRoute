@@ -844,9 +844,11 @@ test("absent, it records nothing at all", () => {
   assert.deepEqual(unmeasured(["--json", "--full-ci"]), []);
 });
 
-test("the sweep states pack-artifact as unmeasured on a hosted runner", async () => {
-  // The workflow half of the same contract: if the hosted branch ever stops saying so,
-  // the sweep would silently drop the artifact gate and still print a verdict.
+test("the sweep runs pack-artifact when swap is provisioned, else states it unmeasured", async () => {
+  // The workflow half of the same contract. Two ways to get this wrong, both silent: the
+  // fallback branch stops naming the gate (the sweep drops it and still prints a verdict),
+  // or the run condition stops being tied to a runner that can actually build (it dies at
+  // exit 143 and discards every gate that already passed, as both sweeps of 2026-09-20 did).
   const fs = await import("node:fs");
   const wf = fs.readFileSync(
     new URL("../../.github/workflows/nightly-release-green.yml", import.meta.url),
@@ -856,7 +858,110 @@ test("the sweep states pack-artifact as unmeasured on a hosted runner", async ()
   assert.match(wf, /--unmeasured=pack-boot:/);
   assert.match(
     wf,
-    /if \[ "\$\{USE_VPS_RUNNER:-\}" = "true" \]/,
-    "the artifact gate must run when a runner that fits the build is selected"
+    /if \[ "\$\{USE_VPS_RUNNER:-\}" = "true" \] \|\| \[ "\$\{SWAP_PROVISIONED:-\}" = "true" \]/,
+    "the artifact gate must run when a self-hosted runner is selected OR swap was provisioned"
+  );
+});
+
+test("the swap step marks itself provisioned only when swapon actually succeeded", async () => {
+  // `provisioned` is what turns the artifact gate on. If it were set before (or regardless of)
+  // swapon, a runner that could not provide swap would run the build anyway and be killed.
+  const fs = await import("node:fs");
+  const yaml = await import("yaml");
+  const wf = yaml.parse(
+    fs.readFileSync(
+      new URL("../../.github/workflows/nightly-release-green.yml", import.meta.url),
+      "utf8"
+    )
+  ) as {
+    jobs: Record<
+      string,
+      {
+        steps?: {
+          id?: string;
+          run?: string;
+          if?: string;
+          env?: Record<string, string>;
+          "continue-on-error"?: boolean;
+        }[];
+      }
+    >;
+  };
+  const steps = wf.jobs["release-green"]?.steps ?? [];
+  const swap = steps.find((s) => s.id === "swap");
+  assert.ok(swap?.run, "release-green must have a step with id `swap`");
+  const run = swap.run as string;
+
+  const swapon = run.indexOf("swapon /mnt/swapfile");
+  const provisioned = run.indexOf("provisioned=true");
+  assert.ok(swapon >= 0 && provisioned >= 0);
+  assert.ok(provisioned > swapon, "provisioned=true must come AFTER swapon");
+  assert.match(run, /if sudo swapon \/mnt\/swapfile; then[\s\S]*?echo "provisioned=true"/);
+  assert.equal(swap["continue-on-error"], true, "a runner without swap must not fail the sweep");
+  assert.match(String(swap.if), /USE_VPS_RUNNER != 'true'/, "self-hosted runners do not need it");
+
+  const validate = steps.find((s) => s.id === "validate");
+  assert.equal(
+    validate?.env?.SWAP_PROVISIONED,
+    "${{ steps.swap.outputs.provisioned }}",
+    "the validation step must read what the swap step actually reported"
+  );
+  const validateIdx = steps.findIndex((s) => s.id === "validate");
+  const swapIdx = steps.findIndex((s) => s.id === "swap");
+  assert.ok(swapIdx >= 0 && swapIdx < validateIdx, "swap must be provisioned BEFORE the gates run");
+});
+
+test("the sweep stamps its artifact and names the branch under test for the provenance guard", async () => {
+  // The first sweep that had swap finished its build (no more exit 143) and then failed
+  // "Build provenance check failed": check:pack-artifact's fallback runs `build:cli`, which never
+  // writes dist/BUILD_SHA, and the guard defaults to ancestry against origin/main, which a
+  // release/v* line is not an ancestor of. Both are the workflow's to provide, as ci.yml does.
+  const fs = await import("node:fs");
+  const yaml = await import("yaml");
+  const wf = yaml.parse(
+    fs.readFileSync(
+      new URL("../../.github/workflows/nightly-release-green.yml", import.meta.url),
+      "utf8"
+    )
+  ) as {
+    jobs: Record<
+      string,
+      { steps?: { id?: string; name?: string; run?: string; if?: string; env?: Record<string, string> }[] }
+    >;
+  };
+  const steps = wf.jobs["release-green"]?.steps ?? [];
+  const build = steps.find((s) => s.name === "Build the stamped release artifact");
+  assert.ok(build, "release-green must build a stamped artifact before the artifact gate");
+  assert.equal(build.run, "npm run build:release", "build:release is what writes dist/BUILD_SHA");
+  assert.match(String(build.if), /steps\.swap\.outputs\.provisioned == 'true'/);
+  assert.match(String(build.if), /USE_VPS_RUNNER == 'true'/);
+  assert.match(String(build.if), /github\.event_name != 'push'/, "--quick never runs the gate");
+
+  const buildIdx = steps.findIndex((s) => s.name === "Build the stamped release artifact");
+  const swapIdx = steps.findIndex((s) => s.id === "swap");
+  const validateIdx = steps.findIndex((s) => s.id === "validate");
+  assert.ok(swapIdx < buildIdx && buildIdx < validateIdx, "swap, then build, then the gates");
+
+  const validate = steps.find((s) => s.id === "validate");
+  assert.equal(
+    validate?.env?.OMNIROUTE_RELEASE_REF,
+    "origin/${{ steps.branch.outputs.target }}",
+    "the guard must check ancestry against the branch under test, not origin/main"
+  );
+});
+
+test("the workflow no longer asserts a hosted runner cannot build this tree", async () => {
+  // I wrote that, it was wrong, and it was never measured. The claim must not come back as
+  // a fact — it may be RETRACTED in a comment, but not asserted in a reason string that ends up
+  // in a release verdict.
+  const fs = await import("node:fs");
+  const wf = fs.readFileSync(
+    new URL("../../.github/workflows/nightly-release-green.yml", import.meta.url),
+    "utf8"
+  );
+  assert.doesNotMatch(
+    wf,
+    /--unmeasured=pack-artifact:a full next build does not fit the hosted runner/,
+    "the unmeasured reason must not assert an unmeasured impossibility"
   );
 });

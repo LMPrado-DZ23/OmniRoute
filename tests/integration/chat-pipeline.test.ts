@@ -1098,6 +1098,10 @@ test("chat pipeline converts Claude SSE streams into OpenAI SSE output", async (
 
 test("chat pipeline rejects invalid API keys and malformed JSON bodies", async () => {
   await seedConnection("openai", { apiKey: "sk-openai-invalid-key-path" });
+  // The asserted 401 is the UPSTREAM's answer to the seeded key (OpenAI's own wording, see the
+  // regex below). It used to come from a real api.openai.com call; the network guard blocks that.
+  const body401 = { error: { message: "Incorrect API key provided", code: "invalid_api_key" } };
+  globalThis.fetch = async () => new Response(JSON.stringify(body401), { status: 401 });
 
   const invalidKeyResponse = await handleChat(
     buildRequest({

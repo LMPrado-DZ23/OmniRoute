@@ -18,7 +18,7 @@
 //   node scripts/check/check-open-sse-typecheck.mjs
 //   node scripts/check/check-open-sse-typecheck.mjs --update   # re-freeze baseline
 
-import { execFileSync } from "node:child_process";
+import { runBuildTool } from "../build/buildToolRunner.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -33,9 +33,13 @@ const UPDATE = process.argv.includes("--update");
 
 function runTsc() {
   try {
-    const stdout = execFileSync(
-      process.platform === "win32" ? "npx.cmd" : "npx",
-      ["tsc", "--pretty", "false", "--noEmit", "-p", TSCONFIG],
+    // Through the shared runner, never `npx.cmd`: since CVE-2024-27980 Node >= 20 refuses to
+    // spawn a `.cmd` without a shell (EINVAL), which made this gate crash — not skip — on
+    // Windows. The runner executes typescript's own JS entry with this Node binary.
+    const stdout = runBuildTool(
+      "typescript",
+      "tsc",
+      ["--pretty", "false", "--noEmit", "-p", TSCONFIG],
       { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, cwd: ROOT }
     );
     return stdout;

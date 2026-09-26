@@ -138,12 +138,18 @@ test.describe("Radar guided setup", () => {
     const connectionId = created.connection?.id;
     expect(connectionId).toBeTruthy();
 
-    const importDialog = page.getByRole("dialog").last();
-    const closeImportButton = importDialog.getByRole("button", { name: "Close" }).last();
-    await expect(closeImportButton).toBeVisible({
-      timeout: NAVIGATION_TIMEOUT_MS,
-    });
-    await closeImportButton.click();
+    // The model-import modal is transient: after a save it may open and then close by itself once its
+    // import phase is done, or not open at all (auto-fetch is opt-in, #11805/#12098). Waiting for it
+    // to be visible and clicking afterwards raced that — the run-36226369869 failure is a click that
+    // waited out the 180 s test timeout for a button that had already gone. Try to dismiss it with a
+    // short timeout and carry on either way.
+    await page
+      .getByRole("dialog")
+      .last()
+      .getByRole("button", { name: "Close" })
+      .last()
+      .click({ timeout: 5_000 })
+      .catch(() => undefined);
 
     await page.goto("/dashboard/radar/setup?provider=groq", {
       waitUntil: "commit",

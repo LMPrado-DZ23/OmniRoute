@@ -11,6 +11,10 @@ import React from "react";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+
+// axe over a whole page routinely takes more than the 5 s default on a hosted runner (the run-36230905592
+// failure is a bare "Test timed out in 5000ms"), which says nothing about the page.
+vi.setConfig({ testTimeout: 30_000 });
 import axe from "axe-core";
 
 import { WorkspacesPageClient } from "@/app/(dashboard)/dashboard/costs/workspaces/WorkspacesPageClient";
