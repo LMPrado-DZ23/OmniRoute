@@ -52,19 +52,17 @@ export type ResponseScript = (call: DispatchCall) => Response | undefined;
 export async function createComboRoutingHarness(prefix: string) {
   const base = await createChatPipelineHarness(prefix);
 
-  // Quota-aware strategies (and the exhaustion cutoff every strategy runs) ask the provider's real
-  // usage endpoint for the seeded connection's quota — api.anthropic.com,
-  // generativelanguage.googleapis.com, ... — through undici directly, so the recording fetch below
-  // never sees it. In an offline suite that is a live request with a fake key, and the network
-  // guard fails the whole file for it (ordered.test.ts, 10 attempts). "No quota data" is what a
-  // seeded fake connection has anyway, and it is what the fetcher already returns when the call
-  // fails. Tests that assert on quota register their own fetchers after this.
-  const { registerQuotaFetcher } = await import("../../open-sse/services/quotaPreflight.ts");
-  const noQuota = async () => null;
-  const stubQuotaFetchers = () => {
-    for (const provider of ["openai", "claude", "gemini"]) registerQuotaFetcher(provider, noQuota);
-  };
-  stubQuotaFetchers();
+  // A combo can leave upstream attempts running after its test has finished (hedged/speculative
+  // dispatch, the transparent early retry), and `base.resetStorage()` puts the REAL fetch back. The
+  // late attempt then reaches api.anthropic.com / generativelanguage.googleapis.com with a fake key —
+  // a live request from an offline suite that fails the whole file under the network guard
+  // (ordered.test.ts: 10 attempts across the strategy tests). Between tests, leave a fetch that
+  // refuses instead of the real one; every test installs its own recording fetch before it sends.
+  const quarantineFetch = (async () =>
+    new Response(JSON.stringify({ error: { message: "no upstream between tests" } }), {
+      status: 503,
+      headers: { "Content-Type": "application/json" },
+    })) as typeof fetch;
 
   // Records every upstream call in dispatch order.
   const calls: DispatchCall[] = [];
@@ -113,10 +111,9 @@ export async function createComboRoutingHarness(prefix: string) {
 
   return {
     ...base,
-    // The real fetchers can be (re)registered by lazily imported modules; put the stubs back.
     resetStorage: async () => {
       await base.resetStorage();
-      stubQuotaFetchers();
+      globalThis.fetch = quarantineFetch;
     },
     calls,
     installRecordingFetch,
