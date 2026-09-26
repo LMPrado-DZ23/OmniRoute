@@ -1036,6 +1036,10 @@ test.describe("API keys flow", () => {
     expect(denyAllPatch.modelAccessMode).toBe("restricted");
     expect(denyAllPatch.allowedModels).toEqual([]);
 
+    // Let the dialog finish closing before clicking again, as the first reopen above does. The forced
+    // click landed while it was still on screen, was swallowed by it, and no dialog ever reopened
+    // (the CI screenshot shows the row already at "0 selected" with the button merely hovered).
+    await expect(reopened).not.toBeVisible({ timeout: UI_STABILITY_TIMEOUT_MS });
     await keyRow.locator('button[title="Edit permissions"]').click({ force: true });
     const denyAllReopened = page.getByRole("dialog", {
       name: /permissions: provider scope key/i,
