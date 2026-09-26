@@ -473,7 +473,10 @@ test.describe("Combos flow", () => {
       {
         kind: "model",
         providerId: "codex",
-        model: "codex/gpt-5.5",
+        // #11433: the prefix the user typed ("cx") is kept as the routing prefix; only providerId is
+        // resolved to the canonical id. This expected the canonical "codex/gpt-5.5" and had been
+        // failing since that change.
+        model: "cx/gpt-5.5",
         weight: 0,
       },
       {

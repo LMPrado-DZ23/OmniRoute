@@ -284,6 +284,10 @@ async function removeDirWithRetry(dir: string) {
 /* ---------- Test ---------- */
 const relay = createFakeEmbeddingRelay();
 let app: ReturnType<typeof createServerProcess>;
+// The batch processor calls this server's own /v1 endpoint from inside it, with the API key stored on
+// the batch. `next dev` stamps no peer, so an anonymous internal call is refused (AUTH_002) and the
+// items never reach the relay — no rate-limit headers, one "no headers" throttle log instead of two.
+let batchApiKey = "";
 const RELAY_BASE = `http://127.0.0.1:${RELAY_PORT}`;
 
 test.before(async () => {
@@ -311,6 +315,15 @@ test.before(async () => {
       `Failed to create provider node: ${nodeResp.status} ${JSON.stringify(nodeBody)}`
     );
   }
+
+  const keyResp = await peer.fetch(`${app.baseUrl}/api/keys`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "batch-e2e" }),
+  });
+  const keyBody = keyResp.ok ? ((await keyResp.json()) as { key?: string }) : null;
+  if (!keyBody?.key) throw new Error(`Failed to create API key: ${keyResp.status}`);
+  batchApiKey = keyBody.key;
 });
 
 test.after(async () => {
@@ -352,6 +365,7 @@ test("batch E2E: upload file, create batch, verify rate-limit logs appear", asyn
 
   const uploadResp = await peer.fetch(`${app.baseUrl}/api/v1/files`, {
     method: "POST",
+    headers: { Authorization: `Bearer ${batchApiKey}` },
     body: formData,
   });
   assert.match(
@@ -366,7 +380,7 @@ test("batch E2E: upload file, create batch, verify rate-limit logs appear", asyn
   // 2. Create batch via HTTP POST
   const batchResp = await peer.fetch(`${app.baseUrl}/api/v1/batches`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${batchApiKey}` },
     body: JSON.stringify({
       input_file_id: fileId,
       endpoint: "/v1/embeddings",
