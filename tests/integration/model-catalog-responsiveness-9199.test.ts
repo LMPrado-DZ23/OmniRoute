@@ -24,6 +24,19 @@ async function resetStorage() {
   modelsCatalog.__resetCatalogBuilderRunsForTest();
 }
 
+// GET /api/v1/models refreshes the AI Horde image catalog whenever `aihorde` is active, which it
+// is by default (a no-auth provider has no connection row to switch off) — a live request to
+// aihorde.net from this file, caught by tests/_setup/blockNetwork.ts. Inject an empty catalog, the
+// same way api-routes-critical.test.ts does; the route keeps the last good snapshot on any failure.
+const { aiHordeImageCatalog } = await import("@omniroute/open-sse/services/aihordeImageCatalog");
+aiHordeImageCatalog.setFetch(
+  async () =>
+    new Response(JSON.stringify([]), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    })
+);
+
 test.beforeEach(async () => {
   await resetStorage();
 });

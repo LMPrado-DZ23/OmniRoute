@@ -8,8 +8,11 @@ import http from "node:http";
 import net from "node:net";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { createLocalPeerStamp } from "../helpers/localPeerStamp.ts";
 
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-resilience-http-e2e-"));
+// Anonymous /v1 needs a provable local peer; see tests/helpers/localPeerStamp.ts.
+const peer = createLocalPeerStamp();
 const DASHBOARD_PORT = await getFreePort();
 const REPO_ROOT = fileURLToPath(new URL("../..", import.meta.url));
 
@@ -194,6 +197,7 @@ function createServerProcess(dataDir: string, port: number) {
       API_PORT: String(port),
       HOST: "127.0.0.1",
       REQUIRE_API_KEY: "false",
+      ...peer.env,
       API_KEY_SECRET: process.env.API_KEY_SECRET || "resilience-http-e2e-secret-123456",
       DISABLE_SQLITE_AUTO_BACKUP: "true",
       INITIAL_PASSWORD: "",
@@ -256,7 +260,7 @@ async function waitForServer(
     }
 
     try {
-      const response = await fetch(`${baseUrl}/api/monitoring/health`, {
+      const response = await peer.fetch(`${baseUrl}/api/monitoring/health`, {
         signal: AbortSignal.timeout(5_000),
       });
       if (response.ok) return;
@@ -403,7 +407,7 @@ function buildResilienceConfig(overrides: Record<string, unknown> = {}) {
 }
 
 async function patchResilience(baseUrl: string, config: Record<string, unknown>) {
-  const response = await fetch(`${baseUrl}/api/resilience`, {
+  const response = await peer.fetch(`${baseUrl}/api/resilience`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(config),
@@ -415,13 +419,13 @@ async function patchResilience(baseUrl: string, config: Record<string, unknown>)
 }
 
 async function getJson(url: string) {
-  const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+  const response = await peer.fetch(url, { signal: AbortSignal.timeout(10_000) });
   const json = (await response.json()) as any;
   return { response, json };
 }
 
 async function postChat(baseUrl: string, model: string, content: string) {
-  const response = await fetch(`${baseUrl}/api/v1/chat/completions`, {
+  const response = await peer.fetch(`${baseUrl}/api/v1/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

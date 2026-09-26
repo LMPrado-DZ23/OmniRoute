@@ -56,7 +56,7 @@ test("priority combo walks a 3-target chain: 500 → 503 → success", async () 
     config: { maxRetries: 0, retryDelayMs: 0, fallbackDelayMs: 0 },
     models: [
       "openai/gpt-4o-mini",
-      "claude/claude-3-5-sonnet-20241022",
+      "claude/claude-sonnet-4-6",
       "gemini/gemini-2.5-flash",
     ],
   });
@@ -98,9 +98,12 @@ test("priority combo fails over when the first target exceeds its per-target tim
   await combosDb.createCombo({
     name: "router-timeout",
     strategy: "priority",
-    // 80ms per-target ceiling; the first target hangs past it and is aborted.
-    config: { maxRetries: 0, retryDelayMs: 0, fallbackDelayMs: 0, targetTimeoutMs: 80 },
-    models: ["openai/gpt-4o-mini", "claude/claude-3-5-sonnet-20241022"],
+    // The ceiling covers the whole target attempt, including the request setup that runs before the
+    // upstream fetch. At 80ms the first target timed out before the stub below was ever called, so
+    // "openai" was never recorded and the test asserted a timeout that had not happened where it
+    // claimed. 1s leaves the hang well past setup and still aborts it quickly.
+    config: { maxRetries: 0, retryDelayMs: 0, fallbackDelayMs: 0, targetTimeoutMs: 1000 },
+    models: ["openai/gpt-4o-mini", "claude/claude-sonnet-4-6"],
   });
 
   const attempts: string[] = [];
@@ -139,7 +142,7 @@ test("auto combo selects and dispatches a scored candidate end-to-end", async ()
     name: "router-auto",
     strategy: "auto",
     config: { maxRetries: 0, retryDelayMs: 0 },
-    models: ["openai/gpt-4o-mini", "claude/claude-3-5-sonnet-20241022"],
+    models: ["openai/gpt-4o-mini", "claude/claude-sonnet-4-6"],
   });
 
   const seen: string[] = [];
