@@ -399,7 +399,9 @@ test("batch E2E: upload file, create batch, verify rate-limit logs appear", asyn
   while (attempts < maxAttempts) {
     await sleep(2_000);
     attempts++;
-    const sr = await peer.fetch(`${app.baseUrl}/api/v1/batches/${batchId}`);
+    const sr = await peer.fetch(`${app.baseUrl}/api/v1/batches/${batchId}`, {
+      headers: { Authorization: `Bearer ${batchApiKey}` },
+    });
     const text = await sr.text();
     let sb: BatchResponse;
     try {
@@ -451,7 +453,9 @@ test("batch E2E: upload file, create batch, verify rate-limit logs appear", asyn
   );
 
   // 5. Verify batch results
-  const finalResp = await peer.fetch(`${app.baseUrl}/api/v1/batches/${batchId}`);
+  const finalResp = await peer.fetch(`${app.baseUrl}/api/v1/batches/${batchId}`, {
+    headers: { Authorization: `Bearer ${batchApiKey}` },
+  });
   const finalBody = await readJsonForTest<BatchResponse>(finalResp, "Final batch fetch", app);
   assert.equal(
     finalBody.request_counts?.completed,
