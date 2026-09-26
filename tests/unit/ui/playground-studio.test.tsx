@@ -145,7 +145,11 @@ describe("PlaygroundStudio", () => {
       .IS_REACT_ACT_ENVIRONMENT = true;
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    // The Build tab lazy-loads its hooks; a test that ends before that import resolves would
+    // otherwise let it land after the environment is torn down (EnvironmentTeardownError, seen as
+    // an unhandled rejection that fails the whole vitest job although every test passed).
+    await vi.dynamicImportSettled();
     for (const { root, el } of containers.splice(0)) {
       act(() => root.unmount());
       el.remove();
@@ -268,7 +272,11 @@ describe("PlaygroundStudio", () => {
 });
 
 describe("PlaygroundStudio — deep-link ?tab=chat", () => {
-  afterEach(() => {
+  afterEach(async () => {
+    // The Build tab lazy-loads its hooks; a test that ends before that import resolves would
+    // otherwise let it land after the environment is torn down (EnvironmentTeardownError, seen as
+    // an unhandled rejection that fails the whole vitest job although every test passed).
+    await vi.dynamicImportSettled();
     for (const { root, el } of containers.splice(0)) {
       act(() => root.unmount());
       el.remove();

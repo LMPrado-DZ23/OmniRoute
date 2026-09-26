@@ -112,8 +112,17 @@ export async function createComboRoutingHarness(prefix: string) {
   return {
     ...base,
     resetStorage: async () => {
-      await base.resetStorage();
-      globalThis.fetch = quarantineFetch;
+      // `base.resetStorage()` assigns the REAL fetch back first and then awaits, so a late attempt
+      // fired in that gap still reached the network (the run that added the quarantine above still
+      // reported "asynchronous activity after the test ended: TypeError: fetch failed"). Ignore that
+      // assignment while it runs, then leave the quarantine as a plain writable property.
+      const own = { configurable: true, enumerable: true } as const;
+      Object.defineProperty(globalThis, "fetch", { ...own, get: () => quarantineFetch, set: () => {} });
+      try {
+        await base.resetStorage();
+      } finally {
+        Object.defineProperty(globalThis, "fetch", { ...own, writable: true, value: quarantineFetch });
+      }
     },
     calls,
     installRecordingFetch,
