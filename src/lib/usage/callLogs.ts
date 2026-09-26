@@ -445,6 +445,25 @@ function getLegacyInlineDetail(id: string) {
   };
 }
 
+/**
+ * The id a new call_logs row may use. `trackPendingRequest` deliberately hands every target
+ * attempt of ONE client request the same pending id (so a dashboard tab's live poll survives a
+ * combo fallback), and the attempt logger uses that id as the row's primary key. Without this the
+ * second attempt of any fallback — the one that actually answered the client — hit
+ * `UNIQUE constraint failed: call_logs.id`, was dropped with a console error, and left only the
+ * failed attempt in the log. The first row keeps the plain id; later attempts get `~2`, `~3`, ….
+ */
+function resolveFreeCallLogId(id: string): string {
+  const db = getDbInstance();
+  const taken = db.prepare("SELECT 1 FROM call_logs WHERE id = ? LIMIT 1");
+  if (!taken.get(id)) return id;
+  for (let attempt = 2; attempt < 100; attempt += 1) {
+    const candidate = `${id}~${attempt}`;
+    if (!taken.get(candidate)) return candidate;
+  }
+  return `${id}~${generateLogId()}`;
+}
+
 async function saveCallLogOperation(entry: any): Promise<void> {
   // Relative path of the artifact this save wrote, if any — the call_logs row is that
   // file's only reference, so a failed INSERT must take the file with it (R-2).
@@ -488,7 +507,10 @@ async function saveCallLogOperation(entry: any): Promise<void> {
     const reasoningObservation = resolveReasoningObservation(tokensReasoning, entry.responseBody);
     const errorType = classifyCallLogError(entry.status, entry.error, entry.provider);
     const logEntry = {
-      id: typeof entry.id === "string" && entry.id.length > 0 ? entry.id : generateLogId(),
+      id:
+        typeof entry.id === "string" && entry.id.length > 0
+          ? resolveFreeCallLogId(entry.id)
+          : generateLogId(),
       timestamp: typeof entry.timestamp === "string" ? entry.timestamp : new Date().toISOString(),
       method: entry.method || "POST",
       path: entry.path || "/v1/chat/completions",

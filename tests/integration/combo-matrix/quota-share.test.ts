@@ -101,6 +101,10 @@ test("DRR fairness: 2 equal-weight connections alternate across 6 requests throu
         providerId: "openai",
         model: "gpt-4o-mini",
         connectionId: openaiConn.id,
+        // Explicit: an unset step weight resolves to 0 (comboStructure), and DRR treats a zero
+        // total weight as "nothing to distribute" and keeps definition order — which is what this
+        // test saw, six times openai. The engineered state above says weight 100 each.
+        weight: 100,
       },
       // gemini SECOND in definition — DRR must pick it on alternate rounds
       {
@@ -109,6 +113,7 @@ test("DRR fairness: 2 equal-weight connections alternate across 6 requests throu
         providerId: "gemini",
         model: "gemini-2.5-flash",
         connectionId: geminiConn.id,
+        weight: 100,
       },
     ],
   });
