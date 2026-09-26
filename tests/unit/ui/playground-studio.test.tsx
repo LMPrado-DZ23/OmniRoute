@@ -4,6 +4,10 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+// jsdom has no scrollIntoView. Once the tabs are allowed to finish loading (see the afterEach below),
+// ChatTab's scroll-to-bottom effect runs and would throw without it.
+Element.prototype.scrollIntoView = vi.fn();
+
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
 vi.mock("next-intl", () => ({
