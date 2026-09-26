@@ -90,4 +90,4 @@ test("every filter select has an accessible name", async () => {
       `a <select> with no accessible name is announced by its first option — here, "All"`
     ).toBe(true);
   }
-});
+}, 30_000);

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { makeManagementSessionRequest } from "../helpers/managementSession.ts";
 
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "omniroute-memory-category-"));
 process.env.DATA_DIR = TEST_DATA_DIR;
@@ -55,7 +56,9 @@ function insertMemoryRow({
 }
 
 async function getMemories(query = "") {
-  const response = await GET(new Request(`http://localhost/api/memory${query}`));
+  // A management session, not a bare Request: `ci.yml`'s integration job sets INITIAL_PASSWORD, so
+  // /api/memory answers 401 to an anonymous caller there (it passed only where no password was set).
+  const response = await GET(await makeManagementSessionRequest(`http://localhost/api/memory${query}`));
   assert.equal(response.status, 200);
   return response.json();
 }

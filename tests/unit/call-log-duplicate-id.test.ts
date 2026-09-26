@@ -64,3 +64,30 @@ test("a fresh id is kept verbatim", async () => {
     .get() as { id: string } | undefined;
   assert.equal(row?.id, "req-unique-1");
 });
+
+// The attempts of a combo are saved concurrently, and each save awaits between choosing its id and
+// inserting. Checking the table alone is a check-then-act race; this is the shape that still lost
+// the row in CI after the sequential case above was fixed.
+test("concurrent saves that share a request id all persist", async () => {
+  const base = {
+    id: "req-shared-concurrent",
+    method: "POST",
+    path: "/v1/chat/completions",
+    model: "gpt-4o-mini",
+    provider: "openai",
+  };
+  await Promise.all([
+    callLogs.saveCallLog({ ...base, status: 503 }),
+    callLogs.saveCallLog({ ...base, status: 200 }),
+    callLogs.saveCallLog({ ...base, status: 200 }),
+  ]);
+
+  const rows = core
+    .getDbInstance()
+    .prepare("SELECT id FROM call_logs WHERE id LIKE 'req-shared-concurrent%' ORDER BY id")
+    .all() as { id: string }[];
+  assert.deepEqual(
+    rows.map((row) => row.id),
+    ["req-shared-concurrent", "req-shared-concurrent~2", "req-shared-concurrent~3"]
+  );
+});

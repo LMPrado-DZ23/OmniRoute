@@ -446,28 +446,39 @@ function getLegacyInlineDetail(id: string) {
 }
 
 /**
+ * Ids claimed by saves that have not finished inserting yet. A save awaits (account lookup,
+ * artifact write) between choosing its id and running the INSERT, and a combo's attempts are
+ * saved concurrently — so "is this id free in the table?" alone is a check-then-act race: both
+ * attempts see it free and the second INSERT still hits the UNIQUE constraint. JS is single
+ * threaded, so claiming synchronously here makes the choice atomic.
+ */
+const claimedCallLogIds = new Set<string>();
+
+/**
  * The id a new call_logs row may use. `trackPendingRequest` deliberately hands every target
  * attempt of ONE client request the same pending id (so a dashboard tab's live poll survives a
  * combo fallback), and the attempt logger uses that id as the row's primary key. Without this the
  * second attempt of any fallback — the one that actually answered the client — hit
  * `UNIQUE constraint failed: call_logs.id`, was dropped with a console error, and left only the
  * failed attempt in the log. The first row keeps the plain id; later attempts get `~2`, `~3`, ….
+ * The caller must release the claim (`claimedCallLogIds.delete`) once its INSERT has settled.
  */
-function resolveFreeCallLogId(id: string): string {
-  const db = getDbInstance();
-  const taken = db.prepare("SELECT 1 FROM call_logs WHERE id = ? LIMIT 1");
-  if (!taken.get(id)) return id;
-  for (let attempt = 2; attempt < 100; attempt += 1) {
-    const candidate = `${id}~${attempt}`;
-    if (!taken.get(candidate)) return candidate;
+function claimFreeCallLogId(id: string): string {
+  const taken = getDbInstance().prepare("SELECT 1 FROM call_logs WHERE id = ? LIMIT 1");
+  const free = (candidate: string) => !claimedCallLogIds.has(candidate) && !taken.get(candidate);
+  let chosen = id;
+  for (let attempt = 2; !free(chosen); attempt += 1) {
+    chosen = attempt < 1000 ? `${id}~${attempt}` : `${id}~${generateLogId()}`;
   }
-  return `${id}~${generateLogId()}`;
+  claimedCallLogIds.add(chosen);
+  return chosen;
 }
 
 async function saveCallLogOperation(entry: any): Promise<void> {
   // Relative path of the artifact this save wrote, if any — the call_logs row is that
   // file's only reference, so a failed INSERT must take the file with it (R-2).
   let writtenArtifactRelPath: string | null = null;
+  let claimedId: string | null = null;
   try {
     const apiKeyContext = getCallLogApiKeyContext();
     // `||` (not `??`): an empty-string apiKeyId/apiKeyName is "unattributed",
@@ -507,10 +518,10 @@ async function saveCallLogOperation(entry: any): Promise<void> {
     const reasoningObservation = resolveReasoningObservation(tokensReasoning, entry.responseBody);
     const errorType = classifyCallLogError(entry.status, entry.error, entry.provider);
     const logEntry = {
-      id:
+      id: (claimedId =
         typeof entry.id === "string" && entry.id.length > 0
-          ? resolveFreeCallLogId(entry.id)
-          : generateLogId(),
+          ? claimFreeCallLogId(entry.id)
+          : generateLogId()),
       timestamp: typeof entry.timestamp === "string" ? entry.timestamp : new Date().toISOString(),
       method: entry.method || "POST",
       path: entry.path || "/v1/chat/completions",
@@ -641,6 +652,8 @@ async function saveCallLogOperation(entry: any): Promise<void> {
     // instead: without the row the file is unreachable by every detail/export/purge
     // path, so it would otherwise accumulate in DATA_DIR/call_logs forever.
     if (writtenArtifactRelPath) deleteCallArtifact(writtenArtifactRelPath);
+  } finally {
+    if (claimedId) claimedCallLogIds.delete(claimedId);
   }
 }
 
