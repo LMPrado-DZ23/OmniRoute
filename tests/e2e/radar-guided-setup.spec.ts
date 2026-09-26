@@ -138,12 +138,22 @@ test.describe("Radar guided setup", () => {
     const connectionId = created.connection?.id;
     expect(connectionId).toBeTruthy();
 
-    const importDialog = page.getByRole("dialog").last();
-    const closeImportButton = importDialog.getByRole("button", { name: "Close" }).last();
-    await expect(closeImportButton).toBeVisible({
-      timeout: NAVIGATION_TIMEOUT_MS,
-    });
-    await closeImportButton.click();
+    // The model-import modal no longer opens by itself after a save (auto-fetch is opt-in,
+    // #11805/#12098; the CI screenshot shows the connection list straight away). Dismiss it if it
+    // does appear, but do not wait out the whole navigation timeout for it.
+    const closeImportButton = page
+      .getByRole("dialog")
+      .last()
+      .getByRole("button", { name: "Close" })
+      .last();
+    if (
+      await closeImportButton.waitFor({ state: "visible", timeout: 3_000 }).then(
+        () => true,
+        () => false
+      )
+    ) {
+      await closeImportButton.click();
+    }
 
     await page.goto("/dashboard/radar/setup?provider=groq", {
       waitUntil: "commit",
